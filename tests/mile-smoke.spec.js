@@ -81,6 +81,20 @@ test('sign-in screen renders and validates required fields', async ({ page }) =>
   await expect(page.locator('#v4Error')).toHaveText('Enter your email and password.');
 });
 
+test('mobile sign-in stays within the viewport', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'Mobile layout regression');
+  await openApp(page);
+  const gate = page.locator('#v4Gate');
+  await expect(gate).toBeVisible();
+  const dimensions = await gate.evaluate(el => ({
+    contentWidth: el.scrollWidth,
+    viewportWidth: document.documentElement.clientWidth,
+    gateWidth: el.getBoundingClientRect().width,
+  }));
+  expect(dimensions.gateWidth).toBeLessThanOrEqual(dimensions.viewportWidth + 1);
+  expect(dimensions.contentWidth).toBeLessThanOrEqual(dimensions.viewportWidth + 1);
+});
+
 test('real Activity Details shows recorded laps and in-bounds charts and closes via Back', async ({ page, isMobile }, info) => {
   await openApp(page, { signedIn: true });
   const detail = await openActivity(page);
