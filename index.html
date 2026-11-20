@@ -3699,28 +3699,60 @@ html[data-m395-theme] .mile-ui-dashboard .mile-ui-training > .mile-ui-section > 
 .m396-share-actions button{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:11px 14px;border-radius:10px;cursor:pointer}
 .m396-share-actions button:last-child{background:var(--orange);color:var(--bg);font-weight:850}
 @media(max-width:500px){.m396-post .m396-metrics .m388-metrics{grid-template-columns:repeat(3,minmax(0,1fr))!important}.m396-post .m396-metrics .m388-metrics>div{min-width:0!important;padding:9px 5px!important}.m396-post .m396-metrics .m388-metrics b{font-size:14px!important}}
+</style><style id="mile-v3941-share-styles">
+.m396-share-panel{width:min(96vw,520px)!important}.mile-card-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;scrollbar-width:none;touch-action:pan-x;padding:8px 0}.mile-card-track::-webkit-scrollbar{display:none}.mile-card-choice{flex:0 0 100%;scroll-snap-align:center}.mile-card-art{aspect-ratio:4/5;width:100%;border-radius:15px;box-sizing:border-box;padding:9%;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;font-family:Arial,sans-serif}.mile-card-art.light{background:#e8e8e4;color:#141614}.mile-card-art.dark{background:#1c2023;color:#f8faf8}.mile-card-logo{font-size:clamp(36px,9vw,62px);font-style:italic;font-weight:950;letter-spacing:-4px}.mile-card-rule{height:6px;background:currentColor;width:55%;margin-top:20px}.mile-card-eyebrow{font-size:11px;letter-spacing:3px;font-weight:850}.mile-card-title{font-size:clamp(11px,3vw,16px);font-weight:800;letter-spacing:2px;text-transform:uppercase;overflow-wrap:anywhere}.mile-card-distance{font-size:clamp(58px,16vw,102px);font-weight:950;letter-spacing:-6px;line-height:1.04}.mile-card-sub{font-size:12px;font-weight:800;letter-spacing:1px}.mile-card-footer{border-top:1px solid currentColor;padding-top:14px;display:flex;justify-content:space-between;gap:10px;font-size:10px;font-weight:850;letter-spacing:1px}.mile-card-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}.mile-card-metric{border-top:1px solid #8886;padding-top:9px}.mile-card-metric b{display:block;font-size:clamp(19px,6vw,30px)}.mile-card-metric small{font-size:10px;letter-spacing:1px}.mile-card-lime{color:#b7f778}.mile-card-graph{height:55px;width:100%;display:block}.mile-card-dots{text-align:center;margin:8px 0;font-size:13px;letter-spacing:8px;color:var(--muted)}.mile-card-choice-label{text-align:center;font-size:13px;margin-top:7px;font-weight:800}
 </style><script id="mile-v396-share-workflow">
 (function(){'use strict';
-function escapeText(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function duration(s){s=Number(s)||0;return Math.floor(s/3600)+'h '+String(Math.floor(s%3600/60)).padStart(2,'0')+'m'}
+const names=['Editorial','Performance','Editorial Pro','Performance Pro'];
 function close(){document.getElementById('m396-share-overlay')?.remove()}
-document.addEventListener('click',function(ev){const btn=ev.target.closest('[data-m396-share]');if(!btn)return;ev.preventDefault();ev.stopPropagation();const p=(window.m398SocialPosts||[]).find(x=>String(x.id)===String(btn.dataset.m396Share));if(!p)return;close();const title=String(p.title||'Workout'),km=Number(p.distance_m||0)/1000,seconds=Number(p.duration_s||0),pace=km>0?Math.floor(seconds/km/60)+':'+String(Math.floor(seconds/km%60)).padStart(2,'0')+' /km':'—';const wrap=document.createElement('div');wrap.id='m396-share-overlay';wrap.className='m396-share-overlay';wrap.innerHTML='<div class="m396-share-panel" role="dialog" aria-modal="true" aria-label="Share Activity"><div class="row between"><h2>Share Activity</h2><button type="button" class="btn alt" data-m396-close aria-label="Close">×</button></div><p class="muted small">Create an image for sharing outside MILE. This does not publish another post.</p><div class="m396-share-preview"><div><small>MAKE IT LOOK EASY.</small><br><strong>MILE<em>.</em></strong></div><div><p class="m396-share-title"></p><div class="m396-big"></div><div class="m396-time"></div></div><div style="border-top:3px solid var(--orange);padding-top:10px">MILE TRAINING</div></div><div class="m396-share-actions"><button type="button" data-m396-close>Close</button><button type="button" data-m396-export>Save Image</button></div></div>';wrap.querySelector('.m396-share-title').textContent=title;wrap.querySelector('.m396-big').textContent=km.toFixed(2)+' KM';wrap.querySelector('.m396-time').textContent=duration(seconds)+' · '+pace;document.body.append(wrap);wrap.addEventListener('click',e=>{if(e.target===wrap||e.target.closest('[data-m396-close]'))close();if(!e.target.closest('[data-m396-export]'))return;const c=document.createElement('canvas');c.width=1000;c.height=1000;const x=c.getContext('2d');x.fillStyle='#202428';x.fillRect(0,0,1000,1000);x.fillStyle='#ff914f';x.fillRect(60,835,880,7);x.fillStyle='#fff';x.font='italic bold 105px Arial';x.fillText('MILE.',60,175);x.font='bold 40px Arial';let label=title;if(label.length>34)label=label.slice(0,33)+'…';x.fillText(label,60,460);x.font='bold 92px Arial';x.fillText(km.toFixed(2)+' KM',60,600);x.font='bold 42px Arial';x.fillText(duration(seconds)+' / '+pace,60,695);x.font='bold 28px Arial';x.fillText('MILE TRAINING',60,900);const png=c.toDataURL('image/png');const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-if(isIOS&&wrap.dataset.mileShareFallback!=='1'&&navigator.share&&navigator.canShare&&window.File){
- try{
-  // Generate the file synchronously within the original tap so iOS retains user activation.
-  const binary=atob(png.split(',')[1]),bytes=new Uint8Array(binary.length);
-  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
-  const file=new File([bytes],'MILE_activity.png',{type:'image/png'});
-  if(navigator.canShare({files:[file]})){
-   navigator.share({files:[file],title:'MILE Activity'}).then(()=>close()).catch(()=>{
-    wrap.dataset.mileShareFallback='1';
-    wrap.querySelector('[data-m396-export]')?.click();
-   });
-   return;
-  }
- }catch(err){console.warn('Native image share unavailable',err)}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]))}
+function clock(s){s=Math.max(0,Math.round(Number(s)||0));return Math.floor(s/3600)?Math.floor(s/3600)+':'+String(Math.floor(s%3600/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'):Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function card(p,i){
+ const dark=i%2===1,pro=i>=2,km=Number(p.distance_m||0)/1000,sec=Number(p.duration_s||0),pace=Number(p.average_pace_s_km)|| (km>0?sec/km:0),hr=Number(p.average_hr)||0,cal=Number(p.calories)||0;
+ const date=p.activity_at?new Date(p.activity_at).toLocaleDateString('en-AU'):'';
+ const metrics=[['TIME',sec>0?clock(sec):null],['PACE /KM',pace>0?clock(pace):null],['AVG HR',hr>0?Math.round(hr)+' BPM':null],['CALORIES',cal>0?Math.round(cal)+' KCAL':null]].filter(x=>x[1]);
+ const stats=metrics.map(x=>'<div class="mile-card-metric"><b>'+esc(x[1])+'</b><small>'+esc(x[0])+'</small></div>').join('');
+ return '<div class="mile-card-art '+(dark?'dark':'light')+'"><div><div class="mile-card-logo">MILE.</div><div class="mile-card-rule"></div><p class="mile-card-eyebrow '+(dark?'mile-card-lime':'')+'">'+(pro?'ACTIVITY / PERFORMANCE':'THE WORK / '+(dark?'PERFORMANCE':'TRAINING'))+'</p></div><div><div class="mile-card-title">'+esc(p.title||p.activity_type||'Workout')+'</div><div class="mile-card-distance">'+(km>0?km.toFixed(2):'—')+'</div><div class="mile-card-sub">KILOMETRES</div>'+(pro?'<div class="mile-card-metrics">'+stats+'</div>':'<p style="font-weight:800;color:'+(dark?'#b7f778':'#656765')+'">'+(sec>0?clock(sec)+' TOTAL TIME':'')+(pace>0?' / '+clock(pace)+'/KM':'')+'</p>')+'</div><div class="mile-card-footer"><span>MAKE IT LOOK EASY.</span><span>'+esc(date)+'</span></div></div>';
 }
-if(isIOS){let preview=wrap.querySelector('[data-m397-save-preview]');if(!preview){preview=document.createElement('div');preview.setAttribute('data-m397-save-preview','');preview.style.cssText='margin-top:16px;text-align:center';preview.innerHTML='<p style="margin-bottom:10px">Touch and hold the image to save it, or tap Open image to save from Safari.</p><a data-m397-open target="_blank" rel="noopener" style="display:block"><img alt="MILE activity image, touch and hold to save" style="display:block;width:100%;height:auto;border-radius:12px;-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto"></a><button type="button" data-m397-native-share class="btn" style="margin-top:12px;display:none">Share or Save Image</button>';wrap.querySelector('.m396-share-actions').after(preview)}const img=preview.querySelector('img'),link=preview.querySelector('[data-m397-open]');img.src=png;link.href=png;const share=preview.querySelector('[data-m397-native-share]');if(navigator.share&&navigator.canShare&&window.File){c.toBlob(blob=>{if(!blob)return;const file=new File([blob],'MILE_activity.png',{type:'image/png'});if(navigator.canShare({files:[file]})){share.style.display='inline-block';share.onclick=()=>navigator.share({files:[file],title:'MILE Activity'}).catch(()=>{})}},'image/png')}wrap.querySelector('[data-m396-export]').textContent='Save Image';preview.scrollIntoView({block:'nearest',behavior:'smooth'});}else{const a=document.createElement('a');a.download='MILE_activity.png';a.href=png;a.click()}})},true);
+function paint(p,i){
+ const c=document.createElement('canvas');c.width=1080;c.height=1350;const x=c.getContext('2d');
+ const dark=i%2===1,pro=i>=2,fg=dark?'#f8faf8':'#141614',bg=dark?'#1c2023':'#e8e8e4',accent=dark?'#b7f778':'#666865';
+ const km=Number(p.distance_m||0)/1000,sec=Number(p.duration_s||0),pace=Number(p.average_pace_s_km)|| (km>0?sec/km:0),hr=Number(p.average_hr)||0,cal=Number(p.calories)||0;
+ x.fillStyle=bg;x.fillRect(0,0,1080,1350);x.fillStyle=fg;x.font='italic 900 122px Arial';x.fillText('MILE.',84,194);x.fillRect(84,275,570,9);
+ x.font='bold 30px Arial';x.letterSpacing='4px';x.fillStyle=dark?accent:fg;x.fillText(pro?'ACTIVITY / PERFORMANCE':'THE WORK / TRAINING',84,360);x.letterSpacing='0px';
+ x.fillStyle=fg;x.font='bold 37px Arial';let title=String(p.title||p.activity_type||'Workout').toUpperCase();while(x.measureText(title).width>910&&title.length>8)title=title.slice(0,-2)+'…';x.fillText(title,84,550);
+ x.font='900 180px Arial';x.fillText(km>0?km.toFixed(2):'—',77,745);x.font='bold 35px Arial';x.fillText('KILOMETRES',84,798);
+ if(pro){
+  const metrics=[['TOTAL TIME',sec>0?clock(sec):null],['PACE /KM',pace>0?clock(pace):null],['AVG HR',hr>0?Math.round(hr)+' BPM':null],['CALORIES',cal>0?Math.round(cal)+' KCAL':null]].filter(v=>v[1]);
+  metrics.slice(0,4).forEach((m,n)=>{const col=n%2,row=Math.floor(n/2),xx=84+col*460,yy=890+row*125;x.fillStyle=accent;x.fillRect(xx,yy,400,2);x.fillStyle=fg;x.font='bold 45px Arial';x.fillText(m[1],xx,yy+58);x.font='bold 20px Arial';x.fillText(m[0],xx,yy+88)});
+ }else{x.font='bold 36px Arial';x.fillStyle=accent;x.fillText((sec>0?clock(sec)+' TOTAL TIME':'')+(pace>0?' / '+clock(pace)+'/KM':''),84,915)}
+ x.fillStyle=accent;x.fillRect(84,1210,912,2);x.fillStyle=fg;x.font='bold 23px Arial';x.fillText('MAKE IT LOOK EASY.',84,1262);
+ const date=p.activity_at?new Date(p.activity_at).toLocaleDateString('en-AU'):'';x.textAlign='right';x.fillText(date,996,1262);x.textAlign='left';return c;
+}
+function save(p,i,wrap){
+ const c=paint(p,i),png=c.toDataURL('image/png'),ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+ if(ios&&navigator.share&&navigator.canShare&&window.File){
+  try{const binary=atob(png.split(',')[1]),bytes=new Uint8Array(binary.length);for(let k=0;k<binary.length;k++)bytes[k]=binary.charCodeAt(k);
+   const file=new File([bytes],'MILE_activity.png',{type:'image/png'});
+   if(navigator.canShare({files:[file]})){navigator.share({files:[file],title:'MILE Activity'}).then(close).catch(e=>{if(e.name!=='AbortError')fallback()});return}
+  }catch(e){console.warn('MILE native share',e)}
+ }
+ fallback();
+ function fallback(){if(!ios){const a=document.createElement('a');a.download='MILE_activity.png';a.href=png;a.click();return}
+  let area=wrap.querySelector('[data-m396-save-preview]');if(!area){area=document.createElement('div');area.dataset.m396SavePreview='1';wrap.querySelector('.m396-share-actions').after(area)}
+  area.innerHTML='<p>Touch and hold the image to save it to Photos.</p><a target="_blank" rel="noopener"><img alt="MILE card — touch and hold to save" style="width:100%;border-radius:12px"></a>';area.querySelector('a').href=png;area.querySelector('img').src=png;area.scrollIntoView({block:'nearest'});
+ }
+}
+document.addEventListener('click',ev=>{
+ const btn=ev.target.closest('[data-m396-share]');if(!btn)return;ev.preventDefault();ev.stopPropagation();
+ const p=(window.m398SocialPosts||[]).find(x=>String(x.id)===String(btn.dataset.m396Share));if(!p)return;close();
+ const wrap=document.createElement('div');wrap.id='m396-share-overlay';wrap.className='m396-share-overlay';
+ wrap.innerHTML='<div class="m396-share-panel" role="dialog" aria-modal="true" aria-label="Share Activity"><div class="row between"><h2>Share Activity</h2><button type="button" class="btn alt" data-m396-close aria-label="Close">×</button></div><p class="muted small">Swipe to choose your card design. This does not publish another post.</p><div class="mile-card-track">'+names.map((name,i)=>'<div class="mile-card-choice" data-card-index="'+i+'">'+card(p,i)+'<div class="mile-card-choice-label">'+esc(name)+'</div></div>').join('')+'</div><div class="mile-card-dots">● ○ ○ ○</div><div class="m396-share-actions"><button type="button" data-m396-close>Close</button><button type="button" data-m396-export>Save Image</button></div></div>';
+ document.body.append(wrap);const track=wrap.querySelector('.mile-card-track');let chosen=0;
+ const dots=wrap.querySelector('.mile-card-dots');function select(i){chosen=Math.max(0,Math.min(3,i));dots.textContent=names.map((_,n)=>n===chosen?'●':'○').join(' ')}
+ track.addEventListener('scroll',()=>select(Math.round(track.scrollLeft/Math.max(1,track.clientWidth+12))),{passive:true});
+ wrap.addEventListener('click',e=>{if(e.target===wrap||e.target.closest('[data-m396-close]')){close();return}if(e.target.closest('[data-m396-export]'))save(p,chosen,wrap)});
+},true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
 })();
 </script><style id="mile-v3936-release-polish">
