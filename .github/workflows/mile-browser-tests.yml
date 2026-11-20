@@ -1,0 +1,33 @@
+name: MILE browser tests
+on:
+  push:
+    branches: [main, 'test/**', 'fix/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install test dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium and WebKit browser engines
+        run: npx playwright install --with-deps chromium webkit
+      - name: Run desktop and mobile browser tests
+        run: npm run test:e2e
+      - name: Upload screenshots and traces if tests fail
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mile-playwright-failure-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
