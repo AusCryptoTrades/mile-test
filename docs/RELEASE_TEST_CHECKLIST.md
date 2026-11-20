@@ -35,3 +35,5 @@ Completed automated checks:
 Unverified flows and why:
 Remaining iPhone checks:
 Decision: READY FOR PHONE TEST / BLOCKED / TESTS FAILED
+
+See [Browser repair setup](BROWSER_REPAIR.md) for the GitHub workflow, the three-attempt limit and the remaining manual controls.

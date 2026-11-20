@@ -15,40 +15,45 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
       - name: Install test dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Install Chromium and WebKit browser engines
         run: npx playwright install --with-deps chromium webkit
       - name: Run desktop and mobile browser tests
+        id: browser
         run: npm run test:e2e
       - name: Summarize test outcome
         if: always()
         shell: bash
+        env:
+          BROWSER_OUTCOME: ${{ steps.browser.outcome }}
         run: |
           {
             echo '## MILE browser test report'
             echo ''
-            echo '- Commit: `${{ github.sha }}`'
-            echo '- Branch/ref: `${{ github.ref }}`'
-            echo '- Result: `${{ job.status }}`'
-            echo '- Tests include fixture-only checks and do **not** yet validate authenticated Activity Details, Garmin data or iOS Save to Photos.'
+            printf -- '- Commit: `%s`\n' "$GITHUB_SHA"
+            printf -- '- Branch/ref: `%s`\n' "$GITHUB_REF"
+            printf -- '- Browser step: `%s`\n' "${BROWSER_OUTCOME:-skipped}"
+            echo '- Browser tests drive the real app UI with synthetic backend data. Live Garmin, account access and native iOS behavior still need verification.'
             echo '- See Playwright HTML report artifact for screenshots and traces.'
             echo '- Do not mark a release ready for iPhone testing solely from this workflow.'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Upload browser report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: mile-playwright-html-report
           path: playwright-report/
           retention-days: 7
       - name: Upload screenshots and traces if tests fail
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: mile-playwright-failure-report
           path: |

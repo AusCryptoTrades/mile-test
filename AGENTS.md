@@ -5,7 +5,7 @@ MILE is a single-file HTML application in `index.html`. Its test site deploys fr
 ## Mandatory workflow
 1. Make code changes on a dedicated branch. Never push untested feature fixes straight to `main`.
 2. Identify the actual production event handler and rendering path before changing a feature. Multiple Activity Details and share implementations exist. Avoid stacking CSS overrides without proving which rules win.
-3. Run `npm install`, `npx playwright install chromium webkit`, and `npm run test:e2e`. Record exact failing tests; do not claim a pass without a completed run.
+3. Run `npm ci`, `npx playwright install chromium webkit`, and `npm run test:e2e`. Record exact failing tests; do not claim a pass without a completed run.
 4. Add a regression test reproducing the original issue using the **actual app UI** wherever feasible. Fixture-only tests verify CSS mechanics, not logged-in activity workflows.
 5. Test desktop Chromium, mobile Chromium, and mobile WebKit. Test viewport clipping, visible hit targets, and interactions, not only script syntax.
 6. Never invent Garmin lap data. Differentiate real Garmin laps, derived estimates, and unavailable fields. Tests should use sanitized representative payloads.
