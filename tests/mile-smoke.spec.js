@@ -2,9 +2,11 @@ const {test,expect}=require('@playwright/test');
 test('MILE starts without a blank page or JavaScript page errors',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/index.html',{waitUntil:'domcontentloaded'});
- await expect(page.locator('body')).toBeVisible();
- await expect(page.locator('body')).not.toBeEmpty();
- expect(errors).toEqual([]);
+ const diagnostic=await page.evaluate(()=>({title:document.title,bodyText:document.body?.innerText?.slice(0,250)||'',bodyRect:document.body?.getBoundingClientRect().toJSON(),visibleNodes:[...document.querySelectorAll('button,input,h1,h2,main,header')].filter(e=>{const r=e.getBoundingClientRect(),cs=getComputedStyle(e);return r.width>0&&r.height>0&&cs.visibility!=='hidden'&&cs.display!=='none'}).length}));
+ console.log('MILE startup diagnostic',JSON.stringify(diagnostic));
+ expect(diagnostic.title).toContain('MILE');
+ expect(diagnostic.visibleNodes,'No visible interactive or heading elements: inspect screenshot and authentication/bootstrap').toBeGreaterThan(0);
+ expect(errors,'Uncaught page errors').toEqual([]);
 });
 test('Activity Details mobile header and Back button stay on-screen and clickable',async({page,isMobile})=>{
  await page.goto('/index.html',{waitUntil:'domcontentloaded'});
