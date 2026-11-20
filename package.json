@@ -1,0 +1,12 @@
+{
+  "name": "mile-browser-tests",
+  "private": true,
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:mobile": "playwright test --project=mobile-webkit",
+    "test:e2e:desktop": "playwright test --project=desktop-chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.58.2"
+  }
+}
