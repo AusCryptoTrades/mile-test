@@ -3127,7 +3127,7 @@ function render(tab){if(!view)return;const {post,details,summary,samples,canRout
   return {distance,seconds,index:i+1}
  }).filter(l=>l.distance>30&&l.seconds>0&&l.seconds<86400);
  let rows='';
- if(laps.length){
+ if(laps.length>1){
   rows='<p>Garmin-recorded laps</p>'+laps.map(l=>'<div class="m3927-row"><span>Lap '+l.index+'</span><strong>'+esc(dur(l.seconds)+' · '+(l.distance/1000).toFixed(2)+' km · '+dur(l.seconds*1000/l.distance)+'/km')+'</strong></div>').join('');
  }else{
   const pts=samples.filter(p=>Number.isFinite(p.dist)&&p.dist>=0&&Number.isFinite(p.t)).sort((a,b)=>a.dist-b.dist);
@@ -3146,7 +3146,7 @@ function render(tab){if(!view)return;const {post,details,summary,samples,canRout
     previous=current;
    }
   }
-  rows=splits.length?'<p>Calculated from recorded distance and timestamps (not official Garmin laps).</p>'+splits.map((sec,i)=>'<div class="m3927-row"><span>Km '+(i+1)+'</span><strong>'+esc(dur(sec))+'/km</strong></div>').join(''):'<p>Garmin lap data and cumulative distance/time samples were not supplied for this activity. Treadmill splits do not require GPS; MILE needs the recorded lap or distance data from Garmin.</p>';
+  rows=splits.length?'<p>Calculated kilometre splits from recorded distance and timestamps (not official Garmin laps).</p>'+splits.map((sec,i)=>'<div class="m3927-row"><span>Km '+(i+1)+'</span><strong>'+esc(dur(sec))+'/km</strong></div>').join(''):(laps.length===1?'<p>Garmin supplied one lap for the full '+esc((laps[0].distance/1000).toFixed(2))+' km activity, not individual kilometre splits. No distance/time samples are available to calculate them accurately.</p><div class="m3927-row"><span>Full activity</span><strong>'+esc(dur(laps[0].seconds)+' · '+dur(laps[0].seconds*1000/laps[0].distance)+'/km')+'</strong></div>':'<p>Garmin lap data and cumulative distance/time samples were not supplied for this activity. Treadmill splits do not require GPS; MILE needs the recorded lap or distance data from Garmin.</p>');
  }
  body='<div class="m3927-panel"><h3>Kilometre splits</h3>'+rows+'</div>';
 }else{body='<div class="m3927-panel"><h3>Additional Garmin details</h3>'+[['Maximum HR',field(summary,'maxHeartRate','maximumHeartRate')],['Elevation gain',post.elevation_gain_m],['Recorded samples',samples.length]].filter(x=>x[1]!==null&&x[1]!==undefined).map(([k,v])=>'<div class="m3927-row"><span>'+esc(k)+'</span><strong>'+esc(v)+'</strong></div>').join('')+'</div>'}const el=document.getElementById('m3927-detail');if(!el)return;el.innerHTML='<div class="m3927-inner"><div class="m3927-top"><button data-m3927-close>← Back</button><strong>MILE<span style="color:var(--orange)">.</span></strong></div><div class="m3927-hero"><small>SHARED GARMIN ACTIVITY</small><h2>'+title+'</h2><div>'+esc(post.activity_type||'Workout')+'</div></div><div class="m3927-stats">'+metrics.map(([k,v])=>'<div><strong>'+esc(v)+'</strong><small>'+esc(k)+'</small></div>').join('')+'</div><div class="m3927-tabs">'+['Overview','Charts','Splits','Map','Details'].map(t=>'<button data-m3927-tab="'+t+'" class="'+(t===tab?'active':'')+'">'+t+'</button>').join('')+'</div>'+body+'</div>'}
@@ -3803,4 +3803,22 @@ html[data-m395-theme] .m3929-statgrid > div small{color:var(--muted)!important}
 #m3927-detail .m3927-chart text{font-size:24px!important}
 #m3927-detail .m3927-chart{overflow:visible!important}
 #m396-share-overlay [data-m397-save-preview]{display:block!important}
-</style><style id="mile-beta-final-chart-fix">#mile35-detail .mile355-chart svg text{font-size:16px!important}#mile35-detail .mile355-chart svg{overflow:hidden!important}#m3927-detail .m3927-chart text{font-size:16px!important}</style></body></html>
+</style><style id="mile-beta-final-chart-fix">#mile35-detail .mile355-chart svg text{font-size:16px!important}#mile35-detail .mile355-chart svg{overflow:hidden!important}#m3927-detail .m3927-chart text{font-size:16px!important}</style><style id="mile-v3942-workout-safearea">
+/* Final cascade override: earlier v3933 !important shorthand reset the iOS top inset. */
+#m3932-detail.m3932-detail{
+  padding-top:calc(110px + env(safe-area-inset-top, 0px))!important;
+  padding-top:calc(110px + constant(safe-area-inset-top, 0px))!important;
+  padding-top:calc(110px + env(safe-area-inset-top, 0px))!important;
+  box-sizing:border-box!important;
+}
+#m3932-detail .m3932-top{
+  position:relative!important;
+  top:auto!important;
+  z-index:2!important;
+  display:flex!important;
+  justify-content:space-between!important;
+  align-items:center!important;
+}
+#m3932-detail .m3932-x{flex:0 0 48px!important;min-width:48px!important;min-height:48px!important}
+@media(min-width:781px){#m3932-detail.m3932-detail{padding-top:48px!important}}
+</style></body></html>
