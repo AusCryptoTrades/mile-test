@@ -5,6 +5,9 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+concurrency:
+  group: mile-browser-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -22,6 +25,20 @@ jobs:
         run: npx playwright install --with-deps chromium webkit
       - name: Run desktop and mobile browser tests
         run: npm run test:e2e
+      - name: Summarize test outcome
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '## MILE browser test report'
+            echo ''
+            echo '- Commit: `${{ github.sha }}`'
+            echo '- Branch/ref: `${{ github.ref }}`'
+            echo '- Result: `${{ job.status }}`'
+            echo '- Tests include fixture-only checks and do **not** yet validate authenticated Activity Details, Garmin data or iOS Save to Photos.'
+            echo '- See Playwright HTML report artifact for screenshots and traces.'
+            echo '- Do not mark a release ready for iPhone testing solely from this workflow.'
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Upload browser report
         if: always()
         uses: actions/upload-artifact@v4
