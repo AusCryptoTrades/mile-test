@@ -171,3 +171,25 @@ test('Social Feed displays the recorded distance in kilometres', async ({ page }
   const post = page.getByRole('article').filter({ hasText: 'Fixture social run' });
   await expect(post).toContainText('2.75 km');
 });
+
+test('four activity share designs swipe and export the selected PNG', async ({ page }) => {
+  await openApp(page, { signedIn: true });
+  await page.evaluate(() => {
+    window.m398SocialPosts = [{ id: 'share-fixture', title: 'Treadmill Running', distance_m: 10000, duration_s: 3201, average_hr: 127, activity_at: '2026-11-19T12:00:00Z' }];
+    const button = document.createElement('button');
+    button.dataset.m396Share = 'share-fixture';
+    button.textContent = 'Fixture share';
+    document.body.append(button);
+    button.click();
+  });
+  const modal = page.locator('#m396-share-overlay');
+  await expect(modal).toBeVisible();
+  await expect(modal.locator('.mile-card-choice')).toHaveCount(4);
+  await expect(modal).toContainText('Editorial Pro');
+  await expect(modal).toContainText('Performance Pro');
+  await modal.locator('.mile-card-track').evaluate(el => { el.scrollLeft = (el.clientWidth + 12) * 2; el.dispatchEvent(new Event('scroll')); });
+  await expect(modal.locator('.mile-card-dots')).toContainText('●');
+  await expect(modal.locator('[data-m396-export]')).toBeVisible();
+  await modal.locator('[data-m396-close]').first().click();
+  await expect(modal).toHaveCount(0);
+});
