@@ -4015,7 +4015,7 @@ html[data-m395-theme] .mile-ui-dashboard .mile-ui-training > .mile-ui-section > 
 .m396-share-panel{width:min(96vw,520px)!important}.mile-card-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;scrollbar-width:none;touch-action:pan-x;padding:8px 0}.mile-card-track::-webkit-scrollbar{display:none}.mile-card-choice{flex:0 0 100%;scroll-snap-align:center}.mile-card-art{aspect-ratio:4/5;width:100%;border-radius:15px;box-sizing:border-box;padding:9%;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;font-family:Arial,sans-serif}.mile-card-art.light{background:#e8e8e4;color:#141614}.mile-card-art.dark{background:#1c2023;color:#f8faf8}.mile-card-logo{font-size:clamp(36px,9vw,62px);font-style:italic;font-weight:950;letter-spacing:-4px}.mile-card-rule{height:6px;background:currentColor;width:55%;margin-top:20px}.mile-card-eyebrow{font-size:11px;letter-spacing:3px;font-weight:850}.mile-card-title{font-size:clamp(11px,3vw,16px);font-weight:800;letter-spacing:2px;text-transform:uppercase;overflow-wrap:anywhere}.mile-card-distance{font-size:clamp(58px,16vw,102px);font-weight:950;letter-spacing:-6px;line-height:1.04}.mile-card-sub{font-size:12px;font-weight:800;letter-spacing:1px}.mile-card-footer{border-top:1px solid currentColor;padding-top:14px;display:flex;justify-content:space-between;gap:10px;font-size:10px;font-weight:850;letter-spacing:1px}.mile-card-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}.mile-card-metric{border-top:1px solid #8886;padding-top:9px}.mile-card-metric b{display:block;font-size:clamp(19px,6vw,30px)}.mile-card-metric small{font-size:10px;letter-spacing:1px}.mile-card-lime{color:#b7f778}.mile-card-graph{height:55px;width:100%;display:block}.mile-card-dots{text-align:center;margin:8px 0;font-size:13px;letter-spacing:8px;color:var(--muted)}.mile-card-choice-label{text-align:center;font-size:13px;margin-top:7px;font-weight:800}
 </style><script id="mile-v396-share-workflow">
 (function(){'use strict';
-const names=['Simple White','Simple Black','Splits White','Splits Black'];
+const names=['Simple White','Simple Black','Detailed White','Detailed Black'];
 function close(){document.getElementById('m396-share-overlay')?.remove()}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]))}
 function clock(s){s=Math.max(0,Math.round(Number(s)||0));return Math.floor(s/3600)?Math.floor(s/3600)+':'+String(Math.floor(s%3600/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'):Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
@@ -4077,9 +4077,13 @@ function save(p,i,wrap){
   area.innerHTML='<p>Touch and hold the image to save it to Photos.</p><a target="_blank" rel="noopener"><img alt="MILE card — touch and hold to save" style="width:100%;border-radius:12px"></a>';area.querySelector('a').href=png;area.querySelector('img').src=png;area.scrollIntoView({block:'nearest'});
  }
 }
-document.addEventListener('click',ev=>{
+document.addEventListener('click',async ev=>{
  const btn=ev.target.closest('[data-m396-share]');if(!btn)return;ev.preventDefault();ev.stopPropagation();
- const p=(window.m398SocialPosts||[]).find(x=>String(x.id)===String(btn.dataset.m396Share));if(!p)return;close();
+ let p=(window.m398SocialPosts||[]).find(x=>String(x.id)===String(btn.dataset.m396Share));if(!p)return;
+ if(simPost(p)&&!simStages(p).length&&typeof window.m383SocialApi==='function'){
+  try{const rows=await window.m383SocialApi('mile_social_activities','GET',null,'?id=eq.'+encodeURIComponent(p.id)+'&select=id,detail_snapshot');if(rows?.[0]?.detail_snapshot)p={...p,detail_snapshot:rows[0].detail_snapshot};}catch(err){console.warn('MILE SIM share snapshot',err)}
+ }
+ close();
  const wrap=document.createElement('div');wrap.id='m396-share-overlay';wrap.className='m396-share-overlay';
  wrap.innerHTML='<div class="m396-share-panel" role="dialog" aria-modal="true" aria-label="Share Activity"><div class="row between"><h2>Share Activity</h2><button type="button" class="btn alt" data-m396-close aria-label="Close">×</button></div><p class="muted small">Swipe to choose your card design. This does not publish another post.</p><div class="mile-card-track">'+names.map((name,i)=>'<div class="mile-card-choice" data-card-index="'+i+'">'+card(p,i)+'<div class="mile-card-choice-label">'+esc(name)+'</div></div>').join('')+'</div><div class="mile-card-dots">● ○ ○ ○</div><div class="m396-share-actions"><button type="button" data-m396-close>Close</button><button type="button" data-m396-export>Save Image</button></div></div>';
  document.body.append(wrap);const track=wrap.querySelector('.mile-card-track');let chosen=0;
