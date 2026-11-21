@@ -4270,7 +4270,7 @@ body.mile-messages-nav .shell{padding-bottom:calc(90px + env(safe-area-inset-bot
   const buttons=Array.from(nav.querySelectorAll('button'));
   // One active tab only; secondary pages belong to More, Social pages retain navigation.
   const selected=['insights','events','predictor','goals','recovery','settings'].includes(page)?'More':page==='social'?'':null;
-  if(selected)buttons.forEach(b=>b.classList.toggle('active',b.textContent.trim().endsWith(selected)));
+  if(selected)buttons.forEach((b,i)=>b.classList.toggle('active',selected==='More'&&i===buttons.length-1));
  }
  const oldRender=window.render;
  if(typeof oldRender==='function')window.render=function(){const out=oldRender.apply(this,arguments);sync();return out};
