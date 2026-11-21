@@ -27,13 +27,11 @@ async function sync(){
   if(intent){
    const s=sessions.find(x=>key(x)===intent);
    if(s){
-    const existingPost=byId.get(intent);
     const visibility=window.confirm('Publish this HYROX simulation to your MILE Social Feed? Choose OK for public, or Cancel to keep it private.');
     if(visibility){
      await api()('mile_social_activities','PATCH',{visibility:'public'},'?user_id=eq.'+encodeURIComponent(uid())+'&source_activity_id=eq.'+encodeURIComponent(intent));
      localStorage.removeItem(INTENT);
-     await window.m383SocialApi('mile_social_activities','GET',null,'?select=id&source_activity_id=eq.'+encodeURIComponent(intent));
-     window.m383Repaint?.();window.m37SyncFeed?.();
+     if(window.m36State){window.m36State.posts=await api()('mile_social_activities','GET',null,'?select=*&order=created_at.desc&limit=80');window.m383Repaint?.();}
      alert('HYROX simulation published to your MILE Social Feed.');
     }else{localStorage.removeItem(INTENT)}
    }
