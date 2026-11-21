@@ -47,4 +47,13 @@ document.querySelectorAll('[data-style]').forEach(b=>b.onclick=()=>{style=b.data
 document.getElementById('saveWinner').onclick=()=>{let a=document.createElement('a');a.href=document.getElementById('winnerPhoto')?.src||document.getElementById('winnerCanvas').toDataURL();a.download='MILE-Challenge-Winner.png';a.click()};
 load();
 })();
-</script></body></html>
+</script><style id="mile-challenges-scroll-nav-fix">
+html,body{height:auto!important;min-height:100%!important;overflow-x:hidden!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;overscroll-behavior-y:auto!important}
+body{padding-bottom:calc(102px + env(safe-area-inset-bottom))!important}
+@media(max-width:700px){#mileSignout{display:none!important}header.mile-top{padding-top:max(5px,env(safe-area-inset-top))!important}}
+#mile-challenge-bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:45;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:7px 5px max(10px,env(safe-area-inset-bottom));background:#111517;border-top:1px solid #39443e;box-shadow:0 -8px 28px #0009}
+#mile-challenge-bottom-nav button{min-width:0;min-height:55px;display:grid;place-content:center;gap:3px;background:transparent;border:0;color:#cbd2cd;font-size:11px;font-weight:750}
+#mile-challenge-bottom-nav button span{font-size:20px;line-height:1}
+</style>
+<nav id="mile-challenge-bottom-nav" aria-label="MILE main navigation"><button type="button" data-go="dashboard"><span>⌂</span>Home</button><button type="button" data-go="calendar"><span>▦</span>Calendar</button><button type="button" data-go="builder"><span>＋</span>Build</button><button type="button" data-go="tracker"><span>⌖</span>Track</button><button type="button" data-go="more"><span>☰</span>More</button></nav>
+<script id="mile-challenge-bottom-actions">(function(){document.getElementById('mile-challenge-bottom-nav').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(!b)return;const p=b.dataset.go;if(p==='tracker'){location.href='./mile-run-tracker.html';return}sessionStorage.setItem('mile-challenge-nav-target',p);location.href='./index.html'})})();</script></body></html>
