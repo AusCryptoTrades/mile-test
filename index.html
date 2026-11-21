@@ -2482,7 +2482,7 @@ window.m36State=S;
 window.m382SocialState=S;
 window.m383ReloadMessages=()=>loadMessages();window.m383Repaint=()=>paint();
 const base=()=>state.settings.supabaseUrl+'/rest/v1/';
-window.m383SocialApi=(...args)=>api(...args);
+window.m383SocialApi=(...args)=>api(...args);window.mileChallengesUserId=()=>userId;
 async function api(table,method='GET',data=null,query='',retry=true){if(!token||!userId)throw Error('Sign in to MILE first');let headers={...sbHeaders(),Prefer:table==='mile_notification_dismissals'&&method==='POST'?'resolution=ignore-duplicates,return=minimal':query.includes('on_conflict=')?'resolution=merge-duplicates,return=representation':'return=representation'},r=await fetch(base()+table+query,{method,headers,body:data===null?undefined:JSON.stringify(data)});if(r.status===401&&retry&&await refreshSession())return api(table,method,data,query,false);let body=await r.text(),value;try{value=body?JSON.parse(body):[]}catch{value=[]}if(!r.ok)throw Error(value.message||value.hint||table+' request failed ('+r.status+')');return value}
 const avatar=(p)=>`<span class="m36-avatar">${p?.avatar_url&&/^https:\/\//.test(p.avatar_url)?`<img src="${e(p.avatar_url)}" alt="">`:e((p?.display_name||p?.username||'M')[0].toUpperCase())}</span>`;
 const mine=()=>S.profiles.find(x=>x.user_id===userId)||S.mine;
