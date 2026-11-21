@@ -4357,7 +4357,7 @@ suppress=true;app.replaceChildren();const frame=document.createElement('iframe')
 function leave(){view=null;document.body.classList.remove('mile-native-view-open');history.replaceState(null,'',location.pathname);document.getElementById('mile-native-view')?.remove();}
 function open(name){if(!allowed[name])return;window.m36CloseDrawer?.();view=name;history.pushState({mileView:name},'',location.pathname+'?mileView='+name);mount();window.scrollTo(0,0)}
 function navigateTo(name){if(name==='whatsnew'){window.mileShowWhatsNewFromCurrent?.();return}leave();if(name==='more'){window.mileV3ToggleMore?.();return}if(name==='profile'){window.m36Drawer?.();return}if(name==='whatsnew'){window.mileV3Go?.('whatsnew');return}if(typeof window.mileV3Go==='function')window.mileV3Go(name);else if(typeof window.navigate==='function')window.navigate(name)}
-window.mileShellOpen=open;window.mileOpenRunTracker=()=>open('tracker');window.mileOpenChallenges=()=>open('challenges');
+window.mileShellOpen=open;window.mileShellLeave=leave;window.mileOpenRunTracker=()=>open('tracker');window.mileOpenChallenges=()=>open('challenges');
 window.addEventListener('message',e=>{if(e.origin!==location.origin)return;const frame=document.getElementById('mile-native-view');if(!frame||e.source!==frame.contentWindow)return;if(Number.isFinite(e.data?.mileEmbeddedHeight))frame.style.height=Math.max(500,Math.ceil(e.data.mileEmbeddedHeight)+8)+'px';if(e.data?.mileShellNavigate)navigateTo(e.data.mileShellNavigate)});
 document.addEventListener('click',e=>{const b=e.target.closest('#mile-fixed-mobile-nav [data-mile-page],#nav button,[data-mile-challenges-link],[data-mile-run-tracker],#m396WhatsNew');if(!b)return;
 if(b.matches('[data-mile-challenges-link]')){e.preventDefault();e.stopImmediatePropagation();open('challenges');return}
@@ -4386,7 +4386,7 @@ else if(typeof window.mileV3Go==='function')window.mileV3Go(state.page==='whatsn
 requestAnimationFrame(()=>window.scrollTo(0,state.scroll));}
 window.mileShowWhatsNewFromCurrent=openNews;
 window.m397CloseWhatsNew=restore;
-document.addEventListener('click',e=>{const logo=e.target.closest('.top .mile-header-identity,.top .brand,.top .mile-home,.top .mile-unified-brand,.top .mile-logo,.top .logo');if(logo){e.preventDefault();e.stopImmediatePropagation();parked=null;window.mileNewsParking=false;previous=null;history.replaceState(null,'',location.pathname);document.body.classList.remove('mile-native-view-open');document.getElementById('mile-native-view')?.remove();window.mileV3Go?.('dashboard');return}
+document.addEventListener('click',e=>{const logo=e.target.closest('.top .mile-header-identity,.top .brand,.top .mile-home,.top .mile-unified-brand,.top .mile-logo,.top .logo');if(logo){e.preventDefault();e.stopImmediatePropagation();parked=null;window.mileNewsParking=false;previous=null;window.mileShellLeave?.();window.mileV3Go?.('dashboard');return}
 const news=e.target.closest('#m396WhatsNew');if(news){e.preventDefault();e.stopImmediatePropagation();openNews();return}
 const close=e.target.closest('[onclick*="m397CloseWhatsNew"]');if(close&&previous){e.preventDefault();e.stopImmediatePropagation();restore();}
 },true);
