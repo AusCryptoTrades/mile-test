@@ -56,4 +56,10 @@ body{padding-bottom:calc(102px + env(safe-area-inset-bottom))!important}
 #mile-challenge-bottom-nav button span{font-size:20px;line-height:1}
 </style>
 <nav id="mile-challenge-bottom-nav" aria-label="MILE main navigation"><button type="button" data-go="dashboard"><span>⌂</span>Home</button><button type="button" data-go="calendar"><span>▦</span>Calendar</button><button type="button" data-go="builder"><span>＋</span>Build</button><button type="button" data-go="tracker"><span>⌖</span>Track</button><button type="button" data-go="more"><span>☰</span>More</button></nav>
-<script id="mile-challenge-bottom-actions">(function(){document.getElementById('mile-challenge-bottom-nav').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(!b)return;const p=b.dataset.go;if(p==='tracker'){location.href='./mile-run-tracker.html';return}sessionStorage.setItem('mile-challenge-nav-target',p);location.href='./index.html'})})();</script></body></html>
+<script id="mile-challenge-bottom-actions">(function(){document.getElementById('mile-challenge-bottom-nav').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(!b)return;const p=b.dataset.go;if(p==='tracker'){location.href='./mile-run-tracker.html';return}sessionStorage.setItem('mile-challenge-nav-target',p);location.href='./index.html'})})();</script><style id="mile-challenges-toolbar-hardfix">
+html{height:auto!important;overflow-y:auto!important}
+body{height:auto!important;min-height:100dvh!important;overflow-y:auto!important;padding-bottom:calc(140px + env(safe-area-inset-bottom))!important}
+#mile-challenge-bottom-nav{display:grid!important;position:fixed!important;inset:auto 0 0 0!important;bottom:0!important;z-index:2147482000!important;width:100vw!important;min-height:76px!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;visibility:visible!important;opacity:1!important;transform:none!important;background:#111517!important;padding:8px 5px max(10px,env(safe-area-inset-bottom))!important}
+#mile-challenge-bottom-nav button{display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:center!important;color:#e8eeea!important;min-height:58px!important;font-size:11px!important;gap:4px!important}
+#mile-challenge-bottom-nav button span{font-size:20px!important}
+</style></body></html>
