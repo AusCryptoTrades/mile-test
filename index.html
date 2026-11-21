@@ -3449,13 +3449,11 @@ function render(tab){if(!view)return;const {post,details,summary,samples,canRout
 async function open(postId){const post=(window.m36State?.posts||[]).find(p=>String(p.id)===String(postId));if(!post)return;document.getElementById('m3927-detail')?.remove();const el=document.createElement('div');el.id='m3927-detail';el.className='m3927-activity';el.innerHTML='<div class="m3927-inner"><div class="m3927-top"><button data-m3927-close>← Back</button><strong>MILE.</strong></div><div class="m3927-panel"><h3>Loading recorded Garmin data…</h3><p>Checking your access to this athlete’s workout.</p></div></div>';document.body.appendChild(el);document.body.classList.add('m3942-detail-open');try{
 if(String(post.source_activity_id||'').startsWith('mile-sim-')||post.detail_snapshot?.source==='mile-sim'){
  const token=localStorage.getItem('av-token');if(!token)throw Error('Please sign in again.');
- const api='https://mgixvokjlytjuypzcfzz.supabase.co/rest/v1/mile_social_activities?id=eq.'+encodeURIComponent(postId)+'&select=id,user_id,title,activity_type,activity_at,distance_m,duration_s,visibility,detail_snapshot';
- const key=(window.MILE_SUPABASE_ANON_KEY||window.MILE_SUPABASE_KEY||window.SUPABASE_ANON_KEY||'');
+ 
  let sim=post;
  if(!sim.detail_snapshot?.stages?.length){
-  const headers={Authorization:'Bearer '+token,Accept:'application/json'};if(key)headers.apikey=key;
-  const response=await fetch(api,{headers});if(!response.ok)throw Error('SIM details could not be loaded ('+response.status+').');
-  const rows=await response.json();if(!rows.length)throw Error('SIM details unavailable for this account.');sim=rows[0];
+  if(typeof window.m383SocialApi!=='function')throw Error('Social activity reader unavailable.');
+  const rows=await window.m383SocialApi('mile_social_activities','GET',null,'?id=eq.'+encodeURIComponent(postId)+'&select=id,user_id,title,activity_type,activity_at,distance_m,duration_s,visibility,detail_snapshot');if(!rows.length)throw Error('SIM details unavailable for this account.');sim=rows[0];
  }
  const snap=sim.detail_snapshot||{};if(snap.source!=='mile-sim'||!Array.isArray(snap.stages))throw Error('SIM stage data unavailable.');
  const safe=v=>esc(v==null?'':String(v));
