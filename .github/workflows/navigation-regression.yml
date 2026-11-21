@@ -1,0 +1,23 @@
+name: MILE Navigation Regression
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  browser-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - run: npx playwright test tests/more-menu-regression.spec.js --project=desktop-chromium --project=mobile-chromium --project=mobile-webkit
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: navigation-playwright-report
+          path: playwright-report/
