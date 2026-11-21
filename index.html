@@ -4219,4 +4219,23 @@ root.innerHTML='<div class="mile-v3953-periods">'+[7,30,84].map(n=>'<button data
 document.addEventListener('click',e=>{const p=e.target.closest('[data-dist-period]');if(p){period=Number(p.dataset.distPeriod);draw()}const b=e.target.closest('[data-dist-sport]');if(b){const i=Number(b.dataset.distSport),d=data(),n=document.getElementById('mile-v3953-dist-note');if(n)n.textContent=labels[i]+': '+d.counts[i]+' sessions · '+Math.round(d.totals[i])+' minutes'}});
 new MutationObserver(()=>{const root=document.getElementById('mile-v3953-distribution');if(root&&!root.dataset.ready){root.dataset.ready='1';draw()}}).observe(document.body,{subtree:true,childList:true});
 })();
+</script><style id="mile-emergency-menu-css">
+#mileV3More,#mile-v3953-scrim{display:none!important;pointer-events:none!important}
+#mile-emergency-more{display:none;position:fixed!important;z-index:2147483640!important;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));max-height:calc(100dvh - 120px);overflow:auto;background:var(--panel,#171a1d);color:var(--text,#fff);border:1px solid var(--line,#444);border-radius:18px;padding:16px;box-shadow:0 12px 45px #0009}
+#mile-emergency-more.open{display:block!important}
+#mile-emergency-more button{display:block;width:100%;padding:13px;text-align:left;background:var(--panel2,#25282c);color:inherit;border:1px solid var(--line,#444);border-radius:10px;margin:5px 0}
+#mile-emergency-more .head{display:flex;align-items:center;justify-content:space-between;font-size:22px;font-weight:800}
+#mile-emergency-more .head button{width:42px;height:42px;text-align:center;font-size:23px;line-height:16px}
+#mile-emergency-more small{display:block;color:var(--muted,#aaa);font-size:11px;margin-top:4px}
+</style><script id="mile-emergency-menu-js">
+(function(){
+ const links=[['insights','MILE Insights','Training analysis'],['events','Events & PBs','Races and records'],['predictor','Race Lab','Performance estimates'],['goals','Training Programs','Manage plans'],['recovery','Recovery','Wellness'],['settings','Settings','Account preferences']];
+ let panel;
+ function get(){if(panel?.isConnected)return panel;panel=document.createElement('div');panel.id='mile-emergency-more';panel.innerHTML='<div class="head">More.<button type="button" data-close aria-label="Close menu">×</button></div>'+links.map(x=>'<button type="button" data-dest="'+x[0]+'">'+x[1]+'<small>'+x[2]+'</small></button>').join('');document.body.appendChild(panel);panel.addEventListener('click',e=>{if(e.target.closest('[data-close]'))close();const b=e.target.closest('[data-dest]');if(b){close();window.mileV3Go?.(b.dataset.dest)}});return panel}
+ function close(){panel?.classList.remove('open');document.getElementById('mileV3More')?.classList.remove('open');document.getElementById('mile-v3953-scrim')?.remove()}
+ window.mileV3ToggleMore=function(){const p=get(),opening=!p.classList.contains('open');close();if(opening)p.classList.add('open')};
+ document.addEventListener('pointerdown',e=>{if(panel?.classList.contains('open')&&!panel.contains(e.target)&&!e.target.closest('#nav')&&!e.target.closest('[onclick*="mileV3ToggleMore"]'))close()},true);
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+ close();
+})();
 </script></body></html>
