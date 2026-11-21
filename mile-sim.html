@@ -44,7 +44,7 @@ function drawReview(){
    if(value===null)return;
    let ms=parseTarget(value);if(!Number.isFinite(ms)||ms<=0){alert('Enter a valid duration such as 04:30');return}
    let delta=ms-splitAt(i);
-   for(let j=i;j<session.taps.length;j++)session.taps[j]+=delta;
+   session.started-=delta;for(let j=0;j<i;j++)session.taps[j]-=delta;
    save();drawReview();
   };
   row.append(name,btn);$('reviewSplits').append(row);
