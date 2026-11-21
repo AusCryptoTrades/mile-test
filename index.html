@@ -4015,11 +4015,33 @@ html[data-m395-theme] .mile-ui-dashboard .mile-ui-training > .mile-ui-section > 
 .m396-share-panel{width:min(96vw,520px)!important}.mile-card-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;scrollbar-width:none;touch-action:pan-x;padding:8px 0}.mile-card-track::-webkit-scrollbar{display:none}.mile-card-choice{flex:0 0 100%;scroll-snap-align:center}.mile-card-art{aspect-ratio:4/5;width:100%;border-radius:15px;box-sizing:border-box;padding:9%;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;font-family:Arial,sans-serif}.mile-card-art.light{background:#e8e8e4;color:#141614}.mile-card-art.dark{background:#1c2023;color:#f8faf8}.mile-card-logo{font-size:clamp(36px,9vw,62px);font-style:italic;font-weight:950;letter-spacing:-4px}.mile-card-rule{height:6px;background:currentColor;width:55%;margin-top:20px}.mile-card-eyebrow{font-size:11px;letter-spacing:3px;font-weight:850}.mile-card-title{font-size:clamp(11px,3vw,16px);font-weight:800;letter-spacing:2px;text-transform:uppercase;overflow-wrap:anywhere}.mile-card-distance{font-size:clamp(58px,16vw,102px);font-weight:950;letter-spacing:-6px;line-height:1.04}.mile-card-sub{font-size:12px;font-weight:800;letter-spacing:1px}.mile-card-footer{border-top:1px solid currentColor;padding-top:14px;display:flex;justify-content:space-between;gap:10px;font-size:10px;font-weight:850;letter-spacing:1px}.mile-card-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}.mile-card-metric{border-top:1px solid #8886;padding-top:9px}.mile-card-metric b{display:block;font-size:clamp(19px,6vw,30px)}.mile-card-metric small{font-size:10px;letter-spacing:1px}.mile-card-lime{color:#b7f778}.mile-card-graph{height:55px;width:100%;display:block}.mile-card-dots{text-align:center;margin:8px 0;font-size:13px;letter-spacing:8px;color:var(--muted)}.mile-card-choice-label{text-align:center;font-size:13px;margin-top:7px;font-weight:800}
 </style><script id="mile-v396-share-workflow">
 (function(){'use strict';
-const names=['Editorial','Performance','Editorial Pro','Performance Pro'];
+const regularNames=['Editorial','Performance','Editorial Pro','Performance Pro'];
+const simNames=['Simple White','Simple Black','Detailed White','Detailed Black'];
 function close(){document.getElementById('m396-share-overlay')?.remove()}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]))}
 function clock(s){s=Math.max(0,Math.round(Number(s)||0));return Math.floor(s/3600)?Math.floor(s/3600)+':'+String(Math.floor(s%3600/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'):Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function simPost(p){return String(p.source_activity_id||'').startsWith('mile-sim-')||p.detail_snapshot?.source==='mile-sim'}
+function simStages(p){return Array.isArray(p.detail_snapshot?.stages)?p.detail_snapshot.stages:[]}
+function simCard(p,i){
+ const dark=i%2===1,rich=i>=2,stages=simStages(p),sec=Number(p.duration_s)||0,km=(Number(p.distance_m)||0)/1000,date=p.activity_at?new Date(p.activity_at).toLocaleDateString('en-AU'):'';
+ const row=stages.map(s=>'<div style="display:flex;justify-content:space-between;gap:6px;padding:3px 0;border-bottom:1px solid currentColor;font-size:clamp(7px,1.55vw,13px)"><span>'+esc(s.name)+'</span><b>'+esc(clock(s.seconds))+'</b></div>').join('');
+ return '<div class="mile-card-art '+(dark?'dark':'light')+'" style="justify-content:space-between"><div><div class="mile-card-logo">MILE.</div><div class="mile-card-rule"></div><p class="mile-card-eyebrow">HYROX SIM / '+(rich?'SPLIT PERFORMANCE':'PERFORMANCE')+'</p></div><div><div class="mile-card-title">HYROX SIM</div><div style="font-size:clamp(28px,8vw,66px);font-weight:900;line-height:1.1">'+esc(clock(sec))+'</div><div class="mile-card-sub">TOTAL TIME · '+km.toFixed(2)+' KM RUNNING</div>'+(rich?'<div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:3px 12px">'+row+'</div>':'<p style="font-weight:800;margin-top:22px">8 RUNS / 8 STATIONS</p>')+'</div><div class="mile-card-footer"><span>MAKE IT LOOK EASY.</span><span>'+esc(date)+'</span></div></div>';
+}
+function simPaint(p,i){
+ const c=document.createElement('canvas');c.width=1080;c.height=1350;const x=c.getContext('2d'),dark=i%2===1,rich=i>=2,fg=dark?'#fff':'#111',bg=dark?'#111':'#fff',stages=simStages(p);
+ x.fillStyle=bg;x.fillRect(0,0,1080,1350);x.fillStyle=fg;
+ x.font='italic 900 118px Arial';x.fillText('MILE.',72,165);x.fillRect(72,213,936,6);
+ x.font='bold 27px Arial';x.fillText(rich?'HYROX SIM / SPLIT PERFORMANCE':'HYROX SIM / PERFORMANCE',72,270);
+ x.font='900 76px Arial';x.fillText('HYROX SIM',72,395);
+ x.font='900 145px Arial';x.fillText(clock(p.duration_s),72,555);
+ x.font='bold 29px Arial';x.fillText('TOTAL TIME  /  '+((Number(p.distance_m)||0)/1000).toFixed(2)+' KM RUNNING',72,613);
+ if(rich){
+  stages.slice(0,16).forEach((s,n)=>{const col=n%2,row=Math.floor(n/2),xx=72+col*490,yy=710+row*65;x.fillStyle=fg;x.globalAlpha=.28;x.fillRect(xx,yy+16,450,1);x.globalAlpha=1;x.font='bold 23px Arial';let label=String(s.name||'Stage');while(x.measureText(label).width>300&&label.length>5)label=label.slice(0,-2)+'…';x.fillText(label,xx,yy);x.font='bold 29px Arial';x.textAlign='right';x.fillText(clock(s.seconds),xx+450,yy);x.textAlign='left'});
+ }else{x.font='bold 42px Arial';x.fillText('8 RUNS  /  8 STATIONS',72,800)}
+ x.fillStyle=fg;x.fillRect(72,1230,936,2);x.font='bold 23px Arial';x.fillText('MAKE IT LOOK EASY.',72,1280);x.textAlign='right';x.fillText(p.activity_at?new Date(p.activity_at).toLocaleDateString('en-AU'):'',1008,1280);return c;
+}
 function card(p,i){
+ if(simPost(p))return simCard(p,i);
  const dark=i%2===1,pro=i>=2,km=Number(p.distance_m||0)/1000,sec=Number(p.duration_s||0),pace=Number(p.average_pace_s_km)|| (km>0?sec/km:0),hr=Number(p.average_hr)||0,cal=Number(p.calories)||0;
  const date=p.activity_at?new Date(p.activity_at).toLocaleDateString('en-AU'):'';
  const metrics=[['TIME',sec>0?clock(sec):null],['PACE /KM',pace>0?clock(pace):null],['AVG HR',hr>0?Math.round(hr)+' BPM':null],['CALORIES',cal>0?Math.round(cal)+' KCAL':null]].filter(x=>x[1]);
@@ -4027,6 +4049,7 @@ function card(p,i){
  return '<div class="mile-card-art '+(dark?'dark':'light')+'"><div><div class="mile-card-logo">MILE.</div><div class="mile-card-rule"></div><p class="mile-card-eyebrow '+(dark?'mile-card-lime':'')+'">'+(pro?'ACTIVITY / PERFORMANCE':'THE WORK / '+(dark?'PERFORMANCE':'TRAINING'))+'</p></div><div><div class="mile-card-title">'+esc(p.title||p.activity_type||'Workout')+'</div><div class="mile-card-distance">'+(km>0?km.toFixed(2):'—')+'</div><div class="mile-card-sub">KILOMETRES</div>'+(pro?'<div class="mile-card-metrics">'+stats+'</div>':'<p style="font-weight:800;color:'+(dark?'#b7f778':'#656765')+'">'+(sec>0?clock(sec)+' TOTAL TIME':'')+(pace>0?' / '+clock(pace)+'/KM':'')+'</p>')+'</div><div class="mile-card-footer"><span>MAKE IT LOOK EASY.</span><span>'+esc(date)+'</span></div></div>';
 }
 function paint(p,i){
+ if(simPost(p))return simPaint(p,i);
  const c=document.createElement('canvas');c.width=1080;c.height=1350;const x=c.getContext('2d');
  const dark=i%2===1,pro=i>=2,fg=dark?'#f8faf8':'#141614',bg=dark?'#1c2023':'#e8e8e4',accent=dark?'#b7f778':'#666865';
  const km=Number(p.distance_m||0)/1000,sec=Number(p.duration_s||0),pace=Number(p.average_pace_s_km)|| (km>0?sec/km:0),hr=Number(p.average_hr)||0,cal=Number(p.calories)||0;
@@ -4055,9 +4078,14 @@ function save(p,i,wrap){
   area.innerHTML='<p>Touch and hold the image to save it to Photos.</p><a target="_blank" rel="noopener"><img alt="MILE card — touch and hold to save" style="width:100%;border-radius:12px"></a>';area.querySelector('a').href=png;area.querySelector('img').src=png;area.scrollIntoView({block:'nearest'});
  }
 }
-document.addEventListener('click',ev=>{
+document.addEventListener('click',async ev=>{
  const btn=ev.target.closest('[data-m396-share]');if(!btn)return;ev.preventDefault();ev.stopPropagation();
- const p=(window.m398SocialPosts||[]).find(x=>String(x.id)===String(btn.dataset.m396Share));if(!p)return;close();
+ let p=(window.m398SocialPosts||[]).find(x=>String(x.id)===String(btn.dataset.m396Share));if(!p)return;
+ if(simPost(p)&&!simStages(p).length&&typeof window.m383SocialApi==='function'){
+  try{const rows=await window.m383SocialApi('mile_social_activities','GET',null,'?id=eq.'+encodeURIComponent(p.id)+'&select=id,detail_snapshot');if(rows?.[0]?.detail_snapshot)p={...p,detail_snapshot:rows[0].detail_snapshot};}catch(err){console.warn('MILE SIM share snapshot',err)}
+ }
+ close();
+ const names=simPost(p)?simNames:regularNames;
  const wrap=document.createElement('div');wrap.id='m396-share-overlay';wrap.className='m396-share-overlay';
  wrap.innerHTML='<div class="m396-share-panel" role="dialog" aria-modal="true" aria-label="Share Activity"><div class="row between"><h2>Share Activity</h2><button type="button" class="btn alt" data-m396-close aria-label="Close">×</button></div><p class="muted small">Swipe to choose your card design. This does not publish another post.</p><div class="mile-card-track">'+names.map((name,i)=>'<div class="mile-card-choice" data-card-index="'+i+'">'+card(p,i)+'<div class="mile-card-choice-label">'+esc(name)+'</div></div>').join('')+'</div><div class="mile-card-dots">● ○ ○ ○</div><div class="m396-share-actions"><button type="button" data-m396-close>Close</button><button type="button" data-m396-export>Save Image</button></div></div>';
  document.body.append(wrap);const track=wrap.querySelector('.mile-card-track');let chosen=0;
