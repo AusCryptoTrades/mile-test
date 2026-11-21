@@ -4,7 +4,9 @@ for(const route of ['mile-challenges.html','mile-run-tracker.html']){
   await page.goto('/'+route);
   const header=page.locator('header.mile-standalone-main-header');
   await expect(header).toBeVisible();
-  await expect(header.locator('.brand')).toHaveText('MILE.');\n  await expect(header.locator('.eyebrow')).toHaveText('MAKE IT LOOK EASY.');\n  await expect(header.locator('.mile-header-news')).toBeVisible();
+  await expect(header.locator('.brand')).toHaveText('MILE.');
+  await expect(header.locator('.eyebrow')).toHaveText('MAKE IT LOOK EASY.');
+  await expect(header.locator('.mile-header-news')).toBeVisible();
   await expect(header.locator('.mile-header-signout')).toBeVisible();
   await expect(header.locator('.mile-header-profile')).toBeVisible();
   await expect(header).toHaveCSS('background-color','rgb(34, 34, 34)');
