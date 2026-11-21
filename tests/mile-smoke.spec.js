@@ -193,3 +193,22 @@ test('four activity share designs swipe and export the selected PNG', async ({ p
   await modal.locator('[data-m396-close]').first().click();
   await expect(modal).toHaveCount(0);
 });
+
+test('HYROX SIM share offers monochrome simple and detailed split cards', async ({ page }) => {
+  await openApp(page, { signedIn: true });
+  await page.evaluate(() => {
+    window.m398SocialPosts = [{id:'sim-fixture',source_activity_id:'mile-sim-test',title:'MILE SIM · HYROX',distance_m:8000,duration_s:3678,activity_at:'2026-11-22T08:00:00Z',detail_snapshot:{source:'mile-sim',stages:Array.from({length:16},(_,i)=>({name:i%2?'Station '+(i+1)/2:'Run '+(i/2+1),seconds:200+i}))}}];
+    const b=document.createElement('button');b.dataset.m396Share='sim-fixture';document.body.append(b);b.click();
+  });
+  const modal=page.locator('#m396-share-overlay');
+  await expect(modal).toBeVisible();
+  await expect(modal.locator('.mile-card-choice')).toHaveCount(4);
+  await expect(modal).toContainText('Simple White');
+  await expect(modal).toContainText('Simple Black');
+  await expect(modal).toContainText('Detailed White');
+  await expect(modal).toContainText('Detailed Black');
+  await expect(modal).toContainText('HYROX SIM');
+  await expect(modal).toContainText('Run 8');
+  await expect(modal).toContainText('Station 8');
+  await expect(modal).toContainText('1:01:18');
+});
