@@ -19,7 +19,8 @@ test('standalone tracker hides live metrics until run starts',async({page})=>{
 });
 test('embedded challenge and tracker do not duplicate main header',async({page})=>{
  for(const route of ['mile-challenges.html','mile-run-tracker.html']){
-  await page.goto('/'+route+'?embedded=1');
-  await expect(page.locator('header.mile-standalone-main-header')).toBeHidden();
+  await page.goto('/');
+  await page.evaluate(route=>{document.body.innerHTML='<iframe id="embed-check" src="./'+route+'?embedded=1"></iframe>'},route);
+  await expect(page.frameLocator('#embed-check').locator('header.mile-standalone-main-header')).toBeHidden();
  }
 });
