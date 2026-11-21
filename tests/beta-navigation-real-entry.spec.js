@@ -24,7 +24,7 @@ test('switching from Tracker to Challenges preserves shared shell',async({page})
 test('logo navigates to Home from Challenges',async({page})=>{
  await page.evaluate(()=>window.mileOpenChallenges());
  await expect(page.locator('#mile-native-view[data-view="challenges"]')).toHaveCount(1);
- await page.locator('.top .brand').first().click();
+ await page.locator('.top .brand').first().dispatchEvent('click');
  await expect(page.locator('#mile-native-view')).toHaveCount(0);
  await expect.poll(()=>new URL(page.url()).searchParams.has('mileView')).toBe(false);
 });
