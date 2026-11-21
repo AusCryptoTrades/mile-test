@@ -4193,7 +4193,7 @@ const obs=new MutationObserver(fix);obs.observe(document.body,{childList:true,su
  const open=menu.classList.contains('open'),scrim=document.getElementById('mile-v3953-scrim');
  if(open&&!scrim){const el=document.createElement('div');el.id='mile-v3953-scrim';el.addEventListener('click',close);document.body.appendChild(el)}
  if(!open&&scrim)scrim.remove();
- if(open){const b=menu.querySelector('.m385-more-head button');if(b&&!b.querySelector('[data-mile-v3953-icon]')){b.innerHTML='<svg data-mile-v3953-icon viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6L18 18M18 6L6 18"/></svg>';b.setAttribute('aria-label','Close menu')}}
+ if(open){const b=menu.querySelector('.m385-more-head button');if(b&&!b.querySelector('[data-mile-v3953-icon]')){b.innerHTML='<svg class="mile-close-single-svg" data-mile-v3953-icon viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6L18 18M18 6L6 18"/></svg>';b.setAttribute('aria-label','Close menu')}}
  }
  new MutationObserver(update).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
  document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
