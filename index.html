@@ -4276,6 +4276,8 @@ body.mile-messages-nav .shell{padding-bottom:calc(90px + env(safe-area-inset-bot
  if(typeof oldRender==='function')window.render=function(){const out=oldRender.apply(this,arguments);sync();return out};
  const oldPaint=window.m383Repaint;
  if(typeof oldPaint==='function')window.m383Repaint=function(){const out=oldPaint.apply(this,arguments);sync();return out};
+ const navWatch=document.getElementById('nav');
+ if(navWatch){let scheduled=false;new MutationObserver(()=>{if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;sync()})}).observe(navWatch,{childList:true,subtree:true});}
  document.addEventListener('click',()=>requestAnimationFrame(sync),true);
  document.addEventListener('DOMContentLoaded',sync);
  sync();
