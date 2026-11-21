@@ -48,8 +48,10 @@ test('SIM back button confirms exit and returns to Race Lab deep link',async({pa
  await page.locator('#stay').click();
  await expect(page.locator('#leaveModal')).not.toHaveClass(/open/);
  await page.locator('#backToRaceLab').click();
+ const navigation=page.waitForRequest(request=>request.isNavigationRequest()&&request.url().includes('milePage=predictor'));
  await page.locator('#leave').click();
- await expect(page).toHaveURL(/index\.html\?milePage=predictor/);
+ await navigation;
+ await expect(page).toHaveURL(/index\.html$/);
 });
 test('SIM split review edits an existing split',async({page})=>{
  await page.goto('/mile-sim.html');
