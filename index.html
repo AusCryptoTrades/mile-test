@@ -4251,4 +4251,35 @@ new MutationObserver(()=>{const root=document.getElementById('mile-v3953-distrib
  document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
  close();
 })();
+</script><style id="mile-v3957-layout-consistency">
+/* Stats-style headings replace legacy artwork only on the six specified pages. */
+body.mile-compact-heading #app .mile-v32-hero,body.mile-compact-heading #app .mile-v33-hero,body.mile-compact-heading #app .mile35-hero,body.mile-compact-heading #app .m395-hero,body.mile-compact-heading #app .mile-v32-banner,body.mile-compact-heading #app .mile-v33-banner,body.mile-compact-heading #app .m395-page-hero{min-height:0!important;height:auto!important;padding:0!important;margin:0 0 18px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important}
+body.mile-compact-heading #app :is(.mile-v32-hero,.mile-v33-hero,.mile35-hero,.m395-hero,.mile-v32-banner,.mile-v33-banner,.m395-page-hero)::before,body.mile-compact-heading #app :is(.mile-v32-hero,.mile-v33-hero,.mile35-hero,.m395-hero,.mile-v32-banner,.mile-v33-banner,.m395-page-hero)::after{display:none!important;content:none!important}
+body.mile-compact-heading #app :is(.mile-v32-hero,.mile-v33-hero,.mile35-hero,.m395-hero,.mile-v32-banner,.mile-v33-banner,.m395-page-hero) :is(h1,h2){font-size:clamp(24px,5vw,32px)!important;line-height:1.2!important;margin:0!important;position:static!important}
+body.mile-messages-nav #nav{display:flex!important;visibility:visible!important;opacity:1!important;position:fixed!important;bottom:0!important;left:0!important;right:0!important;z-index:99999!important;pointer-events:auto!important}
+body.mile-messages-nav .shell{padding-bottom:calc(90px + env(safe-area-inset-bottom))!important}
+</style>
+<script id="mile-v3957-layout-consistency-js">
+(function(){
+ const compact=new Set(['insights','events','predictor','goals','recovery','settings']);
+ function sync(){
+  if(typeof page==='undefined')return;
+  document.body.classList.toggle('mile-compact-heading',compact.has(page));
+  document.body.classList.toggle('mile-messages-nav',page==='social'&&window.m36State?.tab==='messages');
+  const nav=document.getElementById('nav');if(!nav)return;
+  const buttons=Array.from(nav.querySelectorAll('button'));
+  // One active tab only; secondary pages belong to More, Social pages retain navigation.
+  const selected=['insights','events','predictor','goals','recovery','settings'].includes(page)?'More':page==='social'?'':null;
+  if(selected)buttons.forEach((b,i)=>b.classList.toggle('active',selected==='More'&&i===buttons.length-1));
+ }
+ const oldRender=window.render;
+ if(typeof oldRender==='function')window.render=function(){const out=oldRender.apply(this,arguments);sync();return out};
+ const oldPaint=window.m383Repaint;
+ if(typeof oldPaint==='function')window.m383Repaint=function(){const out=oldPaint.apply(this,arguments);sync();return out};
+ const navWatch=document.getElementById('nav');
+ if(navWatch){let scheduled=false;new MutationObserver(()=>{if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;sync()})}).observe(navWatch,{childList:true,subtree:true});}
+ document.addEventListener('click',()=>requestAnimationFrame(sync),true);
+ document.addEventListener('DOMContentLoaded',sync);
+ sync();
+})();
 </script></body></html>
