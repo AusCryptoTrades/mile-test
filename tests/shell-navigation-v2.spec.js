@@ -1,6 +1,7 @@
 const {test,expect}=require('@playwright/test');
 for(const [route,view] of [['mile-run-tracker.html','tracker'],['mile-challenges.html','challenges']]){
  test('standalone '+route+' redirects into the real MILE shell',async({page})=>{
+  await page.addInitScript(()=>localStorage.setItem('av-token','test-token'));
   await page.goto('/'+route);
   await expect.poll(()=>new URL(page.url()).searchParams.get('mileView')).toBe(view);
   expect(new URL(page.url()).pathname).toMatch(/index.html$/);
