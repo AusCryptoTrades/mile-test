@@ -4282,4 +4282,49 @@ body.mile-messages-nav .shell{padding-bottom:calc(90px + env(safe-area-inset-bot
  document.addEventListener('DOMContentLoaded',sync);
  sync();
 })();
+</script><style id="mile-menu-scroll-lock-css">
+html.mile-menu-scroll-locked{overflow:hidden!important;overscroll-behavior:none!important}
+body.mile-menu-scroll-locked{position:fixed!important;left:0!important;right:0!important;width:100%!important;overflow:hidden!important;overscroll-behavior:none!important}
+#m36-drawer,#mile-emergency-more{overflow-y:auto!important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain!important;touch-action:pan-y!important}
+#m36-dim,.m36-dim{touch-action:none!important}
+</style><script id="mile-menu-scroll-lock-js">
+(function(){
+ let savedY=0,locked=false;
+ function hasMenu(){return !!document.getElementById('m36-drawer')||!!document.querySelector('#mile-emergency-more.open')}
+ function sync(){
+  const open=hasMenu();
+  if(open&&!locked){
+   savedY=window.scrollY||document.documentElement.scrollTop||0;
+   document.documentElement.classList.add('mile-menu-scroll-locked');
+   document.body.classList.add('mile-menu-scroll-locked');
+   document.body.style.top=(-savedY)+'px';
+   locked=true;
+  }else if(!open&&locked){
+   document.documentElement.classList.remove('mile-menu-scroll-locked');
+   document.body.classList.remove('mile-menu-scroll-locked');
+   document.body.style.top='';
+   locked=false;
+   window.scrollTo(0,savedY);
+  }
+ }
+ // Both menus are dynamically inserted/removed. Observe state changes so
+ // open, close, navigation and outside-tap paths all use the same scroll lock.
+ new MutationObserver(sync).observe(document.body,{childList:true,subtree:false,attributes:true,attributeFilter:['class']});
+ sync();
+})();
+</script><script id="mile-racelab-deeplink">
+(function(){
+ const url=new URL(location.href);
+ if(url.searchParams.get('milePage')!=='predictor')return;
+ url.searchParams.delete('milePage');
+ history.replaceState(history.state,'',url.pathname+url.search+url.hash);
+ let attempts=0;
+ const poll=setInterval(function(){
+  attempts++;
+  if(typeof window.mileV3Go==='function'&&typeof v4Ready!=='undefined'&&v4Ready&&document.getElementById('app')){
+   clearInterval(poll);
+   window.mileV3Go('predictor');
+  }else if(attempts>=240)clearInterval(poll);
+ },250);
+})();
 </script></body></html>
