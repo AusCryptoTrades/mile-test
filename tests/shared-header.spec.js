@@ -2,11 +2,13 @@ const {test,expect}=require('@playwright/test');
 for(const route of ['mile-challenges.html','mile-run-tracker.html']){
  test(route+' uses the exact shared MILE header and iPhone safe area',async({page})=>{
   await page.goto('/'+route);
-  const header=page.locator('header.mile-shared-header');
+  const header=page.locator('header.mile-standalone-main-header');
   await expect(header).toBeVisible();
-  await expect(header.locator('.mile-shared-logo')).toHaveText('MILE.');
-  await expect(header.locator('.mile-shared-signout')).toBeVisible();
-  await expect(header.locator('.mile-shared-avatar')).toBeVisible();
+  await expect(header.locator('.brand')).toHaveText('MILE.');
+  await expect(header.locator('.eyebrow')).toHaveText('MAKE IT LOOK EASY.');
+  await expect(header.locator('.mile-header-news')).toBeVisible();
+  await expect(header.locator('.mile-header-signout')).toBeVisible();
+  await expect(header.locator('.mile-header-profile')).toBeVisible();
   await expect(header).toHaveCSS('background-color','rgb(34, 34, 34)');
   const rect=await header.boundingBox();
   expect(rect).toBeTruthy();
