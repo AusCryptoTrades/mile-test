@@ -3,7 +3,7 @@
 </style></head><body><header><button class="back" id="back">‹ Social</button><div class="logo">MILE<span class="lime">.</span></div><span class="eyebrow">COMPETE</span></header><div id="root"></div><div class="overlay" id="winner"><div class="row"><strong>YOU WON.</strong><button class="back" id="closeWinner">✕</button></div><p>Congratulations. Your winner image is ready.</p><div class="styles"><button data-style="black" class="active">BLACK</button><button data-style="white">WHITE</button></div><canvas id="winnerCanvas" width="1080" height="1350"></canvas><p class="small" style="text-align:center">Press and hold the image to save to Photos on iPhone.</p><button class="primary" id="saveWinner">Save image</button></div><script>
 (function(){'use strict';
 const root=document.getElementById('root'),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
-const api=()=>parent.m383SocialApi;const social=()=>parent.m36State||{};const uid=()=>String(parent.mileUserId||'');
+const api=()=>parent.m383SocialApi;const social=()=>parent.m36State||{};const uid=()=>String(parent.mileChallengesUserId?.()||'');
 const types=['All','Running','HYROX','Cycling','Swimming','Strength','Multisport'];
 const metrics={Running:['Total distance','Fastest 5K','Fastest 10K','Most sessions'],HYROX:['Fastest full SIM','Most sessions'],Cycling:['Total distance','Most sessions'],Swimming:['Total distance','Most sessions'],Strength:['Most sessions'],Multisport:['Most sessions','Total duration']};
 let tab='Discover',sport='All',items=[],entries=[],current=null,winning=null,style='black',loading=false,error='',joined=new Set(),seen=new Set(JSON.parse(localStorage.getItem('mile-challenge-wins-seen')||'[]'));
