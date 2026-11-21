@@ -4,7 +4,7 @@ test('Challenges V2 loads without authentication and shows clear backend status'
  await expect(page.getByRole('heading',{name:/CHALLENGES/})).toBeVisible();
  await expect(page.getByText(/Sign in to MILE/)).toBeVisible();
  await page.getByRole('button',{name:'Create',exact:true}).click();
- await expect(page.getByRole('heading',{name:'CREATE CHALLENGE'})).toBeVisible();
+ await expect(page.getByRole('heading',{name:/CREATE A CHALLENGE/})).toBeVisible();
  await expect(page.locator('#metricSelect option')).toHaveCount(4);
 });
 test('Challenge creator exposes supported metrics and does not allow unsupported private mode',async({page})=>{
