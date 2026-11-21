@@ -27,7 +27,7 @@ body.mile-standalone-page>.top.mile-standalone-main-header{padding:12px!importan
 const header=document.querySelector('header.mile-top,header.mile-unified-head');
 if(!header)return;
 header.className='top mile-standalone-main-header';
-header.innerHTML='<div class="mile-header-identity"><div class="eyebrow">MAKE IT LOOK EASY.</div><div class="brand">MILE.</div></div><div class="row"><button type="button" class="m396-whats-new mile-header-news">✦ &nbsp;What\\'s New</button><button type="button" class="btn alt sm mile-header-signout">Sign out</button><button type="button" class="m36-head mile-header-profile" aria-label="Open MILE profile"><span class="m36-avatar">M</span></button></div>';
+header.innerHTML='<div class="mile-header-identity"><div class="eyebrow">MAKE IT LOOK EASY.</div><div class="brand">MILE.</div></div><div class="row"><button type="button" class="m396-whats-new mile-header-news">✦ &nbsp;What&#39;s New</button><button type="button" class="btn alt sm mile-header-signout">Sign out</button><button type="button" class="m36-head mile-header-profile" aria-label="Open MILE profile"><span class="m36-avatar">M</span></button></div>';
 header.querySelector('.mile-header-news').onclick=()=>{sessionStorage.setItem('mile-standalone-show-whats-new','1');location.href='./index.html'};
 header.querySelector('.mile-header-signout').onclick=()=>{if(!confirm('Sign out of MILE?'))return;for(const key of ['av-token','av-refresh','av-user']){localStorage.removeItem(key);sessionStorage.removeItem(key)}location.href='./index.html'};
 header.querySelector('.mile-header-profile').onclick=()=>{sessionStorage.setItem('mile-challenge-nav-target','profile');location.href='./index.html'};
