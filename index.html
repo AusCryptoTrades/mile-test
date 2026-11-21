@@ -4334,4 +4334,4 @@ function fixMore(){const m=document.getElementById('mileV3More');if(!m||m.queryS
 const nav=document.getElementById('nav');if(nav)new MutationObserver(fixNav).observe(nav,{childList:true});
 const more=document.getElementById('mileV3More');if(more)new MutationObserver(fixMore).observe(more,{childList:true});
 fixNav();fixMore();
-})();</script></body></html>
+})();</script><script id="mile-challenges-return-navigation">(function(){const target=sessionStorage.getItem('mile-challenge-nav-target');if(!target)return;sessionStorage.removeItem('mile-challenge-nav-target');let attempts=0;const t=setInterval(()=>{if(++attempts>80){clearInterval(t);return}if(!document.getElementById('nav')||typeof window.mileV3Go!=='function')return;clearInterval(t);if(target==='more')window.mileV3ToggleMore?.();else window.mileV3Go(target)},150)})();</script></body></html>
