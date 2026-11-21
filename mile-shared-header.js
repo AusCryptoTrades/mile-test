@@ -14,12 +14,12 @@ body.mile-standalone-page{padding-top:calc(env(safe-area-inset-top, 0px) + 18px)
 .mile-shared-avatar img{width:100%!important;height:100%!important;object-fit:cover!important;border-radius:50%!important}
 @media(max-width:600px){
 .mile-shared-header{padding:12px!important;min-height:77px!important;border-radius:19px!important;margin-bottom:24px!important}
-.mile-shared-brand .mile-shared-tagline{display:none!important}
-.mile-shared-brand .mile-shared-logo{font-size:30px!important}
+.mile-shared-brand .mile-shared-tagline{display:block!important;font-size:7px!important;letter-spacing:1.4px!important}
+.mile-shared-brand .mile-shared-logo{font-size:29px!important}
 .mile-shared-actions{gap:7px!important}
-.mile-shared-actions button{font-size:11px!important;padding:11px 12px!important;min-height:42px!important;border-radius:11px!important}
-.mile-shared-actions button.mile-shared-avatar{width:45px!important;height:45px!important;min-height:45px!important}
-.mile-shared-actions .mile-shared-whats-new{display:none!important}
+.mile-shared-actions button{font-size:10px!important;padding:10px 8px!important;min-height:42px!important;border-radius:11px!important}
+.mile-shared-actions button.mile-shared-avatar{width:42px!important;height:42px!important;min-height:42px!important}
+.mile-shared-actions .mile-shared-whats-new{display:inline-flex!important;align-items:center!important}
 }
 `;document.head.appendChild(style);document.body.classList.add('mile-standalone-page');
 const header=document.querySelector('header.mile-top,header.mile-unified-head');
