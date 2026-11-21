@@ -4385,8 +4385,8 @@ else if(typeof window.mileV3Go==='function')window.mileV3Go(state.page==='whatsn
 requestAnimationFrame(()=>window.scrollTo(0,state.scroll));}
 window.mileShowWhatsNewFromCurrent=openNews;
 window.m397CloseWhatsNew=restore;
-document.addEventListener('click',e=>{const logo=e.target.closest('.top .mile-header-identity,.top .brand,.top .mile-home,.top .mile-unified-brand');if(logo){e.preventDefault();e.stopImmediatePropagation();parked=null;window.mileNewsParking=false;previous=null;history.replaceState(null,'',location.pathname);document.body.classList.remove('mile-native-view-open');document.getElementById('mile-native-view')?.remove();window.mileV3Go?.('dashboard');return}
+document.addEventListener('click',e=>{const logo=e.target.closest('.top .mile-header-identity,.top .brand,.top .mile-home,.top .mile-unified-brand,.top .mile-logo,.top .logo');if(logo){e.preventDefault();e.stopImmediatePropagation();parked=null;window.mileNewsParking=false;previous=null;history.replaceState(null,'',location.pathname);document.body.classList.remove('mile-native-view-open');document.getElementById('mile-native-view')?.remove();window.mileV3Go?.('dashboard');return}
 const news=e.target.closest('#m396WhatsNew');if(news){e.preventDefault();e.stopImmediatePropagation();openNews();return}
 const close=e.target.closest('[onclick*="m397CloseWhatsNew"]');if(close&&previous){e.preventDefault();e.stopImmediatePropagation();restore();}
 },true);
-})();</script></body></html>
+})();</script><style id="mile-brand-home-clickable">.top .mile-header-identity,.top .brand,.top .mile-home,.top .mile-unified-brand,.top .mile-logo,.top .logo{cursor:pointer;touch-action:manipulation}</style></body></html>
