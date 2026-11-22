@@ -2391,7 +2391,7 @@ function mileSplits(points){
 function mileRecordedLaps(d){
  // Search the recorded Garmin payload without assuming a single firmware schema.
  // Never create synthetic splits from summary-only distance or duration.
- const paths=['laps','lapDTOs','splitSummaries','splits','splitSummary','splitDTOs','kilometerSplits','kilometreSplits','activityLaps'];
+ const paths=['laps','lapDTOs','splitSummaries','splits','splitSummary','splitDTOs','kilometerSplits','kilometreSplits','activityLaps','raw_data','rawData','activityDetail','activity','summary','summaryDTO','details'];
  const containers=[d,d?.raw_data,d?.rawData,d?.activityDetail,d?.activity,d?.summary,d?.summaryDTO,d?.details,d?.activityDetail?.raw_data].filter(Boolean);
  const number=(obj,...keys)=>{for(const k of keys){const v=obj?.[k];if(v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v)))return Number(v)}return null};
  const candidates=[];
