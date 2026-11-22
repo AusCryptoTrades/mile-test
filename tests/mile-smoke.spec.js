@@ -316,3 +316,30 @@ test('Race Lab keeps SIM promotion and adds permanent SIM tab',async({page})=>{
  await expect(page.locator('.mile-b1-sim-panel')).toBeVisible();
  await expect(page.locator('a[href="./mile-sim.html"]')).toHaveCount(2);
 });
+
+test('Batch 1: compact comment controls have transparent backgrounds',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.m36Open('feed'));
+ await expect(page.locator('[data-m36-comments="fixture-social-post"]')).toBeVisible();
+ await expect.poll(()=>page.evaluate(()=>window.m36State.loading)).toBe(false);
+ await page.evaluate(()=>{const s=window.m36State;s.comments=[{id:'batch-comment',activity_id:'fixture-social-post',user_id:'00000000-0000-4000-8000-000000000001',body:'Looks great',parent_comment_id:null}];window.m383Repaint()});
+ await page.locator('[data-m36-comments="fixture-social-post"]').click();
+ const reply=page.locator('#m400-comment-batch-comment [data-m400-reply]');
+ await expect(reply).toBeVisible();
+ const bg=await reply.evaluate(el=>getComputedStyle(el).backgroundColor);
+ expect(bg).toBe('rgba(0, 0, 0, 0)');
+ await expect(page.locator('.m401-composer textarea')).toBeVisible();
+});
+test('Batch 1: run tracker shows structured session and free-run target',async({page})=>{
+ await page.goto('/mile-run-tracker.html');
+ await expect(page.locator('#workout')).toBeVisible();
+ await page.locator('#workout').selectOption('threshold');
+ await expect(page.locator('#structuredTargets')).toBeVisible();
+ await expect(page.locator('#structuredTargets')).toContainText('RECOVERY');
+ await expect(page.locator('#paceTargetField')).toBeHidden();
+ await page.locator('#editTargets').click();
+ await expect(page.locator('#paceTargetField')).toBeVisible();
+ await page.locator('#workout').selectOption('free');
+ await expect(page.locator('#structuredTargets')).toBeHidden();
+ await expect(page.locator('#paceTargetField')).toBeVisible();
+});
