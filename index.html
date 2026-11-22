@@ -4620,4 +4620,42 @@ document.addEventListener('click',function(e){
 },true);
 /* Do not alter Home, Profile or Social Feed. */
 })();
+</script><style id="mile-beta5-feedback-style">
+#mile-beta-feedback-overlay{position:fixed;inset:0;z-index:2147483640;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:18px}
+#mile-beta-feedback-overlay .beta5-panel{width:min(100%,520px);max-height:90dvh;overflow:auto;background:#151a1a;color:#f3f5f3;border:1px solid #414949;border-radius:18px;padding:20px;font:15px Inter,system-ui,sans-serif}
+#mile-beta-feedback-overlay input,#mile-beta-feedback-overlay select,#mile-beta-feedback-overlay textarea{display:block;width:100%;min-height:42px;margin:7px 0 15px;background:#232a2a;border:1px solid #485251;border-radius:10px;color:white;padding:10px;font:inherit}
+#mile-beta-feedback-overlay button,.beta5-menu-entry{cursor:pointer;border:1px solid #414949;border-radius:10px;padding:11px;background:#242c2b;color:white;font:inherit}
+#mile-beta-feedback-overlay .beta5-primary{background:#b9f576;color:#101510;font-weight:750}
+#mile-beta-feedback-overlay .beta5-row{display:flex;gap:8px;justify-content:space-between;align-items:center;margin-bottom:15px}
+#mile-beta-feedback-overlay .beta5-report{border:1px solid #404848;border-radius:12px;padding:12px;margin:10px 0}
+</style><script id="mile-beta5-feedback">
+(function(){
+ 'use strict';
+ const base='https://mgixvokjlytjuypzcfzz.supabase.co';
+ const key='sb_publishable_gIQO8rNBD9kKQpQdky0-7w_2A55HzO8';
+ const token=()=>localStorage.getItem('av-token')||sessionStorage.getItem('av-token');
+ const uid=()=>localStorage.getItem('av-user')||sessionStorage.getItem('av-user');
+ const isAdmin=()=>{try{const payload=JSON.parse(atob((token()||'').split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));return payload.app_metadata?.mile_role==='admin'}catch{return false}};
+ async function api(path,method='GET',data){
+  if(!token())throw Error('Please sign in to submit a report.');
+  const response=await fetch(base+'/rest/v1/'+path,{method,headers:{apikey:key,Authorization:'Bearer '+token(),'Content-Type':'application/json',Prefer:'return=representation'},body:data?JSON.stringify(data):undefined});
+  if(!response.ok){const err=await response.json().catch(()=>({}));throw Error(err.message||'Request failed ('+response.status+')')}
+  return response.json();
+ }
+ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+ function close(){document.getElementById('mile-beta-feedback-overlay')?.remove()}
+ function overlay(html){close();const d=document.createElement('div');d.id='mile-beta-feedback-overlay';d.innerHTML='<div class="beta5-panel" role="dialog" aria-modal="true">'+html+'</div>';document.body.appendChild(d);d.addEventListener('click',e=>{if(e.target===d||e.target.closest('[data-beta5-close]'))close()});return d}
+ window.mileBetaReport=function(kind='bug'){
+  const d=overlay('<div class="beta5-row"><h2 style="margin:0">'+(kind==='bug'?'Report a bug':'Send feedback')+'</h2><button data-beta5-close aria-label="Close">✕</button></div><form id="beta5-form"><label>Page<select name="page">'+['Home','Calendar','Build','Garmin Activity Details','Recovery','MILE SIM','Tracker','Challenges','Social','Profile','Other'].map(x=>'<option>'+x+'</option>').join('')+'</select></label><label>What happened?<textarea name="description" rows="5" required minlength="5" maxlength="5000" placeholder="Tell us what you expected and what happened"></textarea></label><p style="font-size:12px;color:#aebbb6">Your account, browser and current app page are recorded to help investigate. Screenshot attachments are coming in a follow-up update.</p><button class="beta5-primary" type="submit">Submit '+(kind==='bug'?'bug':'feedback')+'</button><p id="beta5-result" role="status"></p></form>');
+  d.querySelector('form').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget,btn=form.querySelector('[type=submit]'),msg=d.querySelector('#beta5-result');btn.disabled=true;try{await api('mile_beta_reports','POST',{reporter_id:uid(),kind,page:form.page.value,description:form.description.value,device_info:navigator.userAgent.slice(0,500),app_version:document.querySelector('[id*=Version]')?.textContent?.slice(0,100)||'MILE Beta'});msg.textContent='Report submitted. Thank you!';form.reset()}catch(err){msg.textContent=err.message}finally{btn.disabled=false}};
+ };
+ window.mileBetaAdmin=async function(){
+  if(!isAdmin())return;
+  const d=overlay('<div class="beta5-row"><h2 style="margin:0">MILE Admin · Beta Reports</h2><button data-beta5-close>✕</button></div><p id="beta5-loading">Loading reports…</p><div id="beta5-list"></div>');
+  try{const rows=await api('mile_beta_reports?select=id,kind,page,description,status,created_at,device_info,app_version&order=created_at.desc&limit=100');d.querySelector('#beta5-loading').textContent=rows.length+' reports';d.querySelector('#beta5-list').innerHTML=rows.map(r=>'<div class="beta5-report"><strong>'+escapeHtml(r.kind.toUpperCase())+' · '+escapeHtml(r.page)+'</strong><p>'+escapeHtml(r.description)+'</p><small>'+escapeHtml(new Date(r.created_at).toLocaleString())+' · '+escapeHtml(r.app_version)+'</small><select data-report-id="'+escapeHtml(r.id)+'">'+['new','investigating','fixed','verified'].map(x=>'<option value="'+x+'" '+(x===r.status?'selected':'')+'>'+x+'</option>').join('')+'</select></div>').join('');d.querySelectorAll('[data-report-id]').forEach(sel=>sel.onchange=async()=>{try{await api('mile_beta_reports?id=eq.'+encodeURIComponent(sel.dataset.reportId),'PATCH',{status:sel.value})}catch(e){alert(e.message)}})}catch(e){d.querySelector('#beta5-loading').textContent=e.message}
+ };
+ function addEntries(){const menu=document.querySelector('#mile-emergency-more.open,#mileV3More.open');if(!menu)return;if(menu.querySelector('[data-beta5-entry]'))return;const wrap=document.createElement('div');wrap.dataset.beta5Entry='1';wrap.style.padding='10px';wrap.innerHTML='<button class="beta5-menu-entry" style="width:100%;text-align:left" data-beta5-bug>🐞 &nbsp; Report a Bug</button><button class="beta5-menu-entry" style="width:100%;text-align:left;margin-top:7px" data-beta5-feedback>✉ &nbsp; Send Feedback</button>'+(isAdmin()?'<button class="beta5-menu-entry" style="width:100%;text-align:left;margin-top:7px" data-beta5-admin>⚙ &nbsp; Admin Centre</button>':'');menu.appendChild(wrap);wrap.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;window.mileV3ToggleMore?.();if(b.hasAttribute('data-beta5-bug'))window.mileBetaReport('bug');if(b.hasAttribute('data-beta5-feedback'))window.mileBetaReport('feedback');if(b.hasAttribute('data-beta5-admin'))window.mileBetaAdmin()})}
+ let scheduled=false;new MutationObserver(()=>{if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;addEntries()})}).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+})();
 </script></body></html>
