@@ -421,7 +421,7 @@ test('batch 3: recovery trend values have room above tallest bars',async({page})
 test('batch 4: More hub groups destinations without touching social navigation',async({page})=>{
  await openApp(page,{signedIn:true});
  await page.evaluate(()=>window.mileV3ToggleMore());
- const menu=page.locator('#mileV3More');
+ const menu=page.locator('#mile-emergency-more');
  await expect(menu).toHaveClass(/open/);
  await expect(menu).toContainText('TRAINING & PERFORMANCE');
  await expect(menu).toContainText('HEALTH & RECOVERY');
@@ -439,7 +439,7 @@ test('batch 4: recorded Garmin laps support nested firmware payloads without gue
    {lapIndex:1,distanceInMeters:1000,durationInSeconds:250},
    {lapIndex:2,distanceInMeters:1000,durationInSeconds:265}
   ]}}};
-  return {recorded:mileRecordedLaps(nested),missing:mileRecordedLaps({distanceInMeters:5000,durationInSeconds:1200})};
+  return {recorded:window.mileBeta4RecordedLaps(nested),missing:window.mileBeta4RecordedLaps({distanceInMeters:5000,durationInSeconds:1200})};
  });
  expect(result.recorded).toHaveLength(2);
  expect(result.recorded.map(x=>x.duration)).toEqual([250,265]);
@@ -448,7 +448,8 @@ test('batch 4: recorded Garmin laps support nested firmware payloads without gue
 test('batch 4: typography and mobile nav remain consistent on secondary pages',async({page})=>{
  await openApp(page,{signedIn:true});
  await page.evaluate(()=>window.mileV3Go('calendar'));
- await expect(page.locator('#mile-fixed-mobile-nav')).toBeVisible();
+ if(test.info().project.name.startsWith('mobile-')) await expect(page.locator('#mile-fixed-mobile-nav')).toBeVisible();
+ else await expect(page.locator('#mile-fixed-mobile-nav')).toBeHidden();
  const font=await page.locator('#app').evaluate(el=>getComputedStyle(el).fontFamily);
  expect(font).toMatch(/Inter|BlinkMacSystemFont|Segoe UI/);
  await page.evaluate(()=>window.mileV3Go('recovery'));
