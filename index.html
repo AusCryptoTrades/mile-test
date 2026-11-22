@@ -2353,28 +2353,31 @@ function mileSplits(points){
  return out.filter(x=>x.seconds>0&&x.seconds<3600);
 }
 function mileRecordedLaps(d){
- // Garmin's treadmill and outdoor lap payloads differ by endpoint and firmware.
- // Only show rows with actual recorded distance and duration.
- const sources=[d?.laps,d?.lapDTOs,d?.splitSummaries,d?.splits,d?.splitSummary,
-   d?.summary?.laps,d?.summaryDTO?.laps,d?.activity?.lapDTOs,d?.activity?.splits,
-   d?.activity?.splitSummaries,d?.activityDetail?.lapDTOs,d?.activityDetail?.splits];
- const flat=[];
- function unpack(value,depth=0){
-  if(!value||depth>4)return;
-  if(Array.isArray(value)){for(const x of value)unpack(x,depth+1);return}
-  if(typeof value!=='object')return;
-  const nested=['lapDTOs','laps','splits','splitDTOs','splitSummaries','splitSummary','kilometerSplits','kilometreSplits'];
-  let found=false;
-  for(const key of nested)if(Array.isArray(value[key])){unpack(value[key],depth+1);found=true}
-  if(!found)flat.push(value);
+ // Search the recorded Garmin payload without assuming a single firmware schema.
+ // Never create synthetic splits from summary-only distance or duration.
+ const paths=['laps','lapDTOs','splitSummaries','splits','splitSummary','splitDTOs','kilometerSplits','kilometreSplits','activityLaps'];
+ const containers=[d,d?.raw_data,d?.rawData,d?.activityDetail,d?.activity,d?.summary,d?.summaryDTO,d?.details,d?.activityDetail?.raw_data].filter(Boolean);
+ const number=(obj,...keys)=>{for(const k of keys){const v=obj?.[k];if(v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v)))return Number(v)}return null};
+ const candidates=[];
+ const visited=new WeakSet();
+ function scan(node,depth=0){
+  if(!node||typeof node!=='object'||depth>7||visited.has(node))return;
+  visited.add(node);
+  if(Array.isArray(node)){for(const x of node)scan(x,depth+1);return}
+  for(const k of paths)if(node[k]&&typeof node[k]==='object')scan(node[k],depth+1);
+  const distance=number(node,'distanceInMeters','distance','totalDistance','distanceMeters','distanceInMeter','distanceInMetres');
+  let duration=number(node,'durationInSeconds','clockDurationInSeconds','movingDurationInSeconds','duration','movingDuration','elapsedDuration','totalTimerTime','timerDuration','durationSeconds','elapsedTimeInSeconds','totalElapsedTime');
+  if(duration!==null&&duration>86400&&duration<86400000)duration/=1000;
+  if(distance!==null&&duration!==null&&distance>30&&distance<100000&&duration>0&&duration<86400&&
+     (node.lapIndex!==undefined||node.lapNumber!==undefined||node.startTime!==undefined||node.startTimeGMT!==undefined||node.lapStartTime!==undefined||node.distanceInMeters!==undefined||node.durationInSeconds!==undefined)){
+   candidates.push({distance,duration,index:number(node,'lapIndex','lapNumber','index')});
+  }
  }
- for(const source of sources){const before=flat.length;unpack(source);if(flat.length>before)break}
- return flat.map((x,i)=>{
-  let distance=mileNum(mileField(x,'distanceInMeters','distance','totalDistance','distanceMeters','distanceInMeter'));
-  let duration=mileNum(mileField(x,'durationInSeconds','clockDurationInSeconds','movingDurationInSeconds','duration','movingDuration','elapsedDuration','totalTimerTime','timerDuration','durationSeconds','elapsedTimeInSeconds'));
-  if(duration>86400&&duration<86400000)duration/=1000;
-  return {index:i+1,distance,duration};
- }).filter(x=>x.distance>30&&x.distance<100000&&x.duration>0&&x.duration<86400);
+ for(const container of containers)scan(container);
+ const seen=new Set();
+ return candidates.filter(x=>{const key=[x.index??'',x.distance.toFixed(2),x.duration.toFixed(2)].join('|');if(seen.has(key))return false;seen.add(key);return true})
+ .sort((x,y)=>(x.index??Infinity)-(y.index??Infinity))
+ .map((x,i)=>({...x,index:Number.isFinite(x.index)?x.index:i+1}));
 }
 
 function milePlot(points,key,label,unit,color='#86efb5',summary=null){
@@ -2503,7 +2506,7 @@ drawDetail=function(){mileDetailOriginal();let overlay=document.getElementById('
   let html='<h3>Splits</h3>';
   if(laps.length){html+='<div class="muted small" style="margin-bottom:10px">Recorded Garmin laps (may include partial kilometres)</div>'+laps.map(l=>row('Lap '+l.index+' · '+(l.distance/1000).toFixed(2)+' km',mileSeconds(l.duration)+' · '+mileSeconds(l.duration/l.distance*1000)+'/km')).join('')}
   if(splits.length){html+='<h3 style="margin-top:20px">Calculated moving-time kilometres</h3><div class="muted small" style="margin-bottom:10px">Uses Garmin cumulative moving duration; these are not recorded lap-button splits.</div>'+splits.map(x=>row('Kilometre '+x.km,mileSeconds(x.seconds)+'/km')).join('')}
-  if(!laps.length&&!splits.length)html+='<div class="mile35-empty">Garmin did not supply usable recorded laps or moving-time samples. No guessed splits are displayed.</div>';
+  if(!laps.length&&!splits.length)html+='<div class="mile35-empty">This Garmin activity has no usable recorded lap or cumulative moving-time data. MILE won't invent kilometre splits. Try syncing the activity again.</div>';
   content[0].innerHTML=html;
  }
  if(tab==='Charts'&&content.length){content[0].innerHTML='<h3>Recorded heart rate</h3>'+milePlot(points,'hr','Heart rate','bpm','#ff626b',summary);if(content[1]){let pacePoints=milePaceSeries(points,summary);content[1].innerHTML='<h3>Recorded pace</h3>'+milePlot(pacePoints,'pace','Pace','min/km','#86efb5',summary)+'<div class="muted small">Pace is derived from Garmin speed samples when available, with a distance-window fallback. Outliers are excluded.</div>'}}
@@ -4562,5 +4565,20 @@ function restoreTheme(){const raw=localStorage.getItem('mile-appearance-v1');let
 const oldNavigate=window.navigate;if(typeof oldNavigate==='function')window.navigate=function(...args){const result=oldNavigate.apply(this,args);restoreTheme();return result};
 const oldV3=window.mileV3Go;if(typeof oldV3==='function')window.mileV3Go=function(...args){const result=oldV3.apply(this,args);restoreTheme();return result};
 window.addEventListener('pageshow',restoreTheme);
+})();
+</script><script id="mile-beta4-navigation-states">
+(function(){
+'use strict';
+/* Consistent Escape handling and accessible close labels across secondary views. */
+document.addEventListener('keydown',function(e){if(e.key!=='Escape')return;
+ if(document.getElementById('mile35-detail')){document.querySelector('#mile35-detail .mile35-back')?.click();return}
+ if(document.getElementById('m3927-detail')){document.querySelector('#m3927-detail [data-m3927-close]')?.click();return}
+ const more=document.getElementById('mileV3More');if(more?.classList.contains('open')){window.mileV3ToggleMore?.();return}
+ if(document.getElementById('m36-drawer'))window.m36CloseDrawer?.();
+});
+document.addEventListener('click',function(e){
+ const more=document.getElementById('mileV3More');if(more?.classList.contains('open')&&!e.target.closest('#mileV3More,#mile-fixed-mobile-nav [data-mile-page="more"]'))window.mileV3ToggleMore?.();
+},true);
+/* Do not alter Home, Profile or Social Feed. */
 })();
 </script></body></html>
