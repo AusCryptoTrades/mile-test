@@ -35,7 +35,7 @@ let current=session.stages[done];$('stage').textContent=current?.name||'Finish';
 function splitHTML(){return session.stages.slice(0,session.taps.length).map((s,i)=>'<div class="split"><span>'+s.name+'</span><strong>'+format(splitAt(i))+'</strong></div>').join('')||'<p class="muted">No completed splits yet.</p>'}
 function finish(early){reviewing=false;session.finished=true;session.ended=session.taps.at(-1)||Date.now();session.early=!!early;save();try{let history=JSON.parse(localStorage.getItem(HISTORY)||'[]');history.unshift(session);localStorage.setItem(HISTORY,JSON.stringify(history.slice(0,30)));window.parent?.postMessage({type:'mile-sim-sync'},location.origin)}catch{}render()}
 function begin(){reviewing=false;let target=parseTarget($('target').value);if(Number.isNaN(target)){alert('Enter target as HH:MM:SS or MM:SS');return}let rox=document.querySelector('input[name="rox"]:checked').value;session={version:1,started:Date.now(),distance:Number($('distance').value),rox,target,stages:stages(rox),taps:[],finished:false};save();render()}
-function goRaceLab(){location.assign('./index.html?milePage=predictor')}
+function goRaceLab(){if(window.parent!==window){window.parent.postMessage({mileShellNavigate:'predictor'},location.origin);return}location.assign('./index.html?milePage=predictor')}
 $('backToRaceLab').onclick=()=>{if(session&&!session.finished){$('leaveModal').classList.add('open');return}goRaceLab()};
 $('stay').onclick=()=>$('leaveModal').classList.remove('open');
 $('leave').onclick=()=>{$('leaveModal').classList.remove('open');save();goRaceLab()};
