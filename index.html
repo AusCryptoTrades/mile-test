@@ -2534,7 +2534,7 @@ drawDetail=function(){mileDetailOriginal();let overlay=document.getElementById('
   let html='<h3>Splits</h3>';
   if(laps.length){html+='<div class="muted small" style="margin-bottom:10px">Recorded Garmin laps (may include partial kilometres)</div>'+laps.map(l=>row('Lap '+l.index+' · '+(l.distance/1000).toFixed(2)+' km',mileSeconds(l.duration)+' · '+mileSeconds(l.duration/l.distance*1000)+'/km')).join('')}
   if(splits.length){html+='<h3 style="margin-top:20px">Calculated moving-time kilometres</h3><div class="muted small" style="margin-bottom:10px">Uses Garmin cumulative moving duration; these are not recorded lap-button splits.</div>'+splits.map(x=>row('Kilometre '+x.km,mileSeconds(x.seconds)+'/km')).join('')}
-  if(!laps.length&&!splits.length)html+='<div class="mile35-empty">This Garmin activity has no usable recorded lap or cumulative moving-time data. MILE won't invent kilometre splits. Try syncing the activity again.</div>';
+  if(!laps.length&&!splits.length)html+='<div class="mile35-empty">This Garmin activity has no usable recorded lap or cumulative moving-time data. MILE does not invent kilometre splits. Try syncing the activity again.</div>';
   content[0].innerHTML=html;
  }
  if(tab==='Charts'&&content.length){content[0].innerHTML='<h3>Recorded heart rate</h3>'+milePlot(points,'hr','Heart rate','bpm','#ff626b',summary);if(content[1]){let pacePoints=milePaceSeries(points,summary);content[1].innerHTML='<h3>Recorded pace</h3>'+milePlot(pacePoints,'pace','Pace','min/km','#86efb5',summary)+'<div class="muted small">Pace is derived from Garmin speed samples when available, with a distance-window fallback. Outliers are excluded.</div>'}}
