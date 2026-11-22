@@ -12,10 +12,12 @@ test('prior completed SIM is recovered and publish action becomes available',asy
  localStorage.setItem('mile-sim-v1',JSON.stringify(saved));
  localStorage.setItem('mile-sim-history-v1',JSON.stringify([saved]));
  });
+ await page.route('**/index.html?milePage=social',route=>route.fulfill({status:200,contentType:'text/html',body:'<!doctype html><title>Social navigation test</title>'}));
  await page.goto('/mile-sim.html');
  await expect(page.locator('#results')).toBeVisible();
  await expect(page.locator('#publishSim')).toBeVisible();
  await page.locator('#publishSim').click();
+ await expect(page).toHaveURL(/\/index\.html\?milePage=social$/);
  await expect.poll(()=>page.evaluate(()=>localStorage.getItem('mile-sim-publish-intent-v1'))).toContain('mile-sim-');
 });
 test('authenticated app includes SIM cloud sync module',async({page})=>{
