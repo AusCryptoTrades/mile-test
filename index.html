@@ -4487,7 +4487,8 @@ body.mile-menu-scroll-locked{position:fixed!important;left:0!important;right:0!i
  }
  // Both menus are dynamically inserted/removed. Observe state changes so
  // open, close, navigation and outside-tap paths all use the same scroll lock.
- new MutationObserver(sync).observe(document.body,{childList:true,subtree:false,attributes:true,attributeFilter:['class']});
+ new MutationObserver(sync).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+ document.addEventListener('touchmove',function(e){if(locked&&!e.target.closest('#mile-emergency-more,#mileV3More,#m36-drawer'))e.preventDefault()},{passive:false});
  sync();
 })();
 </script><script id="mile-racelab-deeplink">
