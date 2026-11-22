@@ -351,10 +351,10 @@ test('beta recovery: sleep trend uses integer scores, HRV and VO2 appear on dash
    state.recoveryDays=[{date:d,sleepHours:7.733,sleepScore:84,hrvMs:51,vo2Max:49,restingHR:45,batteryCharged:62,batteryDrained:37}];
    window.mileV3Go('dashboard');
  });
- await expect(page.locator('.mile-ui-dashboard')).toContainText('SLEEP SCORE');
- await expect(page.locator('.mile-ui-dashboard')).toContainText('OVERNIGHT HRV');
+ await expect(page.locator('.mile-ui-dashboard')).toContainText('Sleep Score');
+ await expect(page.locator('.mile-ui-dashboard')).toContainText('HRV');
  await expect(page.locator('.mile-ui-dashboard')).toContainText('51 ms');
- await expect(page.locator('.mile-ui-dashboard')).toContainText('VO₂ MAX');
+ await expect(page.locator('.mile-ui-dashboard')).toContainText('VO₂ Max');
  await page.evaluate(()=>window.mileV3Go('recovery'));
  await expect(page.locator('#recoveryTrends')).toContainText('Sleep score');
  await expect(page.locator('#recoveryTrends')).toContainText('84');
@@ -363,6 +363,6 @@ test('beta recovery: sleep trend uses integer scores, HRV and VO2 appear on dash
 test('beta recovery: missing VO2 stays blank rather than inventing an estimate',async({page})=>{
  await openApp(page,{signedIn:true});
  await page.evaluate(()=>{state.recoveryDays=[{date:new Date().toLocaleDateString('en-CA'),sleepScore:76,hrvMs:48}];window.mileV3Go('dashboard')});
- await expect(page.locator('.mile-ui-dashboard')).toContainText('VO₂ MAX');
+ await expect(page.locator('.mile-ui-dashboard')).toContainText('VO₂ Max');
  await expect(page.locator('.mile-ui-dashboard')).toContainText('—');
 });
