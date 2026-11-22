@@ -245,3 +245,23 @@ test('comment threads render like and reply controls', async ({page}) => {
  await page.locator('#m400-comment-comment-root [data-m400-like]').click();
  await expect(page.locator('#m400-comment-comment-root [data-m400-like]')).toHaveAttribute('aria-pressed','false');
 });
+
+test('compact comments expand inline, use theme hearts and keep composer in card',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.m36Open('feed'));
+ await expect(page.locator('[data-m36-comments="fixture-social-post"]')).toBeVisible();
+ await expect.poll(()=>page.evaluate(()=>window.m36State.loading)).toBe(false);
+ await page.evaluate(()=>{
+  const s=window.m36State,uid='00000000-0000-4000-8000-000000000001';
+  s.comments=[1,2,3,4].map(n=>({id:'compact-'+n,activity_id:'fixture-social-post',user_id:uid,body:'Compact comment '+n,parent_comment_id:null,created_at:new Date().toISOString()}));
+  s.commentLikes=[{comment_id:'compact-1',user_id:uid}];window.m383Repaint();
+ });
+ await page.locator('[data-m36-comments="fixture-social-post"]').click();
+ await expect(page.locator('.m401-comment')).toHaveCount(2);
+ await expect(page.locator('.m401-heart[aria-pressed="true"]')).toHaveCount(1);
+ await expect(page.locator('.m401-composer textarea')).toBeVisible();
+ await page.locator('[data-m401-expand="fixture-social-post"]').click();
+ await expect(page.locator('.m401-comment')).toHaveCount(4);
+ await page.locator('[data-m401-expand="fixture-social-post"]').click();
+ await expect(page.locator('.m401-comment')).toHaveCount(2);
+});
