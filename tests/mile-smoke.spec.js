@@ -298,7 +298,8 @@ test('Events and PBs are grouped under their own add controls',async({page})=>{
  await expect(sections.nth(0)).toContainText('Add an event');
  await expect(sections.nth(1)).toContainText('Add a personal best');
  await expect(page.getByRole('heading',{name:'Race calendar'})).toHaveCount(0);
- await sections.nth(0).locator('summary').first().click();
+ await sections.nth(0).locator('.mile-b1-add').click();
+ await expect(page.locator('#mile-b1-event-form')).toHaveAttribute('open','');
  await page.locator('#m32EventName').fill('HYROX Melbourne');
  await page.locator('#m32EventDate').fill('2026-12-09');
  await page.locator('#m32EventSport').selectOption('HYROX');
@@ -306,6 +307,14 @@ test('Events and PBs are grouped under their own add controls',async({page})=>{
  await page.getByRole('button',{name:'Save event'}).click();
  await expect(page.locator('.mile-b1-event')).toContainText('HYROX Melbourne');
  await expect(page.locator('.mile-b1-event')).toContainText('HYROX');
+ await expect(page.locator('.mile-b1-event')).toContainText('Mixed Doubles');
+ await page.locator('.mile-b1-event .mile-b1-menu summary').click();
+ await page.getByRole('button',{name:'Edit event / result'}).click();
+ await expect(page.locator('#m32EventName')).toHaveValue('HYROX Melbourne');
+ await page.locator('#m32EventResult').fill('59:30');
+ await page.getByRole('button',{name:'Save changes'}).click();
+ await expect(page.locator('.mile-b1-event')).toContainText('59:30');
+ await expect(page.locator('.mile-b1-section').nth(0).locator('.mile-b1-add')).toBeVisible();
 });
 test('Race Lab keeps SIM promotion and adds permanent SIM tab',async({page})=>{
  await openApp(page,{signedIn:true});
