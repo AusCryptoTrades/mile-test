@@ -242,4 +242,6 @@ test('comment threads render like and reply controls', async ({page}) => {
  await expect(page.locator('[data-m400-indicator="fixture-social-post"]')).toContainText('Replying to');
  await page.locator('[data-m400-cancel="fixture-social-post"]').click();
  await expect(page.locator('[data-m400-indicator="fixture-social-post"]')).toBeHidden();
+ await page.locator('#m400-comment-comment-root [data-m400-like]').click();
+ await expect(page.locator('#m400-comment-comment-root [data-m400-like]')).toHaveAttribute('aria-pressed','false');
 });
