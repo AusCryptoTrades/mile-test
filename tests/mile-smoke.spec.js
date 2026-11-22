@@ -212,3 +212,13 @@ test('HYROX SIM share offers monochrome simple and detailed split cards', async 
   await expect(modal).toContainText('Station 8');
   await expect(modal).toContainText('1:01:18');
 });
+
+test('tracker embedded navigation', async ({ page }) => {
+ await openApp(page, { signedIn: true });
+ await page.evaluate(() => window.mileShellOpen('tracker'));
+ await expect(page.locator('#mile-native-view')).toBeVisible();
+ await expect(page.locator('#mile-fixed-mobile-nav [data-mile-page="track"]')).toHaveClass(/active/);
+ await expect(page.frameLocator('#mile-native-view').locator('.mile-tracker-hero')).toContainText('RUN TRACKER');
+ await page.evaluate(() => window.mileShellNavigate('profile'));
+ await expect(page.locator('#mile-native-view')).toHaveCount(0);
+});
