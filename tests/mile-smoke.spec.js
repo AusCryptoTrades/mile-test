@@ -222,3 +222,26 @@ test('tracker embedded navigation', async ({ page }) => {
  await page.evaluate(() => window.mileShellNavigate('profile'));
  await expect(page.locator('#mile-native-view')).toHaveCount(0);
 });
+
+test('comment threads render like and reply controls', async ({page}) => {
+ await openApp(page,{signedIn:true});
+ await page.evaluate(() => {
+  const s=window.m36State;
+  s.comments=[{id:'comment-root',activity_id:'fixture-social-post',user_id:'00000000-0000-4000-8000-000000000001',body:'Great workout!',parent_comment_id:null},{id:'comment-child',activity_id:'fixture-social-post',user_id:'00000000-0000-4000-8000-000000000001',body:'Thank you!',parent_comment_id:'comment-root'}];
+  s.commentLikes=[{comment_id:'comment-root',user_id:'00000000-0000-4000-8000-000000000001'}];
+  window.m36Open('feed');
+ });
+ await expect(page.locator('[data-m36-comments="fixture-social-post"]')).toBeVisible();
+ await expect.poll(() => page.evaluate(() => window.m36State.loading)).toBe(false);
+ await page.evaluate(() => {const s=window.m36State;s.comments=[{id:'comment-root',activity_id:'fixture-social-post',user_id:'00000000-0000-4000-8000-000000000001',body:'Great workout!',parent_comment_id:null},{id:'comment-child',activity_id:'fixture-social-post',user_id:'00000000-0000-4000-8000-000000000001',body:'Thank you!',parent_comment_id:'comment-root'}];s.commentLikes=[{comment_id:'comment-root',user_id:'00000000-0000-4000-8000-000000000001'}];window.m383Repaint();});
+ await page.locator('[data-m36-comments="fixture-social-post"]').click();
+ await expect(page.locator('#m400-comment-comment-root')).toContainText('Great workout!');
+ await expect(page.locator('#m400-comment-comment-child')).toContainText('Thank you!');
+ await expect(page.locator('#m400-comment-comment-root [data-m400-like]')).toHaveAttribute('aria-pressed','true');
+ await page.locator('#m400-comment-comment-root [data-m400-reply]').click();
+ await expect(page.locator('[data-m400-indicator="fixture-social-post"]')).toContainText('Replying to');
+ await page.locator('[data-m400-cancel="fixture-social-post"]').click();
+ await expect(page.locator('[data-m400-indicator="fixture-social-post"]')).toBeHidden();
+ await page.locator('#m400-comment-comment-root [data-m400-like]').click();
+ await expect(page.locator('#m400-comment-comment-root [data-m400-like]')).toHaveAttribute('aria-pressed','false');
+});
