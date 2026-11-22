@@ -265,3 +265,26 @@ test('compact comments expand inline, use theme hearts and keep composer in card
  await page.locator('[data-m401-expand="fixture-social-post"]').click();
  await expect(page.locator('.m401-comment')).toHaveCount(2);
 });
+
+test('structured tracker shows workout details and editable target pace',async({page})=>{
+ await page.goto('/mile-run-tracker.html?embedded=1&workout=threshold');
+ await expect(page.locator('#structuredTargets')).toBeVisible();
+ await expect(page.locator('.tracker-target-grid')).toContainText('RECOVERY');
+ await expect(page.locator('#paceTargetField')).toBeHidden();
+ await page.locator('#editTargets').click();
+ await expect(page.locator('#paceTargetField')).toBeVisible();
+ await page.locator('#workout').selectOption('free');
+ await expect(page.locator('#structuredTargets')).toBeHidden();
+ await expect(page.locator('#paceTargetField')).toBeVisible();
+});
+test('social comment action controls have transparent backgrounds',async({page})=>{
+ await openApp(page,{signedIn:true});await page.evaluate(()=>window.m36Open('feed'));
+ await expect(page.locator('[data-m36-comments="fixture-social-post"]')).toBeVisible();
+ await expect.poll(()=>page.evaluate(()=>window.m36State.loading)).toBe(false);
+ await page.evaluate(()=>{const s=window.m36State;s.comments=[{id:'batch-comment',activity_id:'fixture-social-post',user_id:'00000000-0000-4000-8000-000000000001',body:'UI check',parent_comment_id:null}];window.m383Repaint()});
+ await page.locator('[data-m36-comments="fixture-social-post"]').click();
+ for(const selector of ['.m401-actions [data-m400-reply]','.m401-actions [data-m313-comment-menu]','.m401-heart']){
+  const background=await page.locator(selector).first().evaluate(el=>getComputedStyle(el).backgroundColor);
+  expect(background).toBe('rgba(0, 0, 0, 0)');
+ }
+});
