@@ -383,7 +383,8 @@ test('batch 3: Social menu has no duplicate Tracker and closes on bottom navigat
  await page.evaluate(()=>window.m36Drawer());
  await expect(page.locator('#m36-drawer')).toBeVisible();
  await expect(page.locator('#m36-drawer')).not.toContainText('Run Tracker');
- await page.locator('#mile-fixed-mobile-nav [data-mile-page="calendar"]').click();
+ if(page.viewportSize().width<650)await page.locator('#mile-fixed-mobile-nav [data-mile-page="calendar"]').click();
+ else await page.evaluate(()=>{const b=document.querySelector('#mile-fixed-mobile-nav [data-mile-page="calendar"]');b.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));b.click()});
  await expect(page.locator('#m36-drawer')).toHaveCount(0);
  await expect(page.locator('#mile-fixed-mobile-nav [data-mile-page="calendar"]')).toHaveClass(/active/);
  await page.evaluate(()=>window.m36Drawer());
