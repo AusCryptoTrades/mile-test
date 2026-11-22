@@ -2396,16 +2396,16 @@ function mileRecordedLaps(d){
  const number=(obj,...keys)=>{for(const k of keys){const v=obj?.[k];if(v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v)))return Number(v)}return null};
  const candidates=[];
  const visited=new WeakSet();
- function scan(node,depth=0){
+ function scan(node,depth=0,isLap=false){
   if(!node||typeof node!=='object'||depth>7||visited.has(node))return;
   visited.add(node);
-  if(Array.isArray(node)){for(const x of node)scan(x,depth+1);return}
-  for(const k of paths)if(node[k]&&typeof node[k]==='object')scan(node[k],depth+1);
+  if(Array.isArray(node)){for(const x of node)scan(x,depth+1,isLap);return}
+  for(const k of paths)if(node[k]&&typeof node[k]==='object')scan(node[k],depth+1,isLap||['laps','lapDTOs','splitSummaries','splits','splitSummary','splitDTOs','kilometerSplits','kilometreSplits','activityLaps'].includes(k));
   const distance=number(node,'distanceInMeters','distance','totalDistance','distanceMeters','distanceInMeter','distanceInMetres');
   let duration=number(node,'durationInSeconds','clockDurationInSeconds','movingDurationInSeconds','duration','movingDuration','elapsedDuration','totalTimerTime','timerDuration','durationSeconds','elapsedTimeInSeconds','totalElapsedTime');
   if(duration!==null&&duration>86400&&duration<86400000)duration/=1000;
   if(distance!==null&&duration!==null&&distance>30&&distance<100000&&duration>0&&duration<86400&&
-     (node.lapIndex!==undefined||node.lapNumber!==undefined||node.startTime!==undefined||node.startTimeGMT!==undefined||node.lapStartTime!==undefined||node.distanceInMeters!==undefined||node.durationInSeconds!==undefined)){
+     (isLap||node.lapIndex!==undefined||node.lapNumber!==undefined||node.lapStartTime!==undefined)){
    candidates.push({distance,duration,index:number(node,'lapIndex','lapNumber','index')});
   }
  }
