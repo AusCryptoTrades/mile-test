@@ -377,3 +377,42 @@ test('beta recovery: missing VO2 stays blank rather than inventing an estimate',
  await expect(page.locator('.mile-ui-dashboard')).toContainText('VO₂ Max');
  await expect(page.locator('.mile-ui-dashboard')).toContainText('—');
 });
+
+test('batch 3: Social menu has no duplicate Tracker and closes on bottom navigation',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.m36Drawer());
+ await expect(page.locator('#m36-drawer')).toBeVisible();
+ await expect(page.locator('#m36-drawer')).not.toContainText('Run Tracker');
+ await page.locator('#mile-fixed-mobile-nav [data-mile-page="calendar"]').click();
+ await expect(page.locator('#m36-drawer')).toHaveCount(0);
+ await expect(page.locator('#mile-fixed-mobile-nav [data-mile-page="calendar"]')).toHaveClass(/active/);
+ await page.evaluate(()=>window.m36Drawer());
+ await page.locator('#m36-dim').click({position:{x:5,y:5}});
+ await expect(page.locator('#m36-drawer')).toHaveCount(0);
+});
+test('batch 3: one home Sleep Score and persistent theme on Home',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.m395ThemeSet('ice'));
+ await page.evaluate(()=>window.mileV3Go('dashboard'));
+ await expect(page.locator('.mile-ui-dashboard .mile-ui-recovery .sleep-score')).toHaveCount(1);
+ await expect(page.locator('.mile-ui-dashboard .mile-ui-recovery .sleep')).toHaveCount(0);
+ await expect.poll(()=>page.evaluate(()=>document.documentElement.dataset.m395Theme)).toBe('ice');
+ await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('mile-appearance-v1')).theme)).toBe('ice');
+ await page.reload();
+ await expect.poll(()=>page.evaluate(()=>document.documentElement.dataset.m395Theme)).toBe('ice');
+});
+test('batch 3: recovery trend values have room above tallest bars',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>{
+  const d=new Date().toLocaleDateString('en-CA');
+  state.recoveryDays=[{date:d,sleepScore:99,restingHR:87,bodyBattery:100,stress:95}];
+  window.mileV3Go('recovery');
+ });
+ const charts=page.locator('#recoveryTrends .mile-recovery-chart');
+ await expect(charts).toHaveCount(4);
+ const heights=await charts.locator('.mile-recovery-bar:not(.missing)').evaluateAll(els=>els.map(x=>parseFloat(x.style.height)));
+ expect(heights.length).toBeGreaterThan(0);
+ expect(Math.max(...heights)).toBeLessThanOrEqual(80);
+ await expect(page.locator('#recoveryTrends')).toContainText('99');
+ await expect(page.locator('#recoveryTrends')).toContainText('100');
+});
