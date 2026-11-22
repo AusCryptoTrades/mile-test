@@ -348,12 +348,14 @@ test('beta recovery: sleep trend uses integer scores, HRV and VO2 appear on dash
  await openApp(page,{signedIn:true});
  await page.evaluate(()=>{
    const d=new Date().toLocaleDateString('en-CA');
-   state.recoveryDays=[{date:d,sleepHours:7.733,sleepScore:84,hrvMs:51,vo2Max:49,restingHR:45,batteryCharged:62,batteryDrained:37}];
+   state.recoveryDays=[{date:d,sleepHours:7.733,sleepScore:84,hrvMs:51,vo2Max:49,bodyBattery:71,restingHR:45,batteryCharged:62,batteryDrained:37}];
    window.mileV3Go('dashboard');
  });
  await expect(page.locator('.mile-ui-dashboard')).toContainText('Sleep Score');
  await expect(page.locator('.mile-ui-dashboard')).toContainText('HRV');
  await expect(page.locator('.mile-ui-dashboard')).toContainText('51 ms');
+ await expect(page.locator('.mile-ui-dashboard')).toContainText('Body Battery');
+ await expect(page.locator('.mile-ui-dashboard')).toContainText('71/100');
  await expect(page.locator('.mile-ui-dashboard')).toContainText('VO₂ Max');
  await page.evaluate(()=>window.mileV3Go('recovery'));
  await expect(page.locator('#recoveryTrends')).toContainText('Sleep score');
