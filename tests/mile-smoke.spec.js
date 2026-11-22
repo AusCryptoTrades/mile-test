@@ -232,6 +232,7 @@ test('comment threads render like and reply controls', async ({page}) => {
   window.m36Open('feed');
  });
  await expect(page.locator('[data-m36-comments="fixture-social-post"]')).toBeVisible();
+ await page.evaluate(() => {const s=window.m36State;s.comments=[{id:'comment-root',activity_id:'fixture-social-post',user_id:'00000000-0000-4000-8000-000000000001',body:'Great workout!',parent_comment_id:null},{id:'comment-child',activity_id:'fixture-social-post',user_id:'00000000-0000-4000-8000-000000000001',body:'Thank you!',parent_comment_id:'comment-root'}];s.commentLikes=[{comment_id:'comment-root',user_id:'00000000-0000-4000-8000-000000000001'}];window.m383Repaint();});
  await page.locator('[data-m36-comments="fixture-social-post"]').click();
  await expect(page.locator('#m400-comment-comment-root')).toContainText('Great workout!');
  await expect(page.locator('#m400-comment-comment-child')).toContainText('Thank you!');
