@@ -4800,6 +4800,8 @@ body #mile-emergency-more .em-group .em-link:last-child{
  #mile-shared-sheet-host .mile-shared-backdrop{position:absolute;inset:0;background:#0009}
  #mile-shared-sheet-host .mile-shared-surface{position:absolute;left:8px;right:8px;bottom:0;max-height:calc(100dvh - env(safe-area-inset-top,0px) - 12px);display:flex;flex-direction:column;overflow:hidden;background:var(--panel,#ead7bd);border:1px solid var(--line,#bda181);border-radius:24px 24px 0 0;box-shadow:0 -16px 50px #0008}
  #mile-shared-sheet-host .mile-shared-scroll{min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding-bottom:calc(22px + env(safe-area-inset-bottom,0px))}
+ #mile-shared-sheet-host:has(#m36-drawer) .mile-shared-scroll{overflow:hidden!important;padding-bottom:0!important}
+ #mile-shared-sheet-host #m36-drawer.mile-profile-drawer{max-height:calc(100dvh - env(safe-area-inset-top,0px) - 12px)!important;overflow-y:auto!important;overscroll-behavior:contain!important;padding-bottom:calc(22px + env(safe-area-inset-bottom,0px))!important}
  #mile-shared-sheet-host #m36-drawer.mile-profile-drawer,
  #mile-shared-sheet-host #mile-emergency-more.open{position:static!important;inset:auto!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;display:block!important;width:100%!important;max-width:none!important;max-height:none!important;height:auto!important;overflow:visible!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:12px 15px 0!important;margin:0!important;transform:none!important}
  #mile-shared-sheet-host .mile-drawer-handle,#mile-shared-sheet-host .em-handle{margin-top:0!important}
@@ -4836,6 +4838,7 @@ body #mile-emergency-more .em-group .em-link:last-child{
   else if(active?.id==='mile-emergency-more')window.mileV3ToggleMore?.();
   queue();
  }
+ document.addEventListener('pointerdown',e=>{if(active&&e.target.closest('#mile-fixed-mobile-nav,#nav,.nav')){if(active.id==='m36-drawer')window.m36CloseDrawer?.();else if(active.id==='mile-emergency-more')window.mileV3ToggleMore?.();queue();}},true);
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&active)dismiss()});
  const observer=new MutationObserver(queue);observer.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
  queue();
