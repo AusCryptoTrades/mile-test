@@ -545,3 +545,28 @@ test('calendar HR-zone relocation: Calendar stays focused, Settings retains edit
  await expect(page.locator('#app')).toContainText('Custom HR Zones');
  await expect(page.locator('#app')).toContainText('Save HR Zones');
 });
+
+test('Build coaching: swimming weeks vary and preserve session purpose',async({page})=>{
+ await openApp(page,{signedIn:true});
+ const data=await page.evaluate(()=>{
+  const profile={level:'intermediate',swim:'2:15',equipment:[]};
+  return Array.from({length:8},(_,w)=>mileCoachPrescription('Swimming','intervals',w,profile,1,'Triathlon'));
+ });
+ expect(new Set(data.slice(0,3).map(x=>x.name)).size).toBe(3);
+ expect(data.every(x=>x.purpose&&x.whyScheduled&&x.detail)).toBe(true);
+ expect(data[3].whyScheduled).toContain('reduced-load');
+});
+test('Build coaching: 2-day swimming plan balances technique and endurance',async({page})=>{
+ await openApp(page,{signedIn:true});
+ expect(await page.evaluate(()=>v42Kinds('Swimming',2,70))).toEqual(['technique','endurance']);
+});
+test('Build coaching: program preview uses actual prescription engine and expandable rationale',async({page})=>{
+ await openApp(page,{signedIn:true});
+ const html=await page.evaluate(()=>{
+  v42Sport='Swimming';v42Form={Goal:'Triathlon',Start:'2026-12-01',Weeks:'4',Days:'3',Level:'intermediate',SwimPace:'2:15',Available:[0,2,5],LongDay:'5'};
+  return v461SchedulePreview();
+ });
+ expect(html).toContain('mile-coach-preview-session');
+ expect(html).toContain('Why this session?');
+ expect(html).toContain('Swim');
+});
