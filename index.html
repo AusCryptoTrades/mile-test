@@ -4792,57 +4792,64 @@ body #mile-emergency-more .em-group .em-link:last-child{
 }
 </style>
 
-<style id="mile-shared-sheet-v1">
-@media(max-width:650px){
- body.mile-shared-sheet-open{overflow:hidden!important}
- #mile-shared-sheet-host{position:fixed!important;inset:0!important;z-index:2147483645!important;display:none;pointer-events:none}
- #mile-shared-sheet-host.is-open{display:block!important;pointer-events:auto}
- #mile-shared-sheet-host .mile-shared-backdrop{position:absolute;inset:0;background:#0009}
- #mile-shared-sheet-host .mile-shared-surface{position:absolute;left:8px;right:8px;bottom:0;max-height:calc(100dvh - env(safe-area-inset-top,0px) - 12px);display:flex;flex-direction:column;overflow:hidden;background:var(--panel,#ead7bd);border:1px solid var(--line,#bda181);border-radius:24px 24px 0 0;box-shadow:0 -16px 50px #0008}
- #mile-shared-sheet-host .mile-shared-scroll{min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding-bottom:calc(22px + env(safe-area-inset-bottom,0px))}
- #mile-shared-sheet-host:has(#m36-drawer) .mile-shared-scroll{overflow:hidden!important;padding-bottom:0!important}
 
- #mile-shared-sheet-host #m36-drawer.mile-profile-drawer,
- #mile-shared-sheet-host #mile-emergency-more.open{position:static!important;inset:auto!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;display:block!important;width:100%!important;max-width:none!important;max-height:none!important;height:auto!important;overflow:visible!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:12px 15px 0!important;margin:0!important;transform:none!important}
- #mile-shared-sheet-host .mile-drawer-handle,#mile-shared-sheet-host .em-handle{margin-top:0!important}
- #mile-shared-sheet-host #m36-drawer.mile-profile-drawer{max-height:calc(100dvh - env(safe-area-inset-top,0px) - 12px)!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;padding-bottom:calc(22px + env(safe-area-inset-bottom,0px))!important}
- body.mile-shared-sheet-open #mile-fixed-mobile-nav{z-index:2147483646!important;pointer-events:auto!important}
- #mile-shared-sheet-host .mile-shared-scroll :is(button,a){touch-action:manipulation}
+<style id="mile-clean-mobile-sheet-v2">
+@media(max-width:650px){
+ body.mile-clean-sheet-open{overflow:hidden!important}
+ body.mile-clean-sheet-open #mile-fixed-mobile-nav,
+ body.mile-clean-sheet-open #nav,
+ body.mile-clean-sheet-open .mile-v3-nav{visibility:hidden!important;pointer-events:none!important}
+ #mile-clean-sheet-host{position:fixed!important;inset:0!important;z-index:2147483646!important;display:none;pointer-events:none}
+ #mile-clean-sheet-host.is-open{display:block!important;pointer-events:auto}
+ #mile-clean-sheet-host .clean-backdrop{position:absolute;inset:0;background:rgba(12,12,12,.65)}
+ #mile-clean-sheet-host .clean-surface{position:absolute;left:8px;right:8px;bottom:0;height:min(82dvh,760px);max-height:calc(100dvh - env(safe-area-inset-top,0px) - 18px);display:flex;flex-direction:column;overflow:hidden;border-radius:24px 24px 0 0;background:#e5d0b2;border:1px solid #c5a887;box-shadow:0 -14px 45px #0006;box-sizing:border-box}
+ #mile-clean-sheet-host .clean-header{display:none!important}
+ #mile-clean-sheet-host .clean-header :is(.mile-drawer-heading,.em-head){margin:0 0 10px!important}
+ #mile-clean-sheet-host .clean-header :is(.mile-drawer-handle,.em-handle){margin:0 auto 12px!important}
+ #mile-clean-sheet-host .clean-content{min-height:0;flex:1;overflow:hidden;display:flex;flex-direction:column}
+ #mile-clean-sheet-host #m36-drawer.mile-profile-drawer,
+ #mile-clean-sheet-host #mile-emergency-more.open{position:relative!important;inset:auto!important;top:auto!important;bottom:auto!important;left:auto!important;right:auto!important;transform:none!important;display:block!important;flex:1 1 auto!important;min-height:0!important;max-height:none!important;height:100%!important;width:100%!important;max-width:none!important;margin:0!important;box-sizing:border-box!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:4px 16px calc(28px + env(safe-area-inset-bottom,0px))!important}
+ #mile-clean-sheet-host #m36-drawer :is(.mile-drawer-handle,.mile-drawer-heading),#mile-clean-sheet-host #mile-emergency-more :is(.em-handle,.em-head){position:sticky!important;z-index:5;background:#e5d0b2!important}
+ #mile-clean-sheet-host #m36-drawer .mile-drawer-heading,#mile-clean-sheet-host #mile-emergency-more .em-head{top:0!important;padding:10px 0!important}
+ #mile-clean-sheet-host :is(.m320-drawer-group,.em-group){margin-bottom:12px}
+ #mile-clean-sheet-host :is(.m361-drawer-link,.em-link){box-sizing:border-box}
  #m36-dim{display:none!important}
 }
 </style>
-<script id="mile-shared-sheet-controller">
+<script id="mile-clean-mobile-sheet-controller">
 (function(){
  'use strict';
- if(window.__mileSharedSheetV1)return;window.__mileSharedSheetV1=true;
  if(!matchMedia('(max-width:650px)').matches)return;
- const host=document.createElement('div');host.id='mile-shared-sheet-host';
- host.innerHTML='<div class="mile-shared-backdrop" data-sheet-dismiss></div><div class="mile-shared-surface" role="presentation"><div class="mile-shared-scroll"></div></div>';
+ const host=document.createElement('div');host.id='mile-clean-sheet-host';
+ host.innerHTML='<div class="clean-backdrop"></div><section class="clean-surface" role="dialog" aria-modal="true"><div class="clean-header"></div><div class="clean-content"></div></section>';
  document.body.appendChild(host);
- const scroll=host.querySelector('.mile-shared-scroll');
+ const header=host.querySelector('.clean-header'),content=host.querySelector('.clean-content');
  let active=null,queued=false;
  function sync(){
   queued=false;
   const social=document.getElementById('m36-drawer');
   const more=document.getElementById('mile-emergency-more');
   const next=social||((more&&more.classList.contains('open'))?more:null);
-  if(next&&next.parentElement!==scroll)scroll.appendChild(next);
-  if(active&&active!==next&&active.id==='mile-emergency-more'&&active.parentElement===scroll)document.body.appendChild(active);
-  active=next;
-  host.classList.toggle('is-open',!!next);
-  document.body.classList.toggle('mile-shared-sheet-open',!!next);
-  if(next)host.querySelector('.mile-shared-surface').setAttribute('aria-label',next.id==='m36-drawer'?'Profile and Social menu':'More navigation');
+  if(active!==next){
+   if(active?.id==='mile-emergency-more'&&active.parentElement===content){
+    const handle=header.querySelector('.em-handle'),heading=header.querySelector('.em-head');
+    if(handle)active.prepend(handle);
+    if(heading)active.insertBefore(heading,active.children[handle?1:0]||null);
+    document.body.appendChild(active);
+   }
+   if(next){content.appendChild(next);next.scrollTop=0;}
+   active=next;
+  }
+  const open=!!next;
+  host.classList.toggle('is-open',open);
+  document.body.classList.toggle('mile-clean-sheet-open',open);
+  if(open)host.querySelector('.clean-surface').setAttribute('aria-label',next.id==='m36-drawer'?'Profile and Social':'More');
  }
- function queue(){if(queued)return;queued=true;queueMicrotask(sync)}
- host.addEventListener('click',e=>{if(e.target.closest('[data-sheet-dismiss]'))dismiss()});
- function dismiss(){
-  if(active?.id==='m36-drawer')window.m36CloseDrawer?.();
-  else if(active?.id==='mile-emergency-more')window.mileV3ToggleMore?.();
-  queue();
- }
- document.addEventListener('pointerdown',e=>{if(active&&e.target.closest('#mile-fixed-mobile-nav,#nav,.nav')){if(active.id==='m36-drawer')window.m36CloseDrawer?.();else if(active.id==='mile-emergency-more')window.mileV3ToggleMore?.();queue();}},true);
- document.addEventListener('keydown',e=>{if(e.key==='Escape'&&active)dismiss()});
- const observer=new MutationObserver(queue);observer.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
+ function queue(){if(!queued){queued=true;queueMicrotask(sync)}}
+ function close(){if(active?.id==='m36-drawer')window.m36CloseDrawer?.();else if(active?.id==='mile-emergency-more')window.mileV3ToggleMore?.();queue()}
+ host.querySelector('.clean-backdrop').addEventListener('click',close);
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&active)close()});
+ new MutationObserver(queue).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
  queue();
 })();
 </script>
