@@ -3076,7 +3076,7 @@ document.addEventListener('click',async ev=>{
 async function m6OpenSocialNotification(n){
  // Both like and comment notifications store the social ACTIVITY id.
  const activityId=String(n.entity_id||'');
- S.tab='feed';S.feedFilter='everyone';S.sportFilter='all';S.profileTarget=null;
+ S.tab='profile';S.profileTarget=userId;S.peopleList=null;
  await load();
  if(!activityId){notice('This notification has no linked activity.');return}
  let post=S.posts.find(p=>String(p.id)===activityId);
@@ -4730,10 +4730,10 @@ document.addEventListener('click',function(e){
 </script><style id="mile-beta5-mobile-menu-hotfix">
 /* Keep the final drawer links clear of the fixed five-item bottom toolbar. */
 @media(max-width:780px){
- .m36-drawer{padding-bottom:calc(135px + env(safe-area-inset-bottom,0px))!important;scroll-padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))!important}
- #mile-emergency-more{padding-bottom:calc(130px + env(safe-area-inset-bottom,0px))!important;scroll-padding-bottom:calc(115px + env(safe-area-inset-bottom,0px))!important}
- #mileV3More{scroll-padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))!important}
- #mileV3More.open{padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))!important}
+ .m36-drawer{scroll-padding-bottom:16px!important}
+ #mile-emergency-more{padding-bottom:16px!important;scroll-padding-bottom:16px!important}
+ #mileV3More{scroll-padding-bottom:16px!important}
+ #mileV3More.open{padding-bottom:16px!important}
 }
 /* New beta entries inherit the active theme rather than hard-coded dark colours. */
 #mile-emergency-more .beta5-menu-entry,
