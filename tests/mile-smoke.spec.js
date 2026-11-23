@@ -532,3 +532,16 @@ test('calendar compact audit: selected date and collapsible session lists',async
   await expect(upcoming).toHaveAttribute('open','');
  }
 });
+
+
+test('calendar HR-zone relocation: Calendar stays focused, Settings retains editable zones',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('calendar'));
+ await expect(page.locator('#app details.av-hr-collapse, #app details.mile-v31-hr, #app .mile-v3-hr')).toHaveCount(0);
+ await expect(page.locator('#app .daygrid')).toBeVisible();
+ await page.evaluate(()=>window.mileV3Go('settings'));
+ await expect(page.locator('#app')).toContainText('HR Zones');
+ await page.evaluate(()=>window.mileV3SetSettingsTab('zones'));
+ await expect(page.locator('#app')).toContainText('Custom HR Zones');
+ await expect(page.locator('#app')).toContainText('Save HR Zones');
+});
