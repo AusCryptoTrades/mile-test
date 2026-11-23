@@ -33,9 +33,9 @@ test('mobile drawers have no oversized bottom padding and every menu row has an 
  expect(socialMetrics.rows.length).toBeGreaterThan(4);
  for(const row of socialMetrics.rows){expect(parseFloat(row.border)).toBeGreaterThanOrEqual(1);expect(parseFloat(row.bottom)).toBeGreaterThanOrEqual(1)}
  await page.evaluate(()=>{window.m36CloseDrawer();window.mileV3ToggleMore()});
- const more=page.locator('#mileV3More.open');
+ const more=page.locator('#mile-emergency-more.open');
  await expect(more).toBeVisible();
- const moreMetrics=await more.evaluate(el=>({paddingBottom:parseFloat(getComputedStyle(el).paddingBottom),rows:[...el.querySelectorAll('.m320-more-link')].map(b=>({top:getComputedStyle(b).borderTopWidth,bottom:getComputedStyle(b).borderBottomWidth}))}));
+ const moreMetrics=await more.evaluate(el=>({paddingBottom:parseFloat(getComputedStyle(el).paddingBottom),rows:[...el.querySelectorAll('.em-link')].map(b=>({top:getComputedStyle(b).borderTopWidth,bottom:getComputedStyle(b).borderBottomWidth}))}));
  expect(moreMetrics.paddingBottom).toBeLessThan(45);
  expect(moreMetrics.rows.length).toBeGreaterThan(5);
  for(const row of moreMetrics.rows){expect(parseFloat(row.top)).toBeGreaterThanOrEqual(1);expect(parseFloat(row.bottom)).toBeGreaterThanOrEqual(1)}
