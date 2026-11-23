@@ -3038,6 +3038,38 @@ document.addEventListener('click',async ev=>{
  if(t.dataset.m384Dismiss){t.disabled=true;try{await api('mile_notification_dismissals','POST',{user_id:userId,notification_id:t.dataset.m384Dismiss},'?on_conflict=user_id,notification_id');await m379LoadNotifications()}catch(err){t.disabled=false;notice('Dismiss notification: '+err.message)}return}
  if(t.hasAttribute('data-m384-clearall')){const ids=S.notifications.map(n=>n.id);if(!ids.length)return;if(!confirm('Clear all visible notifications?'))return;try{for(let i=0;i<ids.length;i+=50){await api('mile_notification_dismissals','POST',ids.slice(i,i+50).map(id=>({user_id:userId,notification_id:id})),'?on_conflict=user_id,notification_id')}await m379LoadNotifications()}catch(err){notice('Clear notifications: '+err.message)}return}
 });
+
+async function m6OpenSocialNotification(n){
+ S.tab='feed';S.feedFilter='everyone';S.sportFilter='all';S.profileTarget=null;
+ await load();
+ let comment=null,activityId=null;
+ if(n.kind==='comment'&&n.entity_id){
+  comment=S.comments.find(c=>String(c.id)===String(n.entity_id));
+  if(!comment){try{const rows=await api('mile_activity_comments','GET',null,'?select=*&id=eq.'+encodeURIComponent(n.entity_id)+'&limit=1');comment=rows[0]||null}catch(_){}}
+  activityId=comment?.activity_id||null;
+ }else if(n.kind==='like')activityId=n.entity_id||null;
+ if(activityId&&!S.posts.some(p=>String(p.id)===String(activityId))){
+  try{const rows=await api('mile_social_activities','GET',null,'?select=*&id=eq.'+encodeURIComponent(activityId)+'&limit=1');if(rows[0])S.posts.unshift(rows[0])}catch(_){}
+ }
+ if(activityId&&!S.posts.some(p=>String(p.id)===String(activityId))){paint();notice('This activity is no longer available.');return}
+ if(comment){
+  S.m401Expanded=S.m401Expanded||new Set();S.m401Expanded.add(comment.activity_id);
+  if(comment.parent_comment_id){S.m401ExpandedReplies=S.m401ExpandedReplies||new Set();S.m401ExpandedReplies.add(comment.parent_comment_id)}
+  if(!S.comments.some(c=>String(c.id)===String(comment.id)))S.comments.push(comment);
+  if(comment.parent_comment_id&&!S.comments.some(c=>String(c.id)===String(comment.parent_comment_id))){
+   try{const parents=await api('mile_activity_comments','GET',null,'?select=*&id=eq.'+encodeURIComponent(comment.parent_comment_id)+'&limit=1');if(parents[0])S.comments.push(parents[0])}catch(_){}
+  }
+ }
+ paint();
+ if(!activityId){notice('This notification no longer has an available activity.');return}
+ const panel=document.getElementById('m36-comments-'+activityId);if(panel&&comment)panel.hidden=false;
+ requestAnimationFrame(()=>{
+  const target=(comment&&document.getElementById('m400-comment-'+comment.id))||document.querySelector('[data-m388-post="'+CSS.escape(String(activityId))+'"]');
+  if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.classList.add('m400-highlight')}
+  else notice('The comment is no longer available.');
+ });
+}
+
 document.addEventListener('click',async ev=>{
  const b=ev.target.closest('[data-m379-bell],[data-m379-open],[data-m379-readall]');if(!b)return;
  ev.preventDefault();
@@ -3053,7 +3085,7 @@ document.addEventListener('click',async ev=>{
  if(n.kind==='message'){S.tab='messages';S.chatWith=n.actor_id;await loadMessages()}
  else if(n.kind==='follow_request'){S.tab='requests';S.chatWith=null;S.profileTarget=null;await load()}
  else if(n.kind==='follow'||n.kind==='follow_accepted'){S.tab='discover';await load();m380OpenProfile(n.actor_id)}
- else if(n.kind==='like'||n.kind==='comment'){S.tab='feed';S.feedFilter='everyone';S.profileTarget=null;await load();if(n.kind==='comment'&&n.entity_id){const comment=S.comments.find(c=>c.id===n.entity_id);if(comment){const panel=document.getElementById('m36-comments-'+comment.activity_id);if(panel){panel.hidden=false;requestAnimationFrame(()=>{const target=document.getElementById('m400-comment-'+comment.id);target?.scrollIntoView({behavior:'smooth',block:'center'});target?.classList.add('m400-highlight')})}}}}
+ else if(n.kind==='like'||n.kind==='comment'){await m6OpenSocialNotification(n)}
  else{S.tab='profile';await load()}
  paint();m379LoadNotifications();
 });
