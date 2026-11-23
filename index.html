@@ -4761,4 +4761,34 @@ body #mile-emergency-more .em-group .em-link:last-child{
  margin:6px 0!important;padding:12px!important;background:var(--panel2)!important;
  box-shadow:none!important;
 }
-</style></body></html>
+</style>
+<style id="mile-batch6-menu-viewport-fix">
+/* Batch 6: both active mobile sheets use the same viewport anchor and scroll geometry.
+   Earlier rules targeted retired menus and left the social sheet above the tab bar. */
+@media (max-width:650px){
+ body #m36-drawer.mile-profile-drawer,
+ body #mile-emergency-more.open{
+   position:fixed!important;
+   top:auto!important;
+   bottom:0!important;
+   left:8px!important;
+   right:8px!important;
+   width:calc(100% - 16px)!important;
+   height:auto!important;
+   max-height:calc(100dvh - env(safe-area-inset-top,0px) - 12px)!important;
+   overflow-x:hidden!important;
+   overflow-y:auto!important;
+   -webkit-overflow-scrolling:touch!important;
+   overscroll-behavior:contain!important;
+   scroll-padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))!important;
+   padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))!important;
+   border-radius:22px 22px 0 0!important;
+   box-sizing:border-box!important;
+ }
+ body #m36-drawer.mile-profile-drawer{z-index:2147483640!important}
+ body #mile-emergency-more.open{z-index:2147483640!important}
+ body #m36-drawer.mile-profile-drawer .m320-drawer-group:last-child,
+ body #mile-emergency-more.open .em-group:last-child{margin-bottom:0!important}
+}
+</style>
+</body></html>
