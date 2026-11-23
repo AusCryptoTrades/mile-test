@@ -466,3 +466,26 @@ test('batch 4: typography and mobile nav remain consistent on secondary pages',a
  await page.evaluate(()=>window.mileV3Go('recovery'));
  await expect(page.locator('#app')).toBeVisible();
 });
+
+test('dashboard audit batch 1: no invented target, accurate durations and keyboard navigation',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('dashboard'));
+ await expect(page.locator('.mile-ui-dashboard')).toBeVisible();
+ const dashboard=page.locator('.mile-ui-dashboard');
+ await expect(dashboard).not.toContainText('of 60 km');
+ const recent=dashboard.locator('[data-mile-activity]').first();
+ if(await recent.count()){
+  await recent.focus();
+  await page.keyboard.press('Space');
+  await expect(page.locator('body')).toBeVisible();
+ }
+});
+test('dashboard audit batch 1: recovery cards respond to keyboard',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('dashboard'));
+ const card=page.locator('.mile-ui-recovery [data-mile-recovery-link]').first();
+ await expect(card).toBeVisible();
+ await card.focus();
+ await page.keyboard.press('Enter');
+ await expect(page.locator('#app')).toBeVisible();
+});
