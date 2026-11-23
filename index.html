@@ -3077,10 +3077,10 @@ async function m6OpenSocialNotification(n){
  S.tab='feed';S.feedFilter='everyone';S.sportFilter='all';S.profileTarget=null;
  await load();
  let comment=null,activityId=null;
- if(n.kind==='comment'&&n.entity_id){
-  comment=S.comments.find(c=>String(c.id)===String(n.entity_id));
-  if(!comment){try{const rows=await api('mile_activity_comments','GET',null,'?select=*&id=eq.'+encodeURIComponent(n.entity_id)+'&limit=1');comment=rows[0]||null}catch(_){}}
-  activityId=comment?.activity_id||null;
+ if(n.kind==='comment'){
+  // The database trigger stores the ACTIVITY id for comment notifications,
+  // exactly as it does for likes; it does not store a comment id.
+  activityId=n.entity_id||null;
  }else if(n.kind==='like')activityId=n.entity_id||null;
  if(activityId&&!S.posts.some(p=>String(p.id)===String(activityId))){
   try{const rows=await api('mile_social_activities','GET',null,'?select=*&id=eq.'+encodeURIComponent(activityId)+'&limit=1');if(rows[0])S.posts.unshift(rows[0])}catch(_){}
@@ -3096,9 +3096,9 @@ async function m6OpenSocialNotification(n){
  }
  paint();
  if(!activityId){notice('This notification no longer has an available activity.');return}
- const panel=document.getElementById('m36-comments-'+activityId);if(panel&&comment)panel.hidden=false;
+ const panel=document.getElementById('m36-comments-'+activityId);if(panel&&n.kind==='comment')panel.hidden=false;
  requestAnimationFrame(()=>{
-  const target=(comment&&document.getElementById('m400-comment-'+comment.id))||document.querySelector('[data-m388-post="'+CSS.escape(String(activityId))+'"]');
+  const target=(comment&&document.getElementById('m400-comment-'+comment.id))||(n.kind==='comment'&&panel)||document.querySelector('[data-m388-post="'+CSS.escape(String(activityId))+'"]');
   if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.classList.add('m400-highlight')}
   else notice('The comment is no longer available.');
  });
