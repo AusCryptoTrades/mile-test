@@ -567,6 +567,6 @@ test('Build coaching: program preview uses actual prescription engine and expand
   return v461SchedulePreview();
  });
  expect(html).toContain('mile-coach-preview-session');
- expect(html).toContain('Why this session?');
+ expect(html).toContain('Session Purpose');
  expect(html).toContain('Swim');
 });
