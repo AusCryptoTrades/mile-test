@@ -4658,4 +4658,21 @@ document.addEventListener('click',function(e){
  let scheduled=false;new MutationObserver(()=>{if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;addEntries()})}).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
  document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
 })();
-</script></body></html>
+</script><style id="mile-beta5-mobile-menu-hotfix">
+/* Keep the final drawer links clear of the fixed five-item bottom toolbar. */
+@media(max-width:780px){
+ .m36-drawer{padding-bottom:calc(135px + env(safe-area-inset-bottom,0px))!important;scroll-padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))!important}
+ #mile-emergency-more{padding-bottom:calc(130px + env(safe-area-inset-bottom,0px))!important;scroll-padding-bottom:calc(115px + env(safe-area-inset-bottom,0px))!important}
+ #mileV3More{scroll-padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))!important}
+ #mileV3More.open{padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))!important}
+}
+/* New beta entries inherit the active theme rather than hard-coded dark colours. */
+#mile-emergency-more .beta5-menu-entry,
+#mileV3More .beta5-menu-entry{
+ background:var(--panel,var(--surface,#292d30))!important;
+ color:var(--text,var(--fg,#f6f6f6))!important;
+ border-color:var(--line,var(--border,#50575b))!important;
+}
+#mile-emergency-more .beta5-menu-entry:focus-visible,
+#mileV3More .beta5-menu-entry:focus-visible{outline:2px solid var(--accent,#a5e575);outline-offset:2px}
+</style></body></html>
