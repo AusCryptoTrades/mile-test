@@ -4791,4 +4791,54 @@ body #mile-emergency-more .em-group .em-link:last-child{
  body #mile-emergency-more.open .em-group:last-child{margin-bottom:0!important}
 }
 </style>
+
+<style id="mile-shared-sheet-v1">
+@media(max-width:650px){
+ body.mile-shared-sheet-open{overflow:hidden!important}
+ #mile-shared-sheet-host{position:fixed!important;inset:0!important;z-index:2147483645!important;display:none;pointer-events:none}
+ #mile-shared-sheet-host.is-open{display:block!important;pointer-events:auto}
+ #mile-shared-sheet-host .mile-shared-backdrop{position:absolute;inset:0;background:#0009}
+ #mile-shared-sheet-host .mile-shared-surface{position:absolute;left:8px;right:8px;bottom:0;max-height:calc(100dvh - env(safe-area-inset-top,0px) - 12px);display:flex;flex-direction:column;overflow:hidden;background:var(--panel,#ead7bd);border:1px solid var(--line,#bda181);border-radius:24px 24px 0 0;box-shadow:0 -16px 50px #0008}
+ #mile-shared-sheet-host .mile-shared-scroll{min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding-bottom:calc(22px + env(safe-area-inset-bottom,0px))}
+ #mile-shared-sheet-host #m36-drawer.mile-profile-drawer,
+ #mile-shared-sheet-host #mile-emergency-more.open{position:static!important;inset:auto!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;display:block!important;width:100%!important;max-width:none!important;max-height:none!important;height:auto!important;overflow:visible!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:12px 15px 0!important;margin:0!important;transform:none!important}
+ #mile-shared-sheet-host .mile-drawer-handle,#mile-shared-sheet-host .em-handle{margin-top:0!important}
+ #mile-shared-sheet-host .mile-shared-scroll :is(button,a){touch-action:manipulation}
+ #m36-dim{display:none!important}
+}
+</style>
+<script id="mile-shared-sheet-controller">
+(function(){
+ 'use strict';
+ if(window.__mileSharedSheetV1)return;window.__mileSharedSheetV1=true;
+ if(!matchMedia('(max-width:650px)').matches)return;
+ const host=document.createElement('div');host.id='mile-shared-sheet-host';
+ host.innerHTML='<div class="mile-shared-backdrop" data-sheet-dismiss></div><div class="mile-shared-surface" role="presentation"><div class="mile-shared-scroll"></div></div>';
+ document.body.appendChild(host);
+ const scroll=host.querySelector('.mile-shared-scroll');
+ let active=null,queued=false;
+ function sync(){
+  queued=false;
+  const social=document.getElementById('m36-drawer');
+  const more=document.getElementById('mile-emergency-more');
+  const next=social||((more&&more.classList.contains('open'))?more:null);
+  if(next&&next.parentElement!==scroll)scroll.appendChild(next);
+  if(active&&active!==next&&active.id==='mile-emergency-more'&&active.parentElement===scroll)document.body.appendChild(active);
+  active=next;
+  host.classList.toggle('is-open',!!next);
+  document.body.classList.toggle('mile-shared-sheet-open',!!next);
+  if(next)host.querySelector('.mile-shared-surface').setAttribute('aria-label',next.id==='m36-drawer'?'Profile and Social menu':'More navigation');
+ }
+ function queue(){if(queued)return;queued=true;queueMicrotask(sync)}
+ host.addEventListener('click',e=>{if(e.target.closest('[data-sheet-dismiss]'))dismiss()});
+ function dismiss(){
+  if(active?.id==='m36-drawer')window.m36CloseDrawer?.();
+  else if(active?.id==='mile-emergency-more')window.mileV3ToggleMore?.();
+  queue();
+ }
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&active)dismiss()});
+ const observer=new MutationObserver(queue);observer.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
+ queue();
+})();
+</script>
 </body></html>
