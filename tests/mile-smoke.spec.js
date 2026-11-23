@@ -510,3 +510,16 @@ test('dashboard batch 2: distribution responsive layout and keyboard focus',asyn
  const focusStyle=await page.evaluate(()=>Array.from(document.styleSheets).some(sheet=>{try{return Array.from(sheet.cssRules).some(rule=>rule.cssText.includes('[data-mile-recovery-link]:focus-visible'))}catch{return false}}));
  expect(focusStyle).toBe(true);
 });
+
+test('calendar compact audit: selected date and collapsible session lists',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('calendar'));
+ await expect(page.locator('.daygrid .day')).toHaveCount(30);
+ await expect(page.locator('.daygrid .day.selected')).toHaveCount(1);
+ const upcoming=page.locator('.mile-cal-upcoming-more');
+ if(await upcoming.count()){
+  await expect(upcoming).not.toHaveAttribute('open','');
+  await upcoming.locator('summary').click();
+  await expect(upcoming).toHaveAttribute('open','');
+ }
+});
