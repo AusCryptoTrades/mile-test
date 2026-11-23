@@ -494,7 +494,7 @@ test('dashboard batch 2: recovery freshness and accurate sleep status labels',as
  await openApp(page,{signedIn:true});
  await page.evaluate(()=>window.mileV3Go('dashboard'));
  await expect(page.locator('.mile-ui-recovery-date')).toBeVisible();
- await expect(page.locator('.mile-ui-recovery .readiness')).toContainText('Sleep Status');
+ await expect(page.locator('.mile-ui-recovery .readiness')).toContainText('Resting HR');
  await expect(page.locator('.mile-ui-recovery [data-mile-recovery-link]')).toHaveCount(4);
 });
 test('dashboard batch 2: distribution responsive layout and keyboard focus',async({page})=>{
@@ -509,4 +509,14 @@ test('dashboard batch 2: distribution responsive layout and keyboard focus',asyn
  await expect(card).toBeFocused();
  const focusStyle=await page.evaluate(()=>Array.from(document.styleSheets).some(sheet=>{try{return Array.from(sheet.cssRules).some(rule=>rule.cssText.includes('[data-mile-recovery-link]:focus-visible'))}catch{return false}}));
  expect(focusStyle).toBe(true);
+});
+
+test('dashboard displays preferred Garmin date and resting HR',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>{localStorage.setItem('mile-appearance-v1',JSON.stringify({date:'MM/DD/YYYY'}));window.mileAppearance?.get?.();window.mileV3Go('dashboard')});
+ await expect(page.locator('.mile-ui-recovery .readiness')).toContainText('Resting HR');
+ const date=page.locator('.mile-ui-recovery-date');
+ await expect(date).toBeVisible();
+ const text=await date.innerText();
+ expect(text).not.toMatch(/Garmin readings · \\d{4}-\\d{2}-\\d{2}/);
 });
