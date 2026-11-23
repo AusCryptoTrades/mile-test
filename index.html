@@ -4894,7 +4894,7 @@ body #mile-emergency-more .em-group .em-link:last-child{
 (function(){
  'use strict';
  function cleanCalendar(){
-  if(window.page!=='calendar')return;
+  if(typeof page==='undefined'||page!=='calendar')return;
   const app=document.getElementById('app');
   if(!app)return;
   app.querySelectorAll('details.av-hr-collapse, details.mile-v31-hr, .mile-v3-hr').forEach(el=>{
