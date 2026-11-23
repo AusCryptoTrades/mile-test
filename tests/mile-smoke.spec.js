@@ -520,3 +520,15 @@ test('dashboard displays preferred Garmin date and resting HR',async({page})=>{
  const text=await date.innerText();
  expect(text).not.toMatch(/Garmin readings · \\d{4}-\\d{2}-\\d{2}/);
 });
+test('calendar compact audit: selected date and collapsible session lists',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('calendar'));
+ await expect(page.locator('.daygrid .day')).toHaveCount(30);
+ await expect(page.locator('.daygrid .day.selected')).toHaveCount(1);
+ const upcoming=page.locator('.mile-cal-upcoming-more');
+ if(await upcoming.count()){
+  await expect(upcoming).not.toHaveAttribute('open','');
+  await upcoming.locator('summary').click();
+  await expect(upcoming).toHaveAttribute('open','');
+ }
+});
