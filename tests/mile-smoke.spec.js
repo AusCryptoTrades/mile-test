@@ -532,3 +532,24 @@ test('calendar compact audit: selected date and collapsible session lists',async
   await expect(upcoming).toHaveAttribute('open','');
  }
 });
+
+test('combined calendar active renderer uses compact tiles and expandable planned sessions',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>{window.v42Combined=true;window.mileV3Go('calendar')});
+ await expect(page.getByText('Combined multi-sport calendar')).toBeVisible();
+ const days=page.locator('.daygrid button.day');
+ await expect(days).toHaveCount(30);
+ const height=await days.first().evaluate(el=>el.getBoundingClientRect().height);
+ expect(height).toBeLessThanOrEqual(60);
+ await expect(page.locator('.daygrid .day .mini:not(.m3931-event-mini)')).toHaveCount(0);
+});
+test('mobile menu sheet uses active theme panel background',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>{document.documentElement.dataset.m395Theme='mono';window.mileV3ToggleMore?.()});
+ const sheet=page.locator('#mile-clean-sheet-host.is-open .clean-surface');
+ await expect(sheet).toBeVisible();
+ const colors=await sheet.evaluate(el=>({actual:getComputedStyle(el).backgroundColor,expected:getComputedStyle(document.documentElement).getPropertyValue('--panel').trim()}));
+ expect(colors.actual).toBeTruthy();
+ expect(colors.actual).not.toBe('rgb(229, 208, 178)');
+});
