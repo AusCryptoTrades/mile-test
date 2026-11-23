@@ -388,7 +388,8 @@ test('batch 3: Social menu has no duplicate Tracker and closes on bottom navigat
  await expect(page.locator('#m36-drawer')).toHaveCount(0);
  await expect(page.locator('#mile-fixed-mobile-nav [data-mile-page="calendar"]')).toHaveClass(/active/);
  await page.evaluate(()=>window.m36Drawer());
- await page.locator('#m36-dim').click({position:{x:5,y:5}});
+ if(page.viewportSize().width<650)await page.locator('#mile-shared-sheet-host .mile-shared-backdrop').click({position:{x:5,y:5}});
+  else await page.locator('#m36-dim').click({position:{x:5,y:5}});
  await expect(page.locator('#m36-drawer')).toHaveCount(0);
 });
 test('batch 3: one home Sleep Score and persistent theme on Home',async({page})=>{
