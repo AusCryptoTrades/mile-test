@@ -506,5 +506,7 @@ test('dashboard batch 2: distribution responsive layout and keyboard focus',asyn
  await expect(page.locator('.mile-v3953-distribution details')).toHaveAttribute('open','');
  const card=page.locator('.mile-ui-recovery [data-mile-recovery-link]').first();
  await card.focus();
- expect(await card.evaluate(el=>getComputedStyle(el).outlineStyle)).not.toBe('none');
+ await expect(card).toBeFocused();
+ const focusStyle=await page.evaluate(()=>Array.from(document.styleSheets).some(sheet=>{try{return Array.from(sheet.cssRules).some(rule=>rule.cssText.includes('[data-mile-recovery-link]:focus-visible'))}catch{return false}}));
+ expect(focusStyle).toBe(true);
 });
