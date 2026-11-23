@@ -489,3 +489,24 @@ test('dashboard audit batch 1: recovery cards respond to keyboard',async({page})
  await page.keyboard.press('Enter');
  await expect(page.locator('#app')).toBeVisible();
 });
+
+test('dashboard batch 2: recovery freshness and accurate sleep status labels',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('dashboard'));
+ await expect(page.locator('.mile-ui-recovery-date')).toBeVisible();
+ await expect(page.locator('.mile-ui-recovery .readiness')).toContainText('Sleep Status');
+ await expect(page.locator('.mile-ui-recovery [data-mile-recovery-link]')).toHaveCount(4);
+});
+test('dashboard batch 2: distribution responsive layout and keyboard focus',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('dashboard'));
+ const summary=page.locator('.mile-v3953-distribution summary');
+ await summary.focus();
+ await page.keyboard.press('Enter');
+ await expect(page.locator('.mile-v3953-distribution details')).toHaveAttribute('open','');
+ const card=page.locator('.mile-ui-recovery [data-mile-recovery-link]').first();
+ await card.focus();
+ await expect(card).toBeFocused();
+ const focusStyle=await page.evaluate(()=>Array.from(document.styleSheets).some(sheet=>{try{return Array.from(sheet.cssRules).some(rule=>rule.cssText.includes('[data-mile-recovery-link]:focus-visible'))}catch{return false}}));
+ expect(focusStyle).toBe(true);
+});
