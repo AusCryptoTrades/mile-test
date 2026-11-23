@@ -378,18 +378,28 @@ test('beta recovery: missing VO2 stays blank rather than inventing an estimate',
  await expect(page.locator('.mile-ui-dashboard')).toContainText('—');
 });
 
-test('batch 3: Social menu has no duplicate Tracker and closes on bottom navigation',async({page})=>{
+test('batch 3: Social menu uses isolated scrolling sheet and restores navigation',async({page})=>{
  await openApp(page,{signedIn:true});
  await page.evaluate(()=>window.m36Drawer());
  await expect(page.locator('#m36-drawer')).toBeVisible();
  await expect(page.locator('#m36-drawer')).not.toContainText('Run Tracker');
- if(page.viewportSize().width<650)await page.locator('#mile-fixed-mobile-nav [data-mile-page="calendar"]').click();
- else await page.evaluate(()=>{const b=document.querySelector('#mile-fixed-mobile-nav [data-mile-page="calendar"]');b.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));b.click()});
+ if(page.viewportSize().width<650){
+  await expect(page.locator('#mile-clean-sheet-host')).toHaveClass(/is-open/);
+  await expect(page.locator('#m36-drawer')).toHaveCSS('overflow-y','auto');
+  await expect(page.locator('#mile-fixed-mobile-nav')).toBeHidden();
+  await page.locator('#m36-drawer').evaluate(el=>el.scrollTop=el.scrollHeight);
+  await expect(page.locator('#m36-drawer')).toContainText('Messages');
+  await page.locator('#mile-clean-sheet-host .clean-backdrop').click({position:{x:5,y:5}});
+  await expect(page.locator('#mile-fixed-mobile-nav')).toBeVisible();
+  await page.locator('#mile-fixed-mobile-nav [data-mile-page="calendar"]').click();
+ }else{
+  await page.evaluate(()=>{const b=document.querySelector('#mile-fixed-mobile-nav [data-mile-page="calendar"]');b.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));b.click()});
+ }
  await expect(page.locator('#m36-drawer')).toHaveCount(0);
  await expect(page.locator('#mile-fixed-mobile-nav [data-mile-page="calendar"]')).toHaveClass(/active/);
  await page.evaluate(()=>window.m36Drawer());
- if(page.viewportSize().width<650)await page.locator('#mile-shared-sheet-host .mile-shared-backdrop').click({position:{x:5,y:5}});
-  else await page.locator('#m36-dim').click({position:{x:5,y:5}});
+ if(page.viewportSize().width<650)await page.locator('#mile-clean-sheet-host .clean-backdrop').click({position:{x:5,y:5}});
+ else await page.locator('#m36-dim').click({position:{x:5,y:5}});
  await expect(page.locator('#m36-drawer')).toHaveCount(0);
 });
 test('batch 3: one home Sleep Score and persistent theme on Home',async({page})=>{
