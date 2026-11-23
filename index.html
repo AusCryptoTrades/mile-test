@@ -4888,4 +4888,25 @@ body #mile-emergency-more .em-group .em-link:last-child{
 #app .mile-cal-upcoming-more>summary::-webkit-details-marker{display:none}
 #app .mile-cal-session>summary:focus-visible,#app .mile-cal-upcoming-more>summary:focus-visible{outline:2px solid #8df1b7;outline-offset:2px}
 @media(max-width:420px){#app .daygrid{gap:4px!important}#app .daygrid .day{min-height:43px!important;border-radius:9px!important}#app .mile-sc-calendar .row.between>.row{gap:4px!important}}
-</style></body></html>
+</style>
+<script id="mile-calendar-hr-zones-relocation">
+/* Calendar is for sessions and activities; HR-zone configuration remains in Settings. */
+(function(){
+ 'use strict';
+ function cleanCalendar(){
+  if(typeof page==='undefined'||page!=='calendar')return;
+  const app=document.getElementById('app');
+  if(!app)return;
+  app.querySelectorAll('details.av-hr-collapse, details.mile-v31-hr, .mile-v3-hr').forEach(el=>{
+   // Only remove the dedicated HR-zone card, not activity intensity or workout data.
+   if(/HR zones|heart.rate zones/i.test(el.textContent||''))el.remove();
+  });
+ }
+ const previousRender=window.render;
+ if(typeof previousRender==='function'){
+  window.render=function(){const result=previousRender.apply(this,arguments);cleanCalendar();return result;};
+ }
+ cleanCalendar();
+})();
+</script>
+</body></html>
