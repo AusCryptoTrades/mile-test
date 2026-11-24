@@ -570,3 +570,25 @@ test('Build coaching: program preview uses actual prescription engine and expand
  expect(html).toContain('Session Purpose');
  expect(html).toContain('Swim');
 });
+
+test('tracker batch 66: embedded theme matches parent and header stays hidden',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileShellOpen('tracker'));
+ const frame=page.frameLocator('#mile-native-view');
+ await expect(frame.locator('#start')).toBeVisible();
+ await expect(frame.locator('header')).toBeHidden();
+ const parentBg=await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--bg').trim());
+ expect(await frame.locator('html').evaluate(el=>getComputedStyle(el).getPropertyValue('--mile-bg').trim())).toBe(parentBg);
+ await page.evaluate(()=>{document.getElementById('mile-native-view').dataset.testIdentity='original';window.mileShellOpen('tracker')});
+ await expect(page.locator('#mile-native-view')).toHaveAttribute('data-test-identity','original');
+});
+test('tracker batch 66: GPS denial leaves start available',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileShellOpen('tracker'));
+ const frame=page.frameLocator('#mile-native-view');
+ await expect(frame.locator('#start')).toBeVisible();
+ await frame.locator('html').evaluate(()=>{Object.defineProperty(navigator,'geolocation',{configurable:true,value:{getCurrentPosition:(_,reject)=>reject({message:'fixture denied'})}})});
+ await frame.locator('#start').click();
+ await expect(frame.locator('#notice')).toContainText('fixture denied');
+ await expect(frame.locator('#start')).toBeEnabled();
+});
