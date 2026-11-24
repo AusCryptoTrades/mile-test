@@ -2830,75 +2830,48 @@ function messageView(){let hiddenIds=new Set((S.hiddenMessages||[]).map(x=>x.mes
 function share(){const sharedIds=new Set(S.posts.filter(p=>p.user_id===userId).flatMap(p=>[p.source_activity_id,p.garmin_activity_id]).filter(Boolean).map(String));const acts=(state.activities||[]).filter(a=>!sharedIds.has(String(a.id))).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,35);return `<div class="m36-panel"><div class="m310-posthead"><div><span class="m310-kicker">MILE / SOCIAL</span><h3>POST ACTIVITY</h3></div><button type="button" class="m310-close" data-m36-tab="feed" aria-label="Close Post Activity">✕</button></div><p class="muted small">Publish a Garmin workout or create one manually. People allowed to see your post can view its shared details.</p><div class="m36-fields"><div class="m383-mode"><label><input type="radio" name="m383-mode" value="garmin" checked> Garmin activity</label><label><input type="radio" name="m383-mode" value="manual"> Create manually</label></div><div id="m383-garmin-fields"><label>Choose Garmin activity<select id="m36-activity"><option value="">Select an activity…</option>${acts.map(a=>`<option value="${e(a.id)}">${e((a.name||a.activityName||a.type||'Workout')+' · '+String(a.date).slice(0,10))}</option>`).join('')}</select></label></div><div id="m383-manual-fields" hidden><label>Session name<input id="m383-name" maxlength="120" placeholder="e.g. Threshold intervals"></label><label>Sport<select id="m383-sport"><option>Running</option><option>HYROX</option><option>Cycling</option><option>Swimming</option><option>Strength</option><option>Other</option></select></label><label>Workout date<input type="date" id="m383-date"></label><label>Duration (minutes)<input type="number" id="m383-duration" min="0" max="1440" step="1" placeholder="45"></label><label>Distance (km, optional)<input type="number" id="m383-distance" min="0" max="1000" step="0.01" placeholder="8.5"></label></div><label>Caption<textarea id="m36-caption" maxlength="1500" placeholder="How did the session go?"></textarea></label><label>Visibility<select id="m36-visibility"><option value="followers">Accepted followers only</option><option value="public">Public</option><option value="private">Only me</option></select></label></div><div class="m36-actions"><button class="m36-btn" data-m36-publish="1">Post activity</button></div><p class="m36-private">GPS routes are shared only when included in the published activity. Route privacy controls are being completed separately; existing posts retain their current settings.</p></div><div class="m36-panel"><h3>SHARED WORKOUTS</h3>${S.posts.filter(p=>p.user_id===userId).map(p=>`<div class="m36-activity-row"><span>${e(p.activity_name||p.title||'Workout')}</span><button class="m36-btn alt" data-m36-delete="${e(p.id)}">Delete</button></div>`).join('')||'<p class="muted">No published workouts.</p>'}</div>`}
 
 const mileLbEsc=e;
-const lbCategory=type=>{const t=String(type||'').toLowerCase();if(/run|jog|trail/.test(t))return 'Running';if(/cycl|bik|ride|spin/.test(t))return 'Cycling';if(/swim|pool/.test(t))return 'Swimming';if(/strength|weight|resistance|gym/.test(t))return 'Strength';if(/hiit|interval|tabata/.test(t))return 'HIIT';if(/cardio|fitness|elliptical|stair|row|ski|indoor/.test(t))return 'Cardio';return null};
-const lbFactors={Running:1,Cycling:.8,Swimming:1.2,Strength:.9,HIIT:1.1,Cardio:1};
-function lbPoints(p){
- const cat=lbCategory(p.activity_type),secs=Number(p.duration_s);
- if(!cat||!Number.isFinite(secs)||secs<600||secs>86400)return 0;
- const m=Math.min(180,secs/60),base=Math.min(60,m)+Math.min(60,Math.max(0,m-60))*.5+Math.max(0,m-120)*.25;
- const te=Number(p.detail_snapshot?.training_effect),effort=Number.isFinite(te)&&te>=0&&te<=5?(te>=4?1.1:te>=3?1.05:1):1;
- return Math.min(180,Math.round(base*lbFactors[cat]*effort));
-}
+let lbRequest=0;
 function lbWeek(){
- const d=new Date(),monday=new Date(d.getFullYear(),d.getMonth(),d.getDate()-(d.getDay()+6)%7+S.leaderboardWeek*7);
- const next=new Date(monday.getFullYear(),monday.getMonth(),monday.getDate()+7);
- return {start:monday,end:next,label:monday.toLocaleDateString('en-AU',{day:'numeric',month:'short'})+' – '+new Date(next.getTime()-86400000).toLocaleDateString('en-AU',{day:'numeric',month:'short'})};
+ const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Melbourne',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+ const get=t=>Number(parts.find(p=>p.type===t).value),d=new Date(Date.UTC(get('year'),get('month')-1,get('day')));
+ d.setUTCDate(d.getUTCDate()-(d.getUTCDay()+6)%7+S.leaderboardWeek*7);
+ const last=new Date(d.getTime()+6*86400000),fmt=x=>x.toLocaleDateString('en-AU',{day:'numeric',month:'short',timeZone:'UTC'});
+ return {label:fmt(d)+' – '+fmt(last)};
 }
 async function loadLeaderboard(){
  if(!userId||!token||S.tab!=='leaderboard')return;
- S.leaderboardLoading=true;S.leaderboardError='';paint();
+ const request=++lbRequest,owner=userId,week=S.leaderboardWeek,scope=S.leaderboardScope;
+ S.leaderboardLoading=true;S.leaderboardError='';S.leaderboardResult=null;paint();
  try{
-  const w=lbWeek();
-  const query='?select=id,user_id,activity_type,duration_s,activity_at,garmin_activity_id,source_activity_id,visibility,detail_snapshot&activity_at=gte.'+encodeURIComponent(w.start.toISOString())+'&activity_at=lt.'+encodeURIComponent(w.end.toISOString())+'&order=activity_at.desc&limit=1000';
-  const [posts,profiles]=await Promise.all([api('mile_social_activities','GET',null,query),api('mile_profiles','GET',null,'?select=user_id,username,display_name,avatar_url,is_private&limit=1000')]);
-  const ownGarmin=(state.activities||[]).filter(a=>{const d=mileActivityLocalDate(a);return d>=w.start.getFullYear()+'-'+String(w.start.getMonth()+1).padStart(2,'0')+'-'+String(w.start.getDate()).padStart(2,'0')&&d<w.end.getFullYear()+'-'+String(w.end.getMonth()+1).padStart(2,'0')+'-'+String(w.end.getDate()).padStart(2,'0')}).map(a=>({id:'local-'+String(a.id||a.activityId||a.summaryId),user_id:userId,activity_type:a.type||a.activityType?.typeKey||a.sport||'',duration_s:Number(a.durationSeconds||a.elapsedDurationSeconds||a.movingDurationSeconds)||Number(a.durationMin||0)*60,activity_at:a.date,garmin_activity_id:a.id||a.activityId||a.summaryId,source_activity_id:a.id||a.activityId||a.summaryId,visibility:'private',detail_snapshot:null,local_activity:true})).filter(a=>a.garmin_activity_id);
- S.leaderboardOwnAll=ownGarmin;
- S.leaderboardPosts=posts.concat(ownGarmin);S.leaderboardProfiles=profiles;
- }catch(err){S.leaderboardError=err.message;S.leaderboardPosts=[]}
- finally{S.leaderboardLoading=false;paint()}
+  const data=await api('rpc/mile_weekly_leaderboard','POST',{p_week:week,p_scope:scope});
+  if(request!==lbRequest||owner!==userId)return;
+  if(!data||!Array.isArray(data.entries)||!Array.isArray(data.audit))throw Error('Invalid leaderboard response');
+  S.leaderboardResult=data;
+ }catch(err){if(request===lbRequest&&owner===userId){S.leaderboardError=err.message;S.leaderboardResult=null}}
+ finally{if(request===lbRequest&&owner===userId){S.leaderboardLoading=false;if(S.tab==='leaderboard')paint()}}
 }
 function leaderboardView(){
- const w=lbWeek(),profiles=new Map((S.leaderboardProfiles||S.profiles||[]).map(p=>[p.user_id,p]));
- const following=new Set(S.follows.filter(f=>f.follower_id===userId&&f.status==='accepted').map(f=>f.following_id));
- const followers=new Set(S.follows.filter(f=>f.following_id===userId&&f.status==='accepted').map(f=>f.follower_id));
- const entries=new Map(),seen=new Set();
- for(const p of S.leaderboardPosts||[]){
-  const id=String(p.user_id||''),profile=profiles.get(id);
-  if(!id||!profile)continue;
-  const isMe=id===userId,mutual=following.has(id)&&followers.has(id),followed=following.has(id);
-  const scope=S.leaderboardScope;
-  if(scope==='friends'&&!isMe&&!mutual)continue;
-  if(scope==='following'&&!isMe&&!followed)continue;
-  if(scope==='global'&&!isMe&&(profile.is_private!==false||p.visibility!=='public'))continue;
-  if(!isMe&&p.visibility==='private')continue;
-  if(!isMe&&p.visibility==='followers'&&!followed)continue;
-  const source=p.garmin_activity_id||p.source_activity_id;
-  // Only Garmin-linked activities qualify; duplicate imported/published IDs count once.
-  if(!source)continue;
-  const key=id+'|'+source;if(seen.has(key))continue;seen.add(key);
-  const pts=lbPoints(p);if(!pts)continue;
-  const current=entries.get(id)||{id,profile,points:0,sessions:0};
-  current.points+=pts;current.sessions++;entries.set(id,current);
- }
- const ownAudit=(S.leaderboardOwnAll||[]).map(a=>({name:String((state.activities||[]).find(x=>String(x.id||x.activityId||x.summaryId)===String(a.garmin_activity_id))?.name||a.activity_type||'Garmin activity'),type:lbCategory(a.activity_type)||'Unsupported',mins:Math.round(Number(a.duration_s)/60),points:lbPoints(a),id:a.garmin_activity_id})).sort((a,b)=>b.points-a.points);
- const auditHtml='<details class="mile-v3953-audit"><summary>My points breakdown · '+ownAudit.filter(a=>a.points>0).length+' eligible / '+ownAudit.length+' imported sessions</summary><p class="muted small">Shows your imported Garmin activities, including workouts excluded from scoring. Other athletes are currently limited to visible shared records until secure backend scoring is available.</p>'+ownAudit.map(a=>'<div class="mile-v3953-audit-row"><div><strong>'+mileLbEsc(a.name)+'</strong><small>'+mileLbEsc(a.type)+' · '+a.mins+' min'+(a.points?'':' · Not eligible (type or duration)')+'</small></div><strong>'+a.points+' pts</strong></div>').join('')+'</details>';
+ const w=lbWeek(),entries=new Map();
+ for(const p of S.leaderboardResult?.entries||[])entries.set(p.user_id,{id:p.user_id,profile:p,points:Number(p.points),sessions:Number(p.sessions)});
+ const ownAudit=S.leaderboardResult?.audit||[];
+ const auditHtml='<details class="mile-v3953-audit"><summary>My points breakdown · '+ownAudit.filter(a=>a.points>0).length+' eligible / '+ownAudit.length+' verified Garmin sessions</summary><p class="muted small">Only Garmin records received by MILE’s server are scored. Legacy imports or manual activities not verified by the server do not count.</p>'+ownAudit.map(a=>'<div class="mile-v3953-audit-row"><div><strong>'+mileLbEsc(a.name)+'</strong><small>'+mileLbEsc(a.type)+' · '+a.mins+' min'+(a.points?'':' · '+mileLbEsc(a.reason||'Not eligible'))+'</small></div><strong>'+a.points+' pts</strong></div>').join('')+'</details>';
  const sorted=[...entries.values()].sort((a,b)=>b.points-a.points||b.sessions-a.sessions||a.id.localeCompare(b.id));
  const own=sorted.findIndex(x=>x.id===userId);
  const avatarMarkup=p=>p.avatar_url&&/^https:\/\//i.test(p.avatar_url)?'<img src="'+mileLbEsc(p.avatar_url)+'" alt="" loading="lazy">':'<span>'+mileLbEsc((p.display_name||p.username||'M')[0].toUpperCase())+'</span>';
  const athleteRow=(x,i)=>'<button type="button" class="mile-lb-athlete" data-mile-lb-profile="'+mileLbEsc(x.id)+'"><span class="mile-lb-rank">'+(i+1)+'</span><span class="mile-lb-avatar">'+avatarMarkup(x.profile)+'</span><span class="mile-lb-identity"><strong>'+mileLbEsc(x.profile.display_name||x.profile.username||'MILE Athlete')+(x.id===userId?' (You)':'')+'</strong><small>@'+mileLbEsc(x.profile.username||'athlete')+' · '+x.sessions+' sessions</small></span><span class="mile-lb-score"><strong>'+x.points+'</strong><small>PTS</small></span></button>';
  const podium=sorted.slice(0,3).map((x,i)=>'<button type="button" class="mile-lb-podium mile-lb-podium-'+(i+1)+'" data-mile-lb-profile="'+mileLbEsc(x.id)+'"><span class="mile-lb-avatar">'+avatarMarkup(x.profile)+'</span><span class="mile-lb-medal">'+['1ST','2ND','3RD'][i]+'</span><strong>'+mileLbEsc(x.profile.display_name||x.profile.username||'Athlete')+'</strong><small>@'+mileLbEsc(x.profile.username||'athlete')+'</small><b>'+x.points+' pts</b></button>').join('');
- return '<div class="mile-lb-page"><div class="mile-lb-top"><span class="mile-lb-kicker">MILE / SOCIAL</span><h2>Weekly Leaderboard<span>.</span></h2><p>Earn points for Garmin-linked training across six activity types. No HYROX category.</p></div>'+
+ return '<div class="mile-lb-page"><div class="mile-lb-top"><span class="mile-lb-kicker">MILE / SOCIAL</span><h2>Weekly Leaderboard<span>.</span></h2><p>Earn points for Garmin-linked training across five activity categories. HIIT is included in Cardio.</p></div>'+
  '<div class="mile-lb-controls"><div class="mile-lb-scopes">'+[['friends','Friends'],['following','Following'],['global','Global']].map(([v,l])=>'<button type="button" data-mile-lb-scope="'+v+'" class="'+(S.leaderboardScope===v?'active':'')+'">'+l+'</button>').join('')+'</div><div class="mile-lb-week"><button data-mile-lb-week="-1" aria-label="Previous week">‹</button><strong>'+mileLbEsc(w.label)+'</strong><button data-mile-lb-week="1" '+(S.leaderboardWeek>=0?'disabled':'')+' aria-label="Next week">›</button></div></div>'+
  (S.leaderboardLoading?'<div class="m36-panel">Loading weekly rankings…</div>':S.leaderboardError?'<div class="m36-panel">Unable to load leaderboard: '+mileLbEsc(S.leaderboardError)+'</div>':
- '<div class="mile-lb-podium-wrap">'+(podium||'<p>No eligible shared Garmin workouts for this group this week.</p>')+'</div>'+
- '<div class="mile-lb-summary"><span>YOUR POSITION</span><strong>'+(own>=0?'#'+(own+1):'Unranked')+'</strong><span>'+(own>=0?sorted[own].points+' points · '+sorted[own].sessions+' sessions':'Share a Garmin workout to qualify')+'</span></div>'+
+ '<div class="mile-lb-podium-wrap">'+(podium||'<p>No eligible verified Garmin workouts for this group this week.</p>')+'</div>'+
+ '<div class="mile-lb-summary"><span>YOUR POSITION</span><strong>'+(own>=0?'#'+(own+1):'Unranked')+'</strong><span>'+(own>=0?sorted[own].points+' points · '+sorted[own].sessions+' sessions':'Sync an eligible Garmin workout to qualify')+'</span></div>'+
  auditHtml+'<div class="mile-lb-list"><h3>Rankings <small>'+sorted.length+' athletes</small></h3>'+(sorted.length?sorted.map(athleteRow).join(''):'<p class="muted">No ranked athletes yet.</p>')+'</div>')+
- '<details class="mile-lb-rules"><summary>How MILE points work</summary><p>Minutes 1–60: 1 point each. Minutes 61–120: 0.5 each. Minutes 121–180: 0.25 each. Running ×1, Cycling ×0.8, Swimming ×1.2, Strength ×0.9, HIIT ×1.1, Cardio ×1. An available Garmin aerobic training effect of 3+ adds 5%; 4+ adds 10%. Maximum 180 points per workout. Minimum 10 minutes.</p><p>Only Garmin-linked, shared activities count. Duplicate Garmin activity IDs are excluded. Weeks run Monday to Sunday. Rankings include only activities and profiles your account is permitted to view. Global shows public profiles with public activities; private profiles are excluded.</p><p>This beta leaderboard uses visible shared workout records, not an independent server-verified scoring ledger. Anti-cheat verification and complete global coverage require a future backend service.</p></details></div>';
+ '<details class="mile-lb-rules"><summary>How MILE points work</summary><p>Minutes 1–60: 1 point each. Minutes 61–120: 0.5 each. Minutes 121–180: 0.25 each. Running ×1, Cycling ×0.8, Swimming ×1.2, Strength ×0.9, Cardio (including HIIT) ×1. An available Garmin aerobic training effect of 3+ adds 5%; 4+ adds 10%. Maximum 180 points per workout. Minimum 10 minutes.</p><p>Only server-received Garmin activities count; posting to the feed is not required. Duplicate Garmin IDs and web uploads are excluded. Weeks run Monday to Sunday in Melbourne time. Friends requires mutual accepted follows; Following requires an accepted follow. Global excludes private profiles and requires public workout visibility. Explicit private posts are excluded from other athletes’ scores.</p><p>Scores are calculated by the server from Garmin records. Other athletes can see permitted totals, not your private workout details. Legacy device-only imports do not qualify until received by the server.</p></details></div>';
 }
 document.addEventListener('click',ev=>{
  const b=ev.target.closest('[data-mile-lb-scope],[data-mile-lb-week],[data-mile-lb-profile]');
  if(!b)return;ev.preventDefault();
- if(b.dataset.mileLbScope){S.leaderboardScope=b.dataset.mileLbScope;paint()}
+ if(b.dataset.mileLbScope){S.leaderboardScope=b.dataset.mileLbScope;loadLeaderboard()}
  else if(b.dataset.mileLbWeek){S.leaderboardWeek=Math.min(0,Math.max(-52,S.leaderboardWeek+Number(b.dataset.mileLbWeek)));loadLeaderboard()}
  else if(b.dataset.mileLbProfile){const id=b.dataset.mileLbProfile;if(id===userId)window.m36Open('profile');else if(typeof window.m375OpenProfile==='function')window.m375OpenProfile(id);else {S.profileTarget=id;paint()}}
 },true);
