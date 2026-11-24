@@ -13,7 +13,10 @@ permissions:
 jobs:
   browser-tests:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 40
+    container:
+      image: mcr.microsoft.com/playwright:v1.58.2-noble
+      options: --ipc=host
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -23,8 +26,8 @@ jobs:
           node-version: '22'
       - name: Install test dependencies
         run: npm ci --no-audit --no-fund
-      - name: Install Chromium and WebKit browser engines
-        run: npx playwright install --with-deps chromium webkit
+      - name: Verify preinstalled Chromium and WebKit
+        run: npx playwright install --list
       - name: Run desktop and mobile browser tests
         id: browser
         run: npm run test:e2e
