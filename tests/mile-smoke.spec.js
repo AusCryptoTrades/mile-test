@@ -623,3 +623,22 @@ test('tracker batch 66: foreign pending activity is not uploaded',async({page})=
  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('mile-run-tracker-pending-v1'))[0].id)).toBe('foreign-fixture');
  expect(uploads).toEqual([]);
 });
+
+ test('planned tracker keeps workout identity and returns to clean setup',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>{window.mileTrackerPlanned={name:'Easy planned run',detail:'5 km at 5:20 /km',km:5};window.mileShellOpen('tracker')});
+ const frame=page.frameLocator('#mile-native-view');
+ await expect(frame.locator('#workout')).toHaveValue('planned');
+ await expect(frame.locator('#target')).toHaveValue('5:20');
+ await expect(frame.locator('#paceTargetField')).toBeHidden();
+ await frame.locator('html').evaluate(()=>{Object.defineProperty(navigator,'geolocation',{configurable:true,value:{getCurrentPosition:resolve=>resolve({coords:{latitude:-38,longitude:145,accuracy:5},timestamp:Date.now()}),watchPosition:()=>1,clearWatch:()=>{}}})});
+ await frame.locator('#start').click();
+ await expect(frame.locator('#phase')).toHaveText('EASY PLANNED RUN');
+ await expect(frame.locator('#message')).toContainText('5:20');
+ await frame.locator('#finish').click();
+ await expect(frame.locator('#resultText')).toContainText('Easy planned run');
+ await frame.locator('#backToTrack').click();
+ await expect(frame.locator('#start')).toBeVisible();
+ await expect(frame.locator('#workout')).toHaveValue('free');
+ await expect(frame.locator('#result')).toBeHidden();
+ });
