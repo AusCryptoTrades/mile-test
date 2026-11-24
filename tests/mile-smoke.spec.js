@@ -685,3 +685,16 @@ test('Stats includes only own tracker records and deduplicates by source ID',asy
  await page.getByRole('button',{name:/Fixture morning run/}).click();
  await expect(page.locator('#mile35-detail')).toBeVisible();
  });
+
+test('batch 71 Stats insets and mobile More perimeter',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3ToggleMore());
+ const menu=page.locator('#mile-emergency-more');
+ await expect(menu).toBeVisible();
+ await expect(page.locator('#mile-clean-sheet-host .clean-surface')).toHaveCSS('border-top-width','0px');
+ await expect(menu.locator('.em-head')).toHaveCSS('padding-left','16px');
+ await menu.locator('[data-dest="performance"]').click();
+ await expect(page.locator('.m70-stats > section.card').first()).toHaveCSS('padding-left','16px');
+ await expect(page.locator('.m70-stats > section.card').first()).toHaveCSS('padding-right','16px');
+});
