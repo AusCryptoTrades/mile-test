@@ -91,3 +91,16 @@ test('SIM half and custom presets persist configured distances and volumes',asyn
  expect(saved.stages[1].volume).toBe(600);
  expect(saved.taps).toHaveLength(1);
 });
+
+test('SIM follows every saved appearance theme',async({page})=>{
+ const themes={forest:'rgb(9, 37, 26)',graphite:'rgb(23, 25, 28)',midnight:'rgb(10, 20, 42)',mono:'rgb(8, 8, 8)',light:'rgb(243, 246, 242)',sand:'rgb(241, 231, 214)',ice:'rgb(239, 248, 252)'};
+ await page.goto('/mile-sim.html');
+ for(const [theme,bg] of Object.entries(themes)){
+  await page.evaluate(t=>localStorage.setItem('mile-appearance-v1',JSON.stringify({theme:t})),theme);
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-m395-theme',theme);
+  await expect(page.locator('body')).toHaveCSS('background-color',bg);
+  await expect(page.locator('#start')).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();
+ }
+});
