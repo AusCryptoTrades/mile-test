@@ -644,3 +644,26 @@ test('tracker batch 66: foreign pending activity is not uploaded',async({page})=
  });
 
 test('tracker structured distance and recovery blocks',async({page})=>{await openApp(page,{signedIn:true});await page.evaluate(()=>{window.mileTrackerPlanned={name:'Track sprint',detail:'2 km warm-up; 4 × 1 km @ 4:20–4:25/km; 90 sec easy recovery; 1–2 km cool-down.'};window.mileShellOpen('tracker')});const f=page.frameLocator('#mile-native-view');await expect(f.locator('#start')).toBeVisible();await f.locator('html').evaluate(()=>{Object.defineProperty(navigator,'geolocation',{configurable:true,value:{getCurrentPosition:resolve=>resolve({coords:{latitude:-38,longitude:145,accuracy:5},timestamp:Date.now()}),watchPosition:()=>1,clearWatch:()=>{}}})});await f.locator('#start').click();await expect(f.locator('#phase')).toHaveText('WARM UP');await expect(f.locator('#countdown')).toHaveText('2.00 km');await f.locator('#nextBlock').click();await expect(f.locator('#phase')).toHaveText('INTERVAL 1 / 4');await expect(f.locator('#blockInfo')).toContainText('4:20–4:25');await f.locator('#nextBlock').click();await expect(f.locator('#phase')).toHaveText('RECOVERY');await expect(f.locator('#countdown')).toContainText('01:');await f.locator('#finish').click();await f.locator('#backToTrack').click();await expect(f.locator('#start')).toBeVisible();});
+
+test('Stats filters use real dates and retain shared activity details',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>navigate('performance'));
+ await expect(page.getByRole('heading',{name:'Training overview'})).toBeVisible();
+ await page.getByRole('button',{name:'7 days',exact:true}).click();
+ await page.getByRole('button',{name:'Running',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Training volume'})).toBeVisible();
+ await expect(page.getByRole('button',{name:/18 Nov.*minutes/})).toBeVisible();
+ await expect(page.getByRole('button',{name:/Fixture morning run/})).toBeVisible();
+ await page.getByRole('button',{name:/Fixture morning run/}).click();
+ await expect(page.locator('#mile35-detail')).toBeVisible();
+});
+test('Stats includes only own tracker records and deduplicates by source ID',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>{const p={user_id:userId,source_activity_id:'mile-tracker:fixture',title:'Recorded MILE fixture',distance_m:1000,duration_s:300,activity_at:'2026-11-19T08:00:00Z',detail_snapshot:{splits:[{km:1,seconds:300}]}};mileMergeOwnRuns([p,p,{...p,user_id:'foreign',source_activity_id:'mile-tracker:foreign',title:'Foreign run'}],userId);navigate('performance')});
+ await expect(page.getByRole('button',{name:/Recorded MILE fixture/})).toHaveCount(1);
+ await expect(page.getByText('Foreign run')).toHaveCount(0);
+ await page.getByRole('button',{name:/Recorded MILE fixture/}).click();
+ await expect(page.locator('#mile35-detail')).toBeVisible();
+ await page.locator('#mile35-detail').getByRole('button',{name:'Splits',exact:true}).click();
+ await expect(page.locator('#mile35-detail')).toContainText('5:00');
+});
