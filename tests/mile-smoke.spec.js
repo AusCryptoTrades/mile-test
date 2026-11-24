@@ -633,7 +633,7 @@ test('tracker batch 66: foreign pending activity is not uploaded',async({page})=
  await expect(frame.locator('#paceTargetField')).toBeHidden();
  await frame.locator('html').evaluate(()=>{Object.defineProperty(navigator,'geolocation',{configurable:true,value:{getCurrentPosition:resolve=>resolve({coords:{latitude:-38,longitude:145,accuracy:5},timestamp:Date.now()}),watchPosition:()=>1,clearWatch:()=>{}}})});
  await frame.locator('#start').click();
- await expect(frame.locator('#phase')).toHaveText('EASY PLANNED RUN');
+ await expect(frame.locator('#phase')).toHaveText('RUN');
  await expect(frame.locator('#message')).toContainText('5:20');
  await frame.locator('#finish').click();
  await expect(frame.locator('#resultText')).toContainText('Easy planned run');
@@ -642,3 +642,5 @@ test('tracker batch 66: foreign pending activity is not uploaded',async({page})=
  await expect(frame.locator('#workout')).toHaveValue('free');
  await expect(frame.locator('#result')).toBeHidden();
  });
+
+test('tracker structured distance and recovery blocks',async({page})=>{await openApp(page,{signedIn:true});await page.evaluate(()=>{window.mileTrackerPlanned={name:'Track sprint',detail:'2 km warm-up; 4 × 1 km @ 4:20–4:25/km; 90 sec easy recovery; 1–2 km cool-down.'};window.mileShellOpen('tracker')});const f=page.frameLocator('#mile-native-view');await expect(f.locator('#start')).toBeVisible();await f.locator('html').evaluate(()=>{Object.defineProperty(navigator,'geolocation',{configurable:true,value:{getCurrentPosition:resolve=>resolve({coords:{latitude:-38,longitude:145,accuracy:5},timestamp:Date.now()}),watchPosition:()=>1,clearWatch:()=>{}}})});await f.locator('#start').click();await expect(f.locator('#phase')).toHaveText('WARM UP');await expect(f.locator('#countdown')).toHaveText('2.00 km');await f.locator('#nextBlock').click();await expect(f.locator('#phase')).toHaveText('INTERVAL 1 / 4');await expect(f.locator('#blockInfo')).toContainText('4:20–4:25');await f.locator('#nextBlock').click();await expect(f.locator('#phase')).toHaveText('RECOVERY');await expect(f.locator('#countdown')).toContainText('01:');await f.locator('#finish').click();await f.locator('#backToTrack').click();await expect(f.locator('#start')).toBeVisible();});
