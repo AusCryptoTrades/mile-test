@@ -14,7 +14,8 @@ test('Batch 76 social headers and profile tab restoration are wired',()=>{
  expect(html).toContain("feed:['Social Feed','Training from your community']");
  expect(html).toContain("S.m76ProfileTab=prev.profileTab||'activity'");
  expect(html).toContain('data-m76-options');
- expect(html).toContain("S.m76ProfileTab=tab");
+ expect(html).toContain("window.m36State.m76ProfileTab=tab");
+ expect(html).toContain("CSS.escape(S.m76ProfileTab)");
 });
 test('Batch 76 sport classification supports indoor cardio and HIIT',()=>{
  const start=html.indexOf('function m388Category('),end=html.indexOf('\n',start);
