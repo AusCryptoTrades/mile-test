@@ -702,3 +702,43 @@ test('batch 71 Stats insets and mobile More perimeter',async({page})=>{
 });
 
 test('batch 72 combined IQ navigation and chart controls',async({page})=>{await page.setViewportSize({width:390,height:844});await openApp(page,{signedIn:true});await page.evaluate(()=>window.mileV3ToggleMore());const menu=page.locator('#mile-emergency-more');await expect(menu.locator('[data-dest="recovery"]')).toHaveCount(0);await expect(menu.locator('[data-dest="insights"]')).toContainText('MILE IQ');await menu.locator('[data-dest="insights"]').click();await expect(page.locator('.iq72')).toBeVisible();await expect(page.locator('.iq72')).toContainText('Sleep score');await page.locator('.iq72').getByRole('button',{name:'30 days',exact:true}).click();await expect(page.locator('.iq72 input[aria-label="Select chart date"]')).toHaveCount(0);const chart=page.locator('#recoveryTrends svg');await expect(chart).toBeVisible();const bounds=await chart.boundingBox();await chart.click({position:{x:bounds.width*.2,y:bounds.height*.5}});const cursor=page.locator('#iq72-cursor');await expect(cursor).toHaveCount(1);await expect(cursor).toHaveAttribute('x1',/^[0-9.]+$/);await expect.poll(async()=>cursor.evaluate(el=>{const x=Number(el.getAttribute('x1'));return x===Number(el.getAttribute('x2'))&&Number(el.getAttribute('y2'))>Number(el.getAttribute('y1'))&&getComputedStyle(el).visibility==='visible'&&getComputedStyle(el).display!=='none'&&getComputedStyle(el).stroke!=='none'&&Number(getComputedStyle(el).opacity)>0;})).toBe(true);await page.locator('.iq72').getByRole('button',{name:'Performance',exact:true}).click();await expect(page.locator('.iq72')).toContainText('Weekly performance report');});
+
+test('76.1 actual Edit Activity modal matches compact proof at phone widths', async ({page}, info) => {
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.m36Open('feed'));
+ const options=page.locator('[data-m76-options="fixture-social-post"]');
+ await expect(options).toBeVisible();
+ await options.click();
+ await page.locator('#m76-options [data-m76-action="edit"]').click();
+ const editor=page.locator('#m390-dialog .m761-editor');
+ await expect(editor).toBeVisible();
+ await expect(editor.getByText('Update your shared workout')).toBeVisible();
+ await expect(editor.locator('#m390-title')).toHaveValue('Fixture social run');
+ await expect(editor.locator('#m390-visibility')).toHaveValue('private');
+ const switcher=editor.locator('.m761-toggle');
+ const geometry=await editor.evaluate(el=>{
+ const b=el.getBoundingClientRect(), sw=el.querySelector('.m761-toggle').getBoundingClientRect(), input=el.querySelector('#m395-route').getBoundingClientRect(), row=el.querySelector('.m761-toggle').parentElement.getBoundingClientRect(), save=el.querySelector('[data-m390-save]').getBoundingClientRect(), body=el.querySelector('.m761-body');
+ return {left:b.left,right:b.right,top:b.top,bottom:b.bottom,viewport:innerWidth,height:innerHeight,switchWidth:sw.width,switchHeight:sw.height,inputWidth:input.width,inputHeight:input.height,switchRight:sw.right,rowRight:row.right,saveBottom:save.bottom,bodyWidth:body.clientWidth,bodyScroll:body.scrollWidth};
+ });
+ expect(geometry.left).toBeGreaterThanOrEqual(0);
+ expect(geometry.right).toBeLessThanOrEqual(geometry.viewport+1);
+ expect(geometry.bottom).toBeLessThanOrEqual(geometry.height+1);
+ expect(geometry.switchWidth).toBe(44);expect(geometry.switchHeight).toBe(28);
+ expect(geometry.inputWidth).toBe(44);expect(geometry.inputHeight).toBe(28);
+ expect(Math.abs(geometry.switchRight-geometry.rowRight)).toBeLessThanOrEqual(2);
+ expect(geometry.saveBottom).toBeLessThanOrEqual(geometry.height+1);
+ expect(geometry.bodyScroll).toBeLessThanOrEqual(geometry.bodyWidth+1);
+ await switcher.click();await expect(editor.locator('#m395-route')).toBeChecked();
+ await editor.locator('#m390-caption').fill('Updated test caption');
+ await editor.locator('#m390-visibility').selectOption('followers');
+ await info.attach('batch761-real-editor',{body:await page.screenshot(),contentType:'image/png'});
+ let patch;
+ await page.route('**/rest/v1/mile_social_activities**',async route=>{
+ if(route.request().method()!=='PATCH')return route.fallback();
+ patch=route.request().postDataJSON();
+ await route.fulfill({json:[{id:'fixture-social-post',user_id:user.id,...patch}],headers:{'access-control-allow-origin':'http://127.0.0.1:4173'}});
+ });
+ await editor.locator('[data-m390-save]').click();
+ await expect(editor).toHaveCount(0);
+ expect(patch.caption).toBe('Updated test caption');expect(patch.share_route).toBe(true);expect(patch.visibility).toBe('followers');
+});
