@@ -592,3 +592,34 @@ test('tracker batch 66: GPS denial leaves start available',async({page})=>{
  await expect(frame.locator('#notice')).toContainText('fixture denied');
  await expect(frame.locator('#start')).toBeEnabled();
 });
+
+test('tracker batch 66: recover own interrupted planned run, not another account',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>{
+ const owner=localStorage.getItem('av-user')||sessionStorage.getItem('av-user');
+ const fixture={runId:'recovery-fixture',started:Date.now()-120000,seconds:60,points:[],meters:250,session:false,phaseIndex:0,phaseStarted:0,planned:{name:'Planned recovery run'},target:'5:20'};
+ localStorage.setItem('mile-tracker-active-v2:other-account',JSON.stringify({...fixture,runId:'other'}));
+ localStorage.setItem('mile-tracker-active-v2:'+owner,JSON.stringify(fixture));
+ window.mileShellOpen('tracker');
+ });
+ const frame=page.frameLocator('#mile-native-view');
+ await expect(frame.locator('#pause')).toHaveText('Resume');
+ await expect(frame.locator('#notice')).toContainText('Interrupted run recovered');
+ expect(await frame.locator('#workout').inputValue()).toBe('planned');
+ expect(await frame.locator('#workout option:checked').textContent()).toBe('Planned recovery run');
+ await frame.locator('#finish').click();
+ await expect(frame.locator('#resultText')).toContainText('Planned recovery run');
+ expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('mile-tracker-active-v2:other-account')).runId)).toBe('other');
+});
+test('tracker batch 66: foreign pending activity is not uploaded',async({page})=>{
+ await openApp(page,{signedIn:true});
+ const uploads=[];
+ page.on('request',r=>{if(r.url().includes('/rest/v1/mile_social_activities')&&r.method()==='POST')uploads.push(r.postData())});
+ await page.evaluate(()=>{
+ localStorage.setItem('mile-run-tracker-pending-v1',JSON.stringify([{id:'foreign-fixture',owner:'other-account'}]));
+ window.mileShellOpen('tracker');
+ });
+ await expect(page.frameLocator('#mile-native-view').locator('#start')).toBeVisible();
+ expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('mile-run-tracker-pending-v1'))[0].id)).toBe('foreign-fixture');
+ expect(uploads).toEqual([]);
+});
