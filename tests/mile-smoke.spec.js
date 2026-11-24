@@ -420,13 +420,14 @@ test('batch 3: recovery trend values have room above tallest bars',async({page})
   state.recoveryDays=[{date:d,sleepScore:99,restingHR:87,bodyBattery:100,stress:95}];
   window.mileV3Go('recovery');
  });
- const charts=page.locator('#recoveryTrends .mile-recovery-chart');
- await expect(charts).toHaveCount(4);
- const heights=await charts.locator('.mile-recovery-bar:not(.missing)').evaluateAll(els=>els.map(x=>parseFloat(x.style.height)));
- expect(heights.length).toBeGreaterThan(0);
- expect(Math.max(...heights)).toBeLessThanOrEqual(80);
- await expect(page.locator('#recoveryTrends')).toContainText('99');
- await expect(page.locator('#recoveryTrends')).toContainText('100');
+ const chart=page.locator('#recoveryTrends svg');
+ await expect(chart).toBeVisible();
+ await expect(page.locator('#iq72-point')).toContainText('99');
+ const points=await chart.locator('circle').evaluateAll(els=>els.map(x=>Number(x.getAttribute('cy'))));
+ expect(points.length).toBeGreaterThan(0);
+ expect(Math.min(...points)).toBeGreaterThanOrEqual(16);
+ await page.locator('#recoveryTrends').getByRole('button',{name:'Body Battery',exact:true}).click();
+ await expect(page.locator('#iq72-point')).toContainText('100');
 });
 
 test('batch 4: More hub groups destinations without touching social navigation',async({page})=>{
@@ -435,7 +436,8 @@ test('batch 4: More hub groups destinations without touching social navigation',
  const menu=page.locator('#mile-emergency-more');
  await expect(menu).toHaveClass(/open/);
  await expect(menu).toContainText('TRAINING & PERFORMANCE');
- await expect(menu).toContainText('HEALTH & RECOVERY');
+ await expect(menu).not.toContainText('HEALTH & RECOVERY');
+ await expect(menu).toContainText('MILE IQ');
  await expect(menu).toContainText('ACCOUNT & SUPPORT');
  await expect(menu).toContainText('Race Lab');
  await expect(menu).toContainText('Settings');
@@ -698,3 +700,5 @@ test('batch 71 Stats insets and mobile More perimeter',async({page})=>{
  await expect(page.locator('.m70-stats > section.card').first()).toHaveCSS('padding-left','16px');
  await expect(page.locator('.m70-stats > section.card').first()).toHaveCSS('padding-right','16px');
 });
+
+test('batch 72 combined IQ navigation and chart controls',async({page})=>{await page.setViewportSize({width:390,height:844});await openApp(page,{signedIn:true});await page.evaluate(()=>window.mileV3ToggleMore());const menu=page.locator('#mile-emergency-more');await expect(menu.locator('[data-dest="recovery"]')).toHaveCount(0);await expect(menu.locator('[data-dest="insights"]')).toContainText('MILE IQ');await menu.locator('[data-dest="insights"]').click();await expect(page.locator('.iq72')).toBeVisible();await expect(page.locator('.iq72')).toContainText('Sleep score');await page.locator('.iq72').getByRole('button',{name:'30 days',exact:true}).click();await expect(page.locator('.iq72 input[aria-label="Select chart date"]')).toHaveAttribute('max','29');await page.locator('.iq72').getByRole('button',{name:'Performance',exact:true}).click();await expect(page.locator('.iq72')).toContainText('Weekly performance report');});
