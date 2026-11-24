@@ -4485,7 +4485,7 @@ function fixCalendar(){
 const app=document.getElementById('app');if(!app)return;
 const active=app.classList.contains('mile-sc-calendar')||(typeof page!=='undefined'&&page==='calendar');
 if(!active)return;
-app.querySelectorAll('.mile-v32-hero').forEach(el=>el.style.setProperty('display','none','important'));
+app.querySelectorAll('.mile-v32-hero:not(.mile-universal-header)').forEach(el=>el.style.setProperty('display','none','important'));
 app.querySelectorAll('.mile-sc-tag').forEach(el=>el.style.setProperty('display','none','important'));
 const intros=app.querySelectorAll('.mile-sc-intro');intros.forEach((el,i)=>{if(i>0)el.remove()});
 }
@@ -4580,7 +4580,7 @@ body.mile-messages-nav .shell{padding-bottom:calc(90px + env(safe-area-inset-bot
 </style>
 <script id="mile-v3957-layout-consistency-js">
 (function(){
- const compact=new Set(['insights','events','predictor','goals','recovery','settings']);
+ const compact=new Set();
  function sync(){
   if(typeof page==='undefined')return;
   document.body.classList.toggle('mile-compact-heading',compact.has(page));
@@ -4719,7 +4719,8 @@ html body #app .m401-comment button[data-m400-reply],html body #app .m401-commen
 html body #app .m401-comment button[data-m400-like][aria-pressed="true"],html body .m401-comment button[data-m400-like][aria-pressed="true"]{color:var(--mile-nav-active-ink,var(--accent,var(--orange)))!important}
 </style><style id="mile-b3-navigation-recovery-theme">
 /* Keep the top of recovery panels and chart labels clear of iPhone status areas. */
-#app:has(#recoveryTrends){scroll-margin-top:calc(env(safe-area-inset-top) + 20px);padding-top:max(16px,env(safe-area-inset-top))!important}
+#app:has(#recoveryTrends){scroll-margin-top:calc(env(safe-area-inset-top) + 20px)}
+#app:has(#recoveryTrends):not([data-universal-header]){padding-top:max(16px,env(safe-area-inset-top))!important}
 #app:has(#recoveryTrends) .card:has(#recoveryTrends){scroll-margin-top:calc(env(safe-area-inset-top) + 24px);padding-top:22px!important}
 .mile-recovery-chart{padding-top:20px!important;margin-top:38px!important;overflow:visible!important}
 .mile-recovery-chart .mile-recovery-bar span{bottom:calc(100% + 7px)!important}
@@ -5060,5 +5061,24 @@ window.mileIQTab=t=>{tab=t;mileIQPaint()};window.mileIQRange=n=>{days=n;selected
 const old=render;render=function(){old();if(!v4Ready||!['insights','recovery'].includes(page))return;const app=document.getElementById('app');if(!app)return;if(page==='recovery')tab='recovery';app.innerHTML='<div class="mile-v32-hero" data-page="insights"><div class="mile-v32-eyebrow">MILE. / THE BIGGER PICTURE</div><h1>MILE IQ.</h1><p>Personal training intelligence.</p></div><div class="iq72"></div>';mileIQPaint()};
 const go=window.mileV3Go;window.mileV3Go=function(p){if(p==='whatsnew'&&page!=='whatsnew')newsFrom=page;if(p==='recovery'){tab='recovery';p='insights'}return go(p)};
 const close=window.m397CloseWhatsNew;window.m397CloseWhatsNew=function(){if(document.getElementById('mile-whats-new-return'))return close();if(page==='whatsnew'){const p=newsFrom||'dashboard';newsFrom=null;window.mileV3Go(p)}};
+})();
+</script><style id="mile-batch723">
+#app[data-universal-header]>.mile-universal-header{box-sizing:border-box!important;display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:flex-start!important;grid-column:1/-1!important;width:100%!important;height:116px!important;min-height:116px!important;max-height:116px!important;margin:0 0 12px!important;padding:14px 18px!important;border:1px solid var(--line)!important;border-radius:12px!important;overflow:hidden!important}
+#app[data-universal-header]>.mile-universal-header h1{font-size:26px!important;font-weight:850!important;font-style:italic!important;line-height:1.15!important;margin:5px 0!important;letter-spacing:-.5px!important}
+#app[data-universal-header]>.mile-universal-header p{font-size:12px!important;line-height:1.3!important;margin:0!important}
+#app[data-universal-header]>.mile-universal-header .mile-v32-eyebrow{font-size:9px!important;line-height:1.2!important;letter-spacing:1.5px!important;margin:0!important}
+#app[data-universal-header] .mile-sc-intro,#app[data-universal-header] .mile-v32-hero:not(.mile-universal-header){display:none!important}
+html body #app[data-universal-header]{padding-top:0!important;margin-top:0!important;align-content:start!important;animation:none!important;transform:none!important;display:flow-root!important}
+html body #app[data-universal-header]>.mile-universal-header{order:-999!important;position:relative!important;top:0!important;inset-block-start:0!important}
+html body:has(#app[data-universal-header]) .shell{padding-top:calc(22px + env(safe-area-inset-top,0px))!important}
+html body #app[data-universal-header]>.mile-universal-header p,html body #app[data-universal-header]>.mile-universal-header .mile-v32-eyebrow{display:block!important}
+html body #app[data-universal-header]>.mile-universal-header{margin-top:0!important;margin-bottom:12px!important;animation:none!important;transform:none!important}
+html body:has(#app[data-universal-header]) .top{margin-bottom:12px!important}
+</style><script id="mile-batch723-js">
+(function(){
+const pages={calendar:['Calendar','Your sessions and training plans'],builder:['Build','Create your training program'],performance:['Stats','Your training across every sport'],insights:['MILE IQ','Personal training intelligence'],recovery:['MILE IQ','Personal training intelligence'],events:['Events & PBs','Your races and personal bests'],predictor:['Race Lab','Prepare for your next race'],goals:['Training Plans','Manage your training blocks'],settings:['Settings','Manage your preferences']};
+function syncHeader(){const app=document.getElementById('app');if(!app)return;const p=typeof page==='string'?page:'';const info=pages[p];if(!info){app.removeAttribute('data-universal-header');app.querySelector(':scope > .mile-universal-header')?.remove();return}document.body.classList.remove('mile-compact-heading');app.dataset.universalHeader=p;let h=app.querySelector(':scope > .mile-universal-header');if(h?.dataset.page===p){if(app.firstElementChild!==h)app.prepend(h);return;}if(h)h.remove();h=document.createElement('header');h.className='mile-v32-hero mile-universal-header';h.dataset.page=p;h.innerHTML='<div class="mile-v32-eyebrow">MILE. / TRAINING</div><h1>'+info[0]+'</h1><p>'+info[1]+'</p>';app.prepend(h)}
+const prior=render;render=function(){const result=prior.apply(this,arguments);syncHeader();return result};
+const app=document.getElementById('app');if(app)new MutationObserver(syncHeader).observe(app,{childList:true});syncHeader();
 })();
 </script></body></html>

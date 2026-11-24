@@ -3,13 +3,22 @@ test('page headings and navigation remain consistent',async({page})=>{
  await page.goto('/index.html');
  await page.evaluate(()=>{v4Ready=true;document.getElementById('v4Gate').classList.add('hidden');render()});
  await expect(page.locator('#mile-fixed-mobile-nav:visible, #nav:visible').first()).toBeVisible({timeout:15000});
- for(const dest of ['insights','events','predictor','goals','recovery','settings']){
+ let baseline;
+ for(const dest of ['calendar','builder','performance','insights','events','predictor','goals','recovery','settings']){
   await page.evaluate(p=>window.mileV3Go(p),dest);
-  await expect(page.locator('body')).toHaveClass(/mile-compact-heading/);
+  await expect(page.locator('body')).not.toHaveClass(/mile-compact-heading/);
   await expect(page.locator('#mile-fixed-mobile-nav:visible, #nav:visible').first()).toBeVisible();
   await expect(page.locator('#mile-fixed-mobile-nav:visible, #nav:visible').first().locator('button')).toHaveCount(5);
-  const hero=page.locator('#app .mile-v32-hero,#app .mile-v33-hero,#app .mile35-hero,#app .m395-hero,#app .mile-v32-banner,#app .mile-v33-banner,#app .m395-page-hero').first();
-  if(await hero.count())await expect(hero).toHaveCSS('min-height','0px');
+  const hero=page.locator('#app > .mile-universal-header');
+  await expect(hero).toHaveCount(1);
+  await expect(hero).toBeVisible();
+  await expect(hero).toHaveCSS('height','116px');
+  await expect(hero.locator('h1')).toHaveCSS('font-size','26px');
+  const rect=await hero.boundingBox();
+  if(!baseline)baseline=rect;
+  expect(Math.abs(rect.x-baseline.x)).toBeLessThanOrEqual(2);
+  expect(Math.abs(rect.width-baseline.width)).toBeLessThanOrEqual(2);
+  expect(Math.abs(rect.y-baseline.y)).toBeLessThanOrEqual(4);
  }
 });
 test('messages retains bottom navigation',async({page})=>{
