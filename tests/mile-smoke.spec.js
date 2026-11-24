@@ -667,3 +667,21 @@ test('Stats includes only own tracker records and deduplicates by source ID',asy
  await page.locator('#mile35-detail').getByRole('button',{name:'Splits',exact:true}).click();
  await expect(page.locator('#mile35-detail')).toContainText('5:00');
 });
+
+ test('batch 70 active More menu opens clean Stats and borderless charts',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3ToggleMore());
+ const menu=page.locator('#mile-emergency-more');
+ await expect(menu).toBeVisible();
+ await menu.locator('[data-dest="performance"]').click();
+ await expect(menu).toBeHidden();
+ await expect(page.locator('.m70-stats')).toBeVisible();
+ await page.getByRole('button',{name:'7 days',exact:true}).click();
+ const bar=page.locator('.m70-bar').first();
+ await expect(bar).toBeVisible();
+ await expect(bar).toHaveCSS('border-top-width','0px');
+ await bar.click();
+ await expect(bar).toHaveAttribute('aria-pressed','true');
+ await page.getByRole('button',{name:/Fixture morning run/}).click();
+ await expect(page.locator('#mile35-detail')).toBeVisible();
+ });
