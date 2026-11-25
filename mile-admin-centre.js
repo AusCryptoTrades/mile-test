@@ -44,6 +44,15 @@
  #mile-admin-centre .ma-item summary{cursor:pointer}
  #mile-admin-centre .ma-pagination{display:flex;align-items:center;justify-content:space-between;gap:6px}
  #mile-admin-centre [hidden]{display:none!important}
+
+ #mile-admin-centre .ma-insight-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
+ #mile-admin-centre .ma-insight-grid .ma-value{font-size:24px}
+ #mile-admin-centre .ma-trend-chart{display:block;width:100%;height:160px}
+ #mile-admin-centre .ma-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;margin:8px 0}
+ #mile-admin-centre .ma-legend span::before{content:"";display:inline-block;width:9px;height:9px;margin-right:5px;background:currentColor;border-radius:2px}
+ #mile-admin-centre .ma-legend .ma-garmin{color:var(--mile-accent,var(--orange,#b9f576))}
+ #mile-admin-centre .ma-status-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--mile-stroke,var(--line,#495050));font-size:13px;overflow-wrap:anywhere}
+ @media(min-width:650px){#mile-admin-centre .ma-insight-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
  @media(min-width:650px){#mile-admin-centre .ma-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
  `;
  document.head.append(css);
@@ -64,7 +73,7 @@
  let root,controller,managementController,session,days=7,oldOverflow='',returnFocus;
  const close=()=>{controller?.abort();managementController?.abort();if(root){root.remove();document.body.style.overflow=oldOverflow;root=null;returnFocus?.focus?.()}session=null};
  const node=(tag,cls,txt)=>{const x=document.createElement(tag);if(cls)x.className=cls;if(txt!==undefined)x.textContent=txt;return x};
- function status(text,state){if(!root)return;const line=root.querySelector('.ma-status');line.dataset.state=state;root.querySelectorAll('[data-ma-reports],[data-ma-athletes]').forEach(b=>b.disabled=state!=='ready');line.querySelector('.ma-status-text').textContent=text;}
+ function status(text,state){if(!root)return;const line=root.querySelector('.ma-status');line.dataset.state=state;root.querySelectorAll('[data-ma-reports],[data-ma-athletes],[data-ma-analytics],[data-ma-health]').forEach(b=>b.disabled=state!=='ready');line.querySelector('.ma-status-text').textContent=text;}
  function display(data){
   const grid=root.querySelector('.ma-grid');grid.replaceChildren();
   for(const [id,label,desc] of modules){const card=node('div','ma-card');card.dataset.metric=id;const v=data.metrics?.[id];card.append(node('div','ma-label',label),node('div','ma-value',typeof v==='number'&&Number.isFinite(v)?v.toLocaleString():'—'),node('div','ma-sub',desc));grid.append(card)}
@@ -146,13 +155,56 @@
   form.addEventListener('submit',e=>{e.preventDefault();offset=0;get()});filter.addEventListener('change',()=>{offset=0;get()});kind.addEventListener('change',()=>{offset=0;get()});prev.addEventListener('click',()=>{offset=Math.max(0,offset-25);get()});next.addEventListener('click',()=>{offset+=25;get()});
   get();search.focus();holder.scrollIntoView({block:'start'});
  }
+
+ function openInsights(view){
+  if(!root||root.querySelector('.ma-status').dataset.state!=='ready')return;
+  managementController?.abort();const holder=root.querySelector('.ma-management');holder.replaceChildren();
+  const current=root,credential=session,usage=view==='analytics';let selected=days;
+  const heading=node('div','ma-toolbar'),title=node('h2','',usage?'Usage Analytics':'Integrations & System Health'),back=node('button','','‹ Overview');back.type='button';heading.append(title,back);holder.append(heading);
+  const filters=node('div','ma-range');filters.setAttribute('aria-label','Analytics date range');
+  const body=node('div');body.dataset.maInsights=view;const statusLine=node('p','ma-sub');statusLine.setAttribute('role','status');const refresh=node('button','','Refresh data');refresh.type='button';
+  const alive=()=>root===current&&credential===token()&&holder.isConnected&&holder.contains(body);
+  for(const n of [7,30,90]){const button=node('button','',n+' days');button.type='button';button.dataset.insightDays=n;button.addEventListener('click',()=>{selected=n;get()});filters.append(button)}
+  holder.append(filters,statusLine,body,refresh);
+  function cards(values,items){const grid=node('div','ma-insight-grid');for(const [id,label,description] of items){const card=node('div','ma-card');card.dataset.insightMetric=id;const val=values?.[id];card.append(node('div','ma-label',label),node('div','ma-value',Number.isFinite(val)?val.toLocaleString():'—'),node('div','ma-sub',description));grid.append(card)}body.append(grid)}
+  function trendChart(points){
+   const section=node('section','ma-card ma-section');section.append(node('h2','','Daily recorded activity'));
+   const legend=node('div','ma-legend');legend.append(node('span','ma-garmin','Garmin activities'),node('span','','Social posts'));section.append(legend);
+   if(!Array.isArray(points)||!points.length){section.append(node('p','ma-sub','No trend records available'));body.append(section);return}
+   const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');svg.setAttribute('class','ma-trend-chart');svg.setAttribute('viewBox','0 0 320 160');svg.setAttribute('preserveAspectRatio','none');svg.setAttribute('role','img');svg.setAttribute('aria-label','Daily Garmin activities and social posts');
+   const max=Math.max(1,...points.flatMap(p=>[p.garmin,p.posts]).filter(Number.isFinite)),step=304/points.length,w=Math.max(.5,step*.36);
+   for(let i=0;i<points.length;i++){const p=points[i];for(const [j,key] of ['garmin','posts'].entries()){const value=Number.isFinite(p[key])&&p[key]>=0?p[key]:0;const bar=document.createElementNS(ns,'rect');bar.setAttribute('x',8+i*step+j*w);bar.setAttribute('y',150-138*value/max);bar.setAttribute('width',w);bar.setAttribute('height',138*value/max);bar.setAttribute('fill',j?'currentColor':'var(--mile-accent,var(--orange,currentColor))');const t=document.createElementNS(ns,'title');t.textContent=p.day+': '+value+' '+key;bar.append(t);svg.append(bar)}}
+   section.append(svg);const labels=node('div','ma-chart-labels');labels.append(node('span','',points[0].day),node('span','',points.at(-1).day));section.append(labels);
+   const detail=node('details'),summary=node('summary','','View daily totals');detail.append(summary);for(const p of points){const row=node('div','ma-status-row');row.append(node('span','',p.day),node('span','',p.garmin+' Garmin · '+p.posts+' posts'));detail.append(row)}section.append(detail);body.append(section)
+  }
+  function statusGroup(title,rows){const section=node('section','ma-card ma-section');section.append(node('h2','',title));if(!Array.isArray(rows)||!rows.length)section.append(node('p','ma-sub','No records in this period'));else for(const r of rows){const row=node('div','ma-status-row');row.append(node('span','',r.status),node('strong','',Number.isFinite(r.count)?r.count.toLocaleString():'—'));section.append(row)}body.append(section)}
+  async function get(){
+   if(!alive())return;managementController?.abort();const request=new AbortController();managementController=request;
+   const requested=selected;body.replaceChildren();statusLine.textContent='Loading live data…';filters.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.insightDays)===requested)));
+   try{const r=await fetch(base+'/functions/v1/mile-admin-analytics?days='+requested,{headers:{apikey:key,Authorization:'Bearer '+credential},signal:request.signal,cache:'no-store'});if(!alive()||request.signal.aborted)return;
+    if(!r.ok){statusLine.textContent=r.status===401||r.status===403?'Administrator access could not be verified':'Data unavailable — refresh to retry';return}
+    const data=await r.json();if(!alive()||request.signal.aborted)return;if(data.days!==requested||!data.usage||!data.health)throw Error('Invalid analytics response');
+    if(usage){
+     body.append(node('p','ma-sub','Recorded events are an activity proxy, not unique app visits or retention. Some events are generated by Garmin automatically.'));
+     cards(data.usage,[['members_with_recorded_events','Members with recorded events','Distinct registered members in period'],['registered_members','Registered members','Current total'],['garmin_activities','Garmin activities','In selected period'],['posts','Social posts','In selected period'],['likes','Activity likes','In selected period'],['comments','Activity comments','In selected period'],['messages','Messages','Non-deleted in selected period'],['challenge_entries','Challenge entries','Created in selected period'],['accounts_with_latest_sync','Training sync','Accounts with latest update in period']]);
+     trendChart(data.trend);const gaps=node('section','ma-card ma-section');gaps.append(node('h2','','App engagement'),node('p','ma-sub','Page views, session duration, feature visits and cohort retention are not currently measured. No values have been estimated.'));body.append(gaps);
+    }else{
+     cards(data.health,[['connection_records','Garmin connections','Accounts with a stored connection'],['expired_token_records','Past token expiry','May require refresh; not a disconnect count'],['unknown_expiry_records','Unknown expiry','Stored tokens without expiry'],['webhook_events','Webhook events','Received in selected period'],['activity_files','Activity files','Received in selected period']]);
+     const timestamps=node('section','ma-card ma-section');timestamps.append(node('h2','','Latest recorded events'));for(const [label,value] of [['Garmin webhook',data.health.last_webhook],['Garmin activity received',data.health.last_activity_received],['Training sync',data.health.last_training_sync]]){const row=node('div','ma-status-row');row.append(node('span','',label),node('strong','',formatDate(value)));timestamps.append(row)}body.append(timestamps);
+     statusGroup('Webhook processing status',data.webhook_status);statusGroup('Activity file processing status',data.file_status);
+     body.append(node('p','ma-sub','Database records only. Endpoint uptime and client-side errors are not currently measured.'));
+    }statusLine.textContent='Live data · UTC calendar days · '+formatDate(data.generated_at);
+   }catch{if(alive()&&!request.signal.aborted)statusLine.textContent='Data unavailable — refresh to retry'}
+  }
+  back.addEventListener('click',()=>{managementController?.abort();holder.replaceChildren();root?.querySelector(usage?'[data-ma-analytics]':'[data-ma-health]')?.focus()});refresh.addEventListener('click',get);get();heading.scrollIntoView({block:'start'});back.focus()
+ }
  window.mileBetaAdmin=function(){
   if(!window.mileBetaIsAdmin?.()||!token())return;
   if(root){root.focus();return}
   session=token();returnFocus=document.activeElement;oldOverflow=document.body.style.overflow;document.body.style.overflow='hidden';
   root=node('section');root.id='mile-admin-centre';root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-labelledby','ma-title');root.tabIndex=-1;
-  root.innerHTML='<div class="ma-shell"><header class="ma-header"><span class="ma-brand">MILE.</span><button data-ma-close>‹ Settings</button></header><div class="ma-eyebrow">ADMINISTRATION</div><h1 id="ma-title">Admin Centre</h1><div class="ma-sub">Monitor your MILE platform.</div><div class="ma-status" role="status"><span class="ma-dot"></span><span class="ma-status-text">Loading live overview</span></div><div class="ma-toolbar"><h2 style="margin:0">Overview</h2><div class="ma-range" aria-label="Date range"><button data-days="7">Last 7 days</button><button data-days="30">30 days</button><button data-days="90">90 days</button></div></div><div class="ma-grid"></div><section class="ma-card ma-section"><h2>Athlete growth</h2><div class="ma-growth-summary ma-sub"></div><svg class="ma-chart" viewBox="0 0 300 112" preserveAspectRatio="none" role="img" aria-label="Cumulative registered athletes over selected period"></svg><div class="ma-chart-labels"></div></section><section class="ma-card ma-section"><h2>System health</h2><div class="ma-health ma-sub"></div><div class="ma-freshness ma-sub"></div><button data-ma-refresh style="margin-top:12px">Refresh overview</button></section><section class="ma-section"><h2>Management</h2><button class="ma-module" data-ma-athletes>Athlete Management <span>›</span></button><button class="ma-module" data-ma-reports>Beta reports &amp; feedback <span>›</span></button><section class="ma-management" aria-label="Management details"></section></section></div>';
-  root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-ma-close')){close();window.mileV3Go?.('settings');return}if(b.dataset.days){days=Number(b.dataset.days);load();return}if(b.hasAttribute('data-ma-refresh'))load();if(b.hasAttribute('data-ma-athletes')&&!b.disabled)openManagement('athletes');if(b.hasAttribute('data-ma-reports')&&!b.disabled)openManagement('feedback')});
+  root.innerHTML='<div class="ma-shell"><header class="ma-header"><span class="ma-brand">MILE.</span><button data-ma-close>‹ Settings</button></header><div class="ma-eyebrow">ADMINISTRATION</div><h1 id="ma-title">Admin Centre</h1><div class="ma-sub">Monitor your MILE platform.</div><div class="ma-status" role="status"><span class="ma-dot"></span><span class="ma-status-text">Loading live overview</span></div><div class="ma-toolbar"><h2 style="margin:0">Overview</h2><div class="ma-range" aria-label="Date range"><button data-days="7">Last 7 days</button><button data-days="30">30 days</button><button data-days="90">90 days</button></div></div><div class="ma-grid"></div><section class="ma-card ma-section"><h2>Athlete growth</h2><div class="ma-growth-summary ma-sub"></div><svg class="ma-chart" viewBox="0 0 300 112" preserveAspectRatio="none" role="img" aria-label="Cumulative registered athletes over selected period"></svg><div class="ma-chart-labels"></div></section><section class="ma-card ma-section"><h2>System health</h2><div class="ma-health ma-sub"></div><div class="ma-freshness ma-sub"></div><button data-ma-refresh style="margin-top:12px">Refresh overview</button></section><section class="ma-section"><h2>Management</h2><button class="ma-module" data-ma-athletes>Athlete Management <span>›</span></button><button class="ma-module" data-ma-reports>Beta reports &amp; feedback <span>›</span></button><button class="ma-module" data-ma-analytics>Usage Analytics <span>›</span></button><button class="ma-module" data-ma-health>Integrations &amp; System Health <span>›</span></button><section class="ma-management" aria-label="Management details"></section></section></div>';
+  root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-ma-close')){close();window.mileV3Go?.('settings');return}if(b.dataset.days){days=Number(b.dataset.days);load();return}if(b.hasAttribute('data-ma-refresh'))load();if(b.hasAttribute('data-ma-athletes')&&!b.disabled)openManagement('athletes');if(b.hasAttribute('data-ma-reports')&&!b.disabled)openManagement('feedback');if(b.hasAttribute('data-ma-analytics')&&!b.disabled)openInsights('analytics');if(b.hasAttribute('data-ma-health')&&!b.disabled)openInsights('health')});
   root.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('mile-beta-feedback-overlay'))close();if(e.key==='Tab'){const list=[...root.querySelectorAll('button')];if(e.shiftKey&&document.activeElement===list[0]){e.preventDefault();list.at(-1).focus()}else if(!e.shiftKey&&document.activeElement===list.at(-1)){e.preventDefault();list[0].focus()}}});
   document.body.append(root);root.querySelector('[data-ma-close]').focus();load();
  };
