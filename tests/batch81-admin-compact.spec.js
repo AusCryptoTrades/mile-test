@@ -20,5 +20,5 @@ test('81 compact admin metric layout and stable management navigation',async({pa
  expect(Math.abs(await heading.evaluate(el=>el.getBoundingClientRect().top)-top)).toBeLessThanOrEqual(4);
  expect(await panel.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
  await panel.getByRole('button',{name:'‹ Overview'}).click();await expect(button).toBeFocused();
- expect(Math.abs(await panel.evaluate(el=>el.scrollTop)-before)).toBeLessThanOrEqual(8);
+ await expect.poll(async()=>Math.abs(await panel.evaluate(el=>el.scrollTop)-before)).toBeLessThanOrEqual(8);
 });
