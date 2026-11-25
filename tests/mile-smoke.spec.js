@@ -1084,3 +1084,35 @@ test('77.7 password update requires matching new passwords and reauthenticates t
  expect(verified).toBe(1);
  expect(updated).toBe(1);
 });
+
+test('78 compact Settings action buttons share one design in every theme',async ({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('settings'));
+ for(const theme of ['forest','graphite','midnight','mono','light','sand','ice']){
+  await page.evaluate(t=>window.m395ThemeSet(t),theme);
+  await page.locator('[data-m771-open="dashboard"]').click();
+  const p=page.locator('[data-m771-page="dashboard"]');
+  const back=p.locator('.m771-back');
+  const action=p.getByRole('button',{name:'Restore default dashboard'});
+  await expect(back).toBeVisible();
+  await expect(action).toBeVisible();
+  for(const el of [back,action]){
+   await expect.poll(()=>el.evaluate(n=>{const c=getComputedStyle(n);return [c.borderTopLeftRadius,c.fontSize,c.boxShadow]})).toEqual(['9px','13px','none']);
+   expect((await el.boundingBox()).height).toBeGreaterThanOrEqual(36);
+  }
+  expect(await action.evaluate(n=>{const probe=document.createElement('div');probe.style.background='var(--panel)';n.parentElement.appendChild(probe);const expected=getComputedStyle(probe).backgroundColor;probe.remove();return getComputedStyle(n).backgroundColor===expected})).toBe(true);
+  await back.click();
+ }
+});
+test('78 shared stylesheet reaches Track SIM and Challenges and preserves critical controls',async ({page})=>{
+ for(const [path,kind] of [['mile-run-tracker.html','tracker'],['mile-sim.html','sim'],['mile-challenges.html','challenges']]){
+  await page.goto('/'+path+'?embedded=1');
+  await expect(page.locator('html')).toHaveAttribute('data-mile-buttons',kind);
+  await expect.poll(()=>page.locator('html').evaluate(n=>getComputedStyle(n).getPropertyValue('--m78-radius').trim())).toBe('9px');
+  if(kind==='tracker'||kind==='sim'){
+   expect(await page.locator('#start').evaluate(n=>parseFloat(getComputedStyle(n).minHeight))).toBeGreaterThanOrEqual(48);
+  }
+  if(kind==='tracker')await expect.poll(()=>page.locator('#backToTrack').evaluate(n=>getComputedStyle(n).borderTopLeftRadius)).toBe('9px');
+  if(kind==='sim')await expect.poll(()=>page.locator('#backToRaceLab').evaluate(n=>getComputedStyle(n).borderTopLeftRadius)).toBe('9px');
+ }
+});

@@ -1,0 +1,34 @@
+/* MILE 78 — shared button design tokens. Menu rows, tabs, icon controls,
+   calendar cells, bottom navigation and active workout controls remain distinct. */
+:root{--m78-radius:9px;--m78-font:13px;--m78-weight:650;--m78-pad:7px 12px;--m78-height:36px;--m78-primary-height:44px;--m78-action-bg:var(--panel);--m78-action-fg:var(--text);--m78-action-border:var(--line);--m78-primary-bg:var(--text);--m78-primary-fg:var(--bg);--m78-focus:var(--orange)}
+html[data-mile-buttons="tracker"]{--m78-action-bg:var(--mile-panel);--m78-action-fg:var(--mile-text);--m78-action-border:var(--mile-line);--m78-primary-bg:var(--mile-accent);--m78-primary-fg:var(--mile-bg);--m78-focus:var(--mile-accent)}
+html[data-mile-buttons="challenges"]{--m78-action-bg:var(--c-panel);--m78-action-fg:var(--c-text);--m78-action-border:var(--c-line);--m78-primary-bg:var(--c-accent);--m78-primary-fg:var(--c-on-accent);--m78-focus:var(--c-accent)}
+/* Explicit action-button families only. No bare global button rule. */
+html[data-mile-buttons="main"] body :is(#app,#m390-dialog,#mile35-detail,#m3927-detail,#m3932-detail,#mile-beta-feedback-overlay) :is(button.btn,button.m36-btn,button.m771-back,button.m761-button,button.m761-primary,button.m761-ghost:not(.m390-close,.m3942-remove),button.m3932-back,button.mile35-back,button.beta5-primary,button.v3-refresh,.m396-share-actions button):not([aria-label^="Close"],[onclick*="mileStartPlannedRun"],[data-m3932-done]),
+html[data-mile-buttons="sim"] body :is(#backToRaceLab,#resumeBtn,#discard,#undo,#reviewBtn,#reviewDone,#export,#publishSim,#new,#stay,#leave,#review .split button),
+html[data-mile-buttons="tracker"] body :is(#editTargets,#download,#backToTrack),
+html[data-mile-buttons="challenges"] body :is(button.back,button.primary,.filters button,.styles button){
+ box-sizing:border-box!important;min-height:var(--m78-height)!important;height:auto!important;max-width:100%!important;
+ border-radius:var(--m78-radius)!important;padding:var(--m78-pad)!important;
+ font-size:var(--m78-font)!important;font-weight:var(--m78-weight)!important;line-height:1.35!important;
+ text-transform:none!important;letter-spacing:normal!important;box-shadow:none!important;
+ border:1px solid var(--m78-action-border)!important;background:var(--m78-action-bg)!important;color:var(--m78-action-fg)!important;
+ touch-action:manipulation;white-space:normal;overflow-wrap:anywhere;
+}
+/* Fill genuine primary actions; preserve semantic danger styles below. */
+html[data-mile-buttons="main"] body :is(#app,#m390-dialog,#mile-beta-feedback-overlay) :is(button.btn:not(.alt,.ghost,.danger,.red),button.m36-btn:not(.alt,.ghost,.danger,.red),button.m761-primary,button.beta5-primary):not([onclick*="mileStartPlannedRun"]),
+html[data-mile-buttons="sim"] body :is(#resumeBtn,#reviewDone,#export,#publishSim,#leave),
+html[data-mile-buttons="tracker"] body #download,
+html[data-mile-buttons="challenges"] body button.primary{
+ background:var(--m78-primary-bg)!important;color:var(--m78-primary-fg)!important;border-color:var(--m78-primary-bg)!important;min-height:var(--m78-primary-height)!important;
+}
+html[data-mile-buttons="main"] body :is(#app,#m390-dialog) :is(button.btn.danger,button.btn.red,button.m36-btn.danger){color:var(--text)!important;background:var(--panel)!important;border-color:#c56b70!important}
+html[data-mile-buttons="main"] body #app :is(button.btn,button.m36-btn,button.m771-back) svg{width:16px;height:16px;flex-shrink:0;vertical-align:middle}
+html[data-mile-buttons="main"] body #app .m771-back{min-height:36px!important;padding:6px 10px!important}
+html[data-mile-buttons="challenges"] body :is(.filters,.styles) button.active{border-color:var(--m78-focus)!important;color:var(--m78-focus)!important}
+html[data-mile-buttons] body button:focus-visible{outline:2px solid var(--m78-focus)!important;outline-offset:2px}
+html[data-mile-buttons="main"] body :is(#app,#m390-dialog) :is(.btn,.m36-btn):disabled{opacity:.5;cursor:not-allowed}
+/* Critical in-session controls retain generous touch surfaces and distinct hierarchy. */
+html[data-mile-buttons="sim"] body :is(#start,#tap,#finishEarly),html[data-mile-buttons="tracker"] body :is(#start,#pause,#finish,#nextBlock){min-height:48px!important}
+html[data-mile-buttons="main"] body #app button[onclick*="mileStartPlannedRun"]{min-height:44px!important}
+@media(pointer:coarse){:root{--m78-height:44px;--m78-pad:7px 12px}html[data-mile-buttons="main"] body #app .m771-back{min-height:44px!important}}
