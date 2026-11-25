@@ -934,7 +934,8 @@ test('77.4 notification toggles share existing per-user preference storage and r
  await page.locator('[data-m771-open="notifications"]').click();
  await expect(panel.locator('[data-m381-pref="like"]')).not.toBeChecked();
  await panel.locator('[data-m774-reset-notifications]').click();
- await expect(panel.locator('[data-m381-pref]:checked')).toHaveCount(7);
+ await expect(panel.locator('[data-m381-pref]:checked')).toHaveCount(8);
+ await expect(panel.locator('[data-m381-pref="announcement"]')).toBeChecked();
  expect(await page.evaluate(id=>JSON.parse(localStorage.getItem('mile_notification_prefs_'+id)).like,user.id)).toBe(true);
 });
 
