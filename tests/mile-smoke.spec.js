@@ -827,7 +827,7 @@ test('77.3 sport preferences validate and populate editable builder defaults',as
  await run.locator('[data-m773-field="sessions"]').selectOption('5');
  await run.locator('[data-m773-field="level"]').selectOption('advanced');
  await run.locator('[data-m773-field="volume"]').fill('50');
- for(const d of ['1','3','6']) await run.locator('[data-m773-day][value="'+d+'"]').uncheck({force:true});
+ for(const d of ['1','3','6']) await run.locator('label:has([data-m773-day][value="'+d+'"]) span').click();
  await prefs.locator('[data-m773-save]').click();
  await expect(prefs.locator('[data-m773-error]')).toContainText('choose enough available training days');
  await run.locator('[data-m773-field="sessions"]').selectOption('4');
