@@ -5438,9 +5438,26 @@ async function refresh(){
   // Never overwrite unsynced local changes with a cloud snapshot.
   let partial=false;
   if(!avCloudPending&&!avCloudError&&(!edited||edited<=confirmed)){
-   await cloudLoad();
+   // Fetch first, then re-check account, page and local edit generation before applying.
+   const settings=state.settings;
+   const response=await fetch(settings.supabaseUrl+'/rest/v1/av_training_data?user_id=eq.'+encodeURIComponent(owner)+'&select=training_data,updated_at',{headers:sbHeaders()});
+   if(!response.ok)throw Error('Cloud refresh HTTP '+response.status);
+   const rows=await response.json();
+   if(owner!==userId||!v4Ready)throw Error('Session changed');
+   if(page!==origin||document.body.classList.contains('mile-native-view-open')||avCloudPending||avCloudError||(localStorage.getItem('av-local-edited-'+owner)||'')!==edited){show('Refresh cancelled — training changed');return false}
+   if(rows[0]?.training_data){
+    const recovery=recoveryRecords();state=rows[0].training_data;
+    if(!Array.isArray(state.recoveryDays)||!state.recoveryDays.length)state.recoveryDays=recovery;
+    state.settings={...state.settings,supabaseUrl:settings.supabaseUrl,supabaseAnon:settings.supabaseAnon,garminKey:settings.garminKey};
+    for(const k of Object.keys(defaults))if(state[k]===undefined)state[k]=defaults[k];
+    window.mile776?.hydrate(false);
+    localStorage.setItem(v4LocalKey(owner),JSON.stringify(state));
+    if(rows[0].updated_at)localStorage.setItem('av-cloud-confirmed-'+owner,rows[0].updated_at);
+   }
+   await mileRefreshOwnRuns();
   }else partial=true;
   if(owner!==userId||!v4Ready)throw Error('Session changed');
+  if(page!==origin||document.body.classList.contains('mile-native-view-open')){show('Refresh cancelled');return false}
   if(await window.mileLoadGarminData(true)!==true)partial=true;
   if(owner!==userId||!v4Ready)throw Error('Session changed');
   if(origin==='social'&&page==='social'&&await window.mileRefreshSocial()!==true)partial=true;

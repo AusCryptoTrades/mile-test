@@ -1312,3 +1312,11 @@ test('pull to refresh shows gesture feedback and cancels below threshold',async(
  await page.evaluate(()=>{const el=document.querySelector('#app');for(const [type,y] of [['touchstart',100],['touchmove',220],['touchend',220]]){const e=new Event(type,{bubbles:true,cancelable:true});Object.defineProperty(e,'touches',{value:[{clientX:80,clientY:y}]});el.dispatchEvent(e)}});
  await expect(page.locator('#mile-pull-refresh')).not.toHaveClass(/visible/);
  });
+
+test('completed pull gesture requests fresh cloud and Garmin data without reloading',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(async()=>{await avCloudQueue;window.scrollTo(0,0);window.__refreshCalls=0;window.mileLoadGarminData=async force=>{if(force)window.__refreshCalls++;return true};localStorage.setItem('av-cloud-confirmed-'+userId,'2099-01-01T00:00:00Z');});
+ let reads=0;await page.route('**/rest/v1/av_training_data?*',async r=>{if(r.request().method()!=='GET')return r.fallback();reads++;return r.fulfill({json:[{training_data:{activities:[activity]},updated_at:'2026-11-20T12:00:00Z'}],headers:{'access-control-allow-origin':'http://127.0.0.1:4173'}})});
+ await page.evaluate(()=>{const el=document.querySelector('#app');for(const [type,y] of [['touchstart',100],['touchmove',220],['touchend',220]]){const e=new Event(type,{bubbles:true,cancelable:true});Object.defineProperty(e,'touches',{value:[{clientX:80,clientY:y}]});el.dispatchEvent(e)}});
+ await expect(page.locator('#mile-pull-refresh')).toContainText('Up to date');expect(reads).toBe(1);expect(await page.evaluate(()=>window.__refreshCalls)).toBe(1);
+});
