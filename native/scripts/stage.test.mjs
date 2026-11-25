@@ -7,10 +7,12 @@ import { assets, stage } from './stage.mjs';
 
 test('native bundle includes only approved assets and verifiable build manifest', async () => {
   const dest = await stage();
-  assert.deepEqual((await readdir(dest)).sort(), [...assets, 'mile-build.json'].sort());
+  assert.deepEqual((await readdir(dest)).sort(), [...assets, 'mile-build.json','mile-native-runtime.js'].sort());
   const manifest = JSON.parse(await readFile(path.join(dest, 'mile-build.json'), 'utf8'));
+  assert.equal(manifest.version,'0.1.1');
+  assert.match(await readFile(path.join(dest,'index.html'),'utf8'), /<script src="\.\/mile-native-runtime\.js"><\/script>/);
   assert.match(manifest.commit, /^[a-f0-9]{40}$/);
-  for (const file of assets) {
+  for (const file of [...assets,'mile-native-runtime.js']) {
     assert.equal(createHash('sha256').update(await readFile(path.join(dest, file))).digest('hex'), manifest.assets[file]);
   }
   assert.match(await readFile(path.join(dest,'index.html'),'utf8'), /<html\b/i);
