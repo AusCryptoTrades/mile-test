@@ -19,7 +19,7 @@ test('admin overview renders server counts and changes date range without a new 
  await expect(panel.locator('[data-metric=new_athletes] .ma-value')).toHaveText('3');
  await expect(panel.getByRole('button',{name:'30 days',exact:true})).toHaveAttribute('aria-pressed','true');
  expect(await panel.evaluate(e=>e.scrollWidth<=e.clientWidth+1)).toBe(true);
- await panel.getByRole('button',{name:'‹ Settings'}).click();await expect(panel).toHaveCount(0);
+ await panel.getByRole('button',{name:'‹ Back'}).click();await expect(panel).toHaveCount(0);
 });
 test('server denial exposes no metrics or report entry and retry stays available',async({page})=>{
  await page.route('**/functions/v1/mile-admin-overview?*',r=>r.fulfill({status:403,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:'{"error":"Administrator access required"}'}));
