@@ -3183,6 +3183,7 @@ document.addEventListener('click',async ev=>{
  else if(n.kind==='follow_request'){S.tab='requests';S.chatWith=null;S.profileTarget=null;await load()}
  else if(n.kind==='follow'||n.kind==='follow_accepted'){S.tab='discover';await load();m380OpenProfile(n.actor_id)}
  else if(n.kind==='like'||n.kind==='comment'){await m6OpenSocialNotification(n)}
+ else if(n.kind==='announcement'){S.tab='notifications';}
  else{S.tab='profile';await load()}
  if(n.kind!=='like'&&n.kind!=='comment')paint();
  m379LoadNotifications();
