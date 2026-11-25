@@ -771,3 +771,48 @@ test('77.1 settings hub groups and working subpage navigation',async ({page})=>{
  await expect(page.locator('#m395-distance')).toHaveValue('mi');
 });
 
+
+test('77.2 dashboard widget preferences preserve order, persist and restore defaults',async ({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('dashboard'));
+ const dash=page.locator('.mile-ui-dashboard');
+ await expect(dash).toBeVisible();
+ const order=['training','load','distribution','sleep','hrv','battery','rhr','race','completion','vo2','insights','activity'];
+ await expect(dash.locator('[data-m772-widget]')).toHaveCount(order.length);
+ expect(await dash.locator('[data-m772-widget]').evaluateAll(nodes=>nodes.map(n=>n.dataset.m772Widget))).toEqual(order);
+ await page.evaluate(()=>window.mileV3Go('settings'));
+ await page.locator('[data-m771-open="dashboard"]').click();
+ const sub=page.locator('[data-m771-page="dashboard"]');
+ await expect(sub).toBeVisible();
+ await expect(sub.locator('[data-m772-pref]:checked')).toHaveCount(12);
+ await expect(sub.locator('[data-m772-count]')).toHaveText('12 of 12 widgets enabled');
+ for(const id of ['training','sleep','hrv','battery','rhr','race']) await sub.locator('[data-m772-pref="'+id+'"]').uncheck();
+ await expect(sub.locator('[data-m772-count]')).toHaveText('6 of 12 widgets enabled');
+ await page.evaluate(()=>window.mileV3Go('dashboard'));
+ await expect(dash).toBeVisible();
+ await expect(dash.locator('[data-m772-widget="training"]')).toBeHidden();
+ await expect(dash.locator('.mile-ui-recovery')).toBeHidden();
+ await expect(dash.locator('[data-m772-widget="race"]')).toBeHidden();
+ await expect(dash.locator('[data-m772-widget="completion"]')).toBeVisible();
+ await expect(dash.locator('[data-m772-widget="activity"]')).toBeVisible();
+ expect(await dash.locator('[data-m772-widget]').evaluateAll(nodes=>nodes.map(n=>n.dataset.m772Widget))).toEqual(order);
+ await page.reload();
+ await expect.poll(()=>page.evaluate(()=>window.mile772?.enabled('training'))).toBe(false);
+ expect(await page.evaluate(()=>window.mile772.enabled('completion'))).toBe(true);
+ // The mocked session may require signing in again after reload.
+ await expect(page.locator('#mileSplash')).toHaveCount(0);
+ if(await page.locator('#v4Email').isVisible()){
+  await page.locator('#v4Email').fill('runner@example.test');
+  await page.locator('#v4Password').fill('fixture-password');
+  await page.locator('#v4Gate button[onclick*="v4Authenticate"]').click();
+  await page.getByRole('button',{name:'Skip for now'}).click();
+ }
+ await page.evaluate(()=>window.mileV3Go('settings'));
+ await page.locator('[data-m771-open="dashboard"]').click();
+ await expect(sub.locator('[data-m772-pref="training"]')).not.toBeChecked();
+ await sub.getByRole('button',{name:'Restore default dashboard'}).click();
+ await expect(sub.locator('[data-m772-pref]:checked')).toHaveCount(12);
+ await page.evaluate(()=>window.mileV3Go('dashboard'));
+ await expect(dash).toBeVisible();
+ for(const id of order) await expect(dash.locator('[data-m772-widget="'+id+'"]')).toBeVisible();
+});
