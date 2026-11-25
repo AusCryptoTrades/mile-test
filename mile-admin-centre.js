@@ -7,51 +7,57 @@
  const token=()=>localStorage.getItem('av-token')||sessionStorage.getItem('av-token');
  const css=document.createElement('style');
  css.textContent=`
- #mile-admin-centre{position:fixed;inset:0;z-index:2147483638;background:var(--bg,#101414);color:var(--mile-ink,var(--text,#eee));overflow:auto;overscroll-behavior:contain;font:inherit;padding:env(safe-area-inset-top,0px) 16px calc(24px + env(safe-area-inset-bottom,0px));box-sizing:border-box}
+ #mile-admin-centre{position:fixed;inset:0;z-index:2147483638;background:var(--bg,#101414);color:var(--mile-ink,var(--text,#eee));overflow:auto;overscroll-behavior:contain;font:inherit;padding:env(safe-area-inset-top,0px) 10px calc(16px + env(safe-area-inset-bottom,0px));box-sizing:border-box}
  #mile-admin-centre *{box-sizing:border-box}
- #mile-admin-centre .ma-shell{max-width:850px;margin:auto;padding:16px 0 32px}
- #mile-admin-centre .ma-header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:18px}
- #mile-admin-centre .ma-brand{font-weight:900;letter-spacing:-.05em;font-size:27px}
+ #mile-admin-centre .ma-shell{max-width:850px;margin:auto;padding:9px 0 16px}
+ #mile-admin-centre .ma-header{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:8px}
+ #mile-admin-centre .ma-brand{font-weight:900;letter-spacing:-.05em;font-size:22px}
  #mile-admin-centre .ma-eyebrow{font-size:10px;letter-spacing:.15em;font-weight:800;opacity:.7}
- #mile-admin-centre h1{font-size:27px;margin:5px 0 8px;letter-spacing:-.035em}
- #mile-admin-centre h2{font-size:15px;margin:0 0 12px}
- #mile-admin-centre .ma-sub{font-size:12px;opacity:.7;line-height:1.5}
- #mile-admin-centre button{font:inherit;color:inherit;background:var(--mile-surface-raised,var(--panel2,#252b2b));border:1px solid var(--mile-stroke,var(--line,#495050));border-radius:9px;cursor:pointer;padding:8px 12px;min-height:40px}
+ #mile-admin-centre h1{font-size:22px;margin:3px 0 4px;letter-spacing:-.035em}
+ #mile-admin-centre h2{font-size:14px;margin:0 0 7px}
+ #mile-admin-centre .ma-sub{font-size:11px;opacity:.78;line-height:1.3}
+ #mile-admin-centre button{font:inherit;color:inherit;background:var(--mile-surface-raised,var(--panel2,#252b2b));border:1px solid var(--mile-stroke,var(--line,#495050));border-radius:9px;cursor:pointer;padding:5px 9px;min-height:36px;font-size:12px}
  #mile-admin-centre button[aria-pressed=true]{border-color:var(--mile-accent,var(--orange,#b9f576));box-shadow:inset 0 -2px var(--mile-accent,var(--orange,#b9f576));font-weight:750}
  #mile-admin-centre .ma-range{display:flex;gap:6px;flex-wrap:wrap}
- #mile-admin-centre .ma-status{display:flex;align-items:center;gap:7px;font-size:12px;margin:14px 0}
+ #mile-admin-centre .ma-status{display:flex;align-items:center;gap:6px;font-size:11px;margin:8px 0}
  #mile-admin-centre .ma-dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
  #mile-admin-centre .ma-status[data-state=ready] .ma-dot{background:#55b87a}
- #mile-admin-centre .ma-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
- #mile-admin-centre .ma-card{border:1px solid var(--mile-stroke,var(--line,#495050));background:var(--mile-surface,var(--panel,#1a2020));border-radius:12px;padding:12px;min-width:0}
- #mile-admin-centre .ma-value{font-size:26px;font-weight:850;font-variant-numeric:tabular-nums;margin:5px 0;letter-spacing:-.035em}
- #mile-admin-centre .ma-label{font-size:12px;font-weight:700}
- #mile-admin-centre .ma-section{margin:14px 0}
- #mile-admin-centre .ma-chart{width:100%;height:112px;display:block;overflow:visible}
+ #mile-admin-centre .ma-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:7px 0}
+ #mile-admin-centre .ma-card{border:1px solid var(--mile-stroke,var(--line,#495050));background:var(--mile-surface,var(--panel,#1a2020));border-radius:9px;padding:8px;min-width:0}
+ #mile-admin-centre .ma-value{font-size:19px;line-height:1.15;font-weight:800;font-variant-numeric:tabular-nums;margin:0;letter-spacing:-.035em}
+ #mile-admin-centre .ma-label{font-size:11px;font-weight:700;min-width:0;overflow-wrap:anywhere}
+ #mile-admin-centre .ma-section{margin:8px 0}
+ #mile-admin-centre .ma-chart{width:100%;height:78px;display:block;overflow:visible}
  #mile-admin-centre .ma-chart-labels{display:flex;justify-content:space-between;font-size:11px;opacity:.75}
- #mile-admin-centre .ma-toolbar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:22px}
+ #mile-admin-centre .ma-toolbar{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-top:9px}
  #mile-admin-centre .ma-module{display:flex;width:100%;justify-content:space-between;align-items:center;text-align:left}
 
- #mile-admin-centre .ma-management{margin-top:14px}
- #mile-admin-centre .ma-module{margin:6px 0}
- #mile-admin-centre .ma-management input,#mile-admin-centre .ma-management select{background:var(--mile-surface-raised,var(--panel2,#252b2b));color:inherit;border:1px solid var(--mile-stroke,var(--line,#495050));border-radius:9px;padding:9px;min-height:42px;font:inherit;min-width:0;max-width:100%}
- #mile-admin-centre .ma-controls{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}
+ #mile-admin-centre .ma-management{margin-top:8px;overflow-anchor:none;scroll-margin-top:8px}
+ #mile-admin-centre .ma-management:empty{display:none}
+ #mile-admin-centre .ma-management:not(:empty){min-height:calc(100vh - 38px);min-height:calc(100dvh - 38px)}
+ #mile-admin-centre .ma-management>.ma-toolbar:first-child{margin-top:0;min-height:36px}
+ #mile-admin-centre .ma-grid>.ma-card,#mile-admin-centre .ma-insight-grid>.ma-card{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:3px 5px;min-height:48px}
+ #mile-admin-centre .ma-grid .ma-sub,#mile-admin-centre .ma-insight-grid .ma-sub{grid-column:1/-1}
+ #mile-admin-centre .ma-grid .ma-value,#mile-admin-centre .ma-insight-grid .ma-value{text-align:right;overflow-wrap:anywhere;max-width:100%}
+ #mile-admin-centre .ma-module{margin:4px 0;min-height:38px}
+ #mile-admin-centre .ma-management input,#mile-admin-centre .ma-management select{background:var(--mile-surface-raised,var(--panel2,#252b2b));color:inherit;border:1px solid var(--mile-stroke,var(--line,#495050));border-radius:9px;padding:6px 8px;min-height:36px;font:inherit;font-size:16px;min-width:0;max-width:100%}
+ #mile-admin-centre .ma-controls{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0}
  #mile-admin-centre .ma-controls input{flex:1 1 150px}
  #mile-admin-centre .ma-controls select{flex:1 1 110px}
- #mile-admin-centre .ma-item{margin:8px 0;overflow-wrap:anywhere}
- #mile-admin-centre .ma-item p{white-space:pre-wrap;margin:10px 0}
- #mile-admin-centre .ma-item details{margin:9px 0;font-size:12px}
+ #mile-admin-centre .ma-item{margin:5px 0;overflow-wrap:anywhere}
+ #mile-admin-centre .ma-item p{white-space:pre-wrap;margin:6px 0}
+ #mile-admin-centre .ma-item details{margin:5px 0;font-size:12px}
  #mile-admin-centre .ma-item summary{cursor:pointer}
  #mile-admin-centre .ma-pagination{display:flex;align-items:center;justify-content:space-between;gap:6px}
  #mile-admin-centre [hidden]{display:none!important}
 
- #mile-admin-centre .ma-insight-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
- #mile-admin-centre .ma-insight-grid .ma-value{font-size:24px}
- #mile-admin-centre .ma-trend-chart{display:block;width:100%;height:160px}
- #mile-admin-centre .ma-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;margin:8px 0}
+ #mile-admin-centre .ma-insight-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:6px 0}
+ #mile-admin-centre .ma-insight-grid .ma-value{font-size:19px}
+ #mile-admin-centre .ma-trend-chart{display:block;width:100%;height:112px}
+ #mile-admin-centre .ma-legend{display:flex;gap:8px;flex-wrap:wrap;font-size:11px;margin:5px 0}
  #mile-admin-centre .ma-legend span::before{content:"";display:inline-block;width:9px;height:9px;margin-right:5px;background:currentColor;border-radius:2px}
  #mile-admin-centre .ma-legend .ma-garmin{color:var(--mile-accent,var(--orange,#b9f576))}
- #mile-admin-centre .ma-status-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--mile-stroke,var(--line,#495050));font-size:13px;overflow-wrap:anywhere}
+ #mile-admin-centre .ma-status-row{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--mile-stroke,var(--line,#495050));font-size:12px;overflow-wrap:anywhere}
  @media(min-width:650px){#mile-admin-centre .ma-insight-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
  @media(min-width:650px){#mile-admin-centre .ma-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
  `;
@@ -70,7 +76,7 @@
  ['accounts_with_training_sync','Training sync','Accounts updated in period',true],
  ['premium_members','Membership','Active premium memberships',false]
  ];
- let root,controller,managementController,session,days=7,oldOverflow='',returnFocus;
+ let root,controller,managementController,session,days=7,oldOverflow='',returnFocus,overviewScroll=0;
  const close=()=>{controller?.abort();managementController?.abort();if(root){root.remove();document.body.style.overflow=oldOverflow;root=null;returnFocus?.focus?.()}session=null};
  const node=(tag,cls,txt)=>{const x=document.createElement(tag);if(cls)x.className=cls;if(txt!==undefined)x.textContent=txt;return x};
  function status(text,state){if(!root)return;const line=root.querySelector('.ma-status');line.dataset.state=state;root.querySelectorAll('[data-ma-reports],[data-ma-athletes],[data-ma-analytics],[data-ma-health],[data-ma-announcements],[data-ma-security]').forEach(b=>b.disabled=state!=='ready');line.querySelector('.ma-status-text').textContent=text;}
@@ -104,12 +110,14 @@
   }catch(e){if(root===current&&!request.signal.aborted)status('Live overview unavailable — retry','error')}
  }
 
+ function enterModule(holder,heading){heading.tabIndex=-1;heading.focus({preventScroll:true});const top=root.scrollTop+holder.getBoundingClientRect().top-root.getBoundingClientRect().top-8;root.scrollTop=Math.max(0,top)}
+ function exitModule(holder,selector){managementController?.abort();holder.replaceChildren();if(!root)return;root.querySelector(selector)?.focus({preventScroll:true});root.scrollTop=overviewScroll}
  const formatDate=value=>{if(!value)return 'Not recorded';const d=new Date(value);return Number.isNaN(d.getTime())?'Not recorded':d.toLocaleString()};
  const mgmtUrl=base+'/functions/v1/mile-admin-management';
  function optionSelect(items,label){const el=node('select');el.setAttribute('aria-label',label);for(const [val,txt] of items){const opt=node('option','',txt);opt.value=val;el.append(opt)}return el}
  function openManagement(view){
   if(!root||root.querySelector('.ma-status').dataset.state!=='ready')return;
-  const holder=root.querySelector('.ma-management');holder.replaceChildren();
+  const holder=root.querySelector('.ma-management');overviewScroll=root.scrollTop;holder.replaceChildren();
   const current=root,credential=session;
   const alive=()=>root===current&&credential===token()&&holder.isConnected&&holder.contains(form);
   const title=node('h2','',view==='athletes'?'Athlete Management':'Feedback Centre');
@@ -151,14 +159,14 @@
      }list.append(card)}
    }catch{if(alive()&&!request.signal.aborted)message.textContent='Unable to load records. Search to retry.'}
   }
-  back.addEventListener('click',()=>{managementController?.abort();holder.replaceChildren();root?.querySelector(view==='athletes'?'[data-ma-athletes]':'[data-ma-reports]')?.focus()});
+  back.addEventListener('click',()=>{exitModule(holder,view==='athletes'?'[data-ma-athletes]':'[data-ma-reports]')});
   form.addEventListener('submit',e=>{e.preventDefault();offset=0;get()});filter.addEventListener('change',()=>{offset=0;get()});kind.addEventListener('change',()=>{offset=0;get()});prev.addEventListener('click',()=>{offset=Math.max(0,offset-25);get()});next.addEventListener('click',()=>{offset+=25;get()});
-  get();search.focus();holder.scrollIntoView({block:'start'});
+  get();enterModule(holder,title);
  }
 
  function openInsights(view){
   if(!root||root.querySelector('.ma-status').dataset.state!=='ready')return;
-  managementController?.abort();const holder=root.querySelector('.ma-management');holder.replaceChildren();
+  managementController?.abort();const holder=root.querySelector('.ma-management');overviewScroll=root.scrollTop;holder.replaceChildren();
   const current=root,credential=session,usage=view==='analytics';let selected=days;
   const heading=node('div','ma-toolbar'),title=node('h2','',usage?'Usage Analytics':'Integrations & System Health'),back=node('button','','‹ Overview');back.type='button';heading.append(title,back);holder.append(heading);
   const filters=node('div','ma-range');filters.setAttribute('aria-label','Analytics date range');
@@ -196,12 +204,12 @@
     }statusLine.textContent='Live data · UTC calendar days · '+formatDate(data.generated_at);
    }catch{if(alive()&&!request.signal.aborted)statusLine.textContent='Data unavailable — refresh to retry'}
   }
-  back.addEventListener('click',()=>{managementController?.abort();holder.replaceChildren();root?.querySelector(usage?'[data-ma-analytics]':'[data-ma-health]')?.focus()});refresh.addEventListener('click',get);get();heading.scrollIntoView({block:'start'});back.focus()
+  back.addEventListener('click',()=>{exitModule(holder,usage?'[data-ma-analytics]':'[data-ma-health]')});refresh.addEventListener('click',get);get();enterModule(holder,title)
  }
 
  function openRelease(view){
   if(!root||root.querySelector('.ma-status').dataset.state!=='ready')return;
-  managementController?.abort();const holder=root.querySelector('.ma-management');holder.replaceChildren();
+  managementController?.abort();const holder=root.querySelector('.ma-management');overviewScroll=root.scrollTop;holder.replaceChildren();
   const current=root,credential=session,announcements=view==='announcements';let offset=0,busy=false,audience=null;
   const heading=node('div','ma-toolbar'),title=node('h2','',announcements?'Announcements & Releases':'Security & Audit Logs'),back=node('button','','‹ Overview');back.type='button';heading.append(title,back);holder.append(heading);
   const statusLine=node('p','ma-sub');statusLine.setAttribute('role','status');const body=node('div');body.dataset.maRelease=view;
@@ -250,18 +258,18 @@
    }catch{if(alive()&&!request.signal.aborted)statusLine.textContent='Data unavailable — refresh to retry'}
   }
   form.addEventListener('submit',e=>{e.preventDefault();if(!save.disabled)mutate({action:'draft',title:subject.value,body:message.value,kind:kind.value})});
-  back.addEventListener('click',()=>{managementController?.abort();holder.replaceChildren();root?.querySelector(announcements?'[data-ma-announcements]':'[data-ma-security]')?.focus()});
+  back.addEventListener('click',()=>{exitModule(holder,announcements?'[data-ma-announcements]':'[data-ma-security]')});
   refresh.addEventListener('click',()=>{if(!busy)get()});prev.addEventListener('click',()=>{if(!busy){offset=Math.max(0,offset-25);get()}});next.addEventListener('click',()=>{if(!busy){offset+=25;get()}});
-  get();heading.scrollIntoView({block:'start'});back.focus()
+  get();enterModule(holder,title)
  }
  window.mileBetaAdmin=function(){
   if(!window.mileBetaIsAdmin?.()||!token())return;
   if(root){root.focus();return}
   session=token();returnFocus=document.activeElement;oldOverflow=document.body.style.overflow;document.body.style.overflow='hidden';
   root=node('section');root.id='mile-admin-centre';root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-labelledby','ma-title');root.tabIndex=-1;
-  root.innerHTML='<div class="ma-shell"><header class="ma-header"><span class="ma-brand">MILE.</span><button data-ma-close>‹ Settings</button></header><div class="ma-eyebrow">ADMINISTRATION</div><h1 id="ma-title">Admin Centre</h1><div class="ma-sub">Monitor your MILE platform.</div><div class="ma-status" role="status"><span class="ma-dot"></span><span class="ma-status-text">Loading live overview</span></div><div class="ma-toolbar"><h2 style="margin:0">Overview</h2><div class="ma-range" aria-label="Date range"><button data-days="7">Last 7 days</button><button data-days="30">30 days</button><button data-days="90">90 days</button></div></div><div class="ma-grid"></div><section class="ma-card ma-section"><h2>Athlete growth</h2><div class="ma-growth-summary ma-sub"></div><svg class="ma-chart" viewBox="0 0 300 112" preserveAspectRatio="none" role="img" aria-label="Cumulative registered athletes over selected period"></svg><div class="ma-chart-labels"></div></section><section class="ma-card ma-section"><h2>System health</h2><div class="ma-health ma-sub"></div><div class="ma-freshness ma-sub"></div><button data-ma-refresh style="margin-top:12px">Refresh overview</button></section><section class="ma-section"><h2>Management</h2><button class="ma-module" data-ma-athletes>Athlete Management <span>›</span></button><button class="ma-module" data-ma-reports>Beta reports &amp; feedback <span>›</span></button><button class="ma-module" data-ma-analytics>Usage Analytics <span>›</span></button><button class="ma-module" data-ma-health>Integrations &amp; System Health <span>›</span></button><button class="ma-module" data-ma-announcements>Announcements &amp; Releases <span>›</span></button><button class="ma-module" data-ma-security>Security &amp; Audit Logs <span>›</span></button><section class="ma-management" aria-label="Management details"></section></section></div>';
+  root.innerHTML='<div class="ma-shell"><header class="ma-header"><span class="ma-brand">MILE.</span><button data-ma-close>‹ Settings</button></header><div class="ma-eyebrow">ADMINISTRATION</div><h1 id="ma-title">Admin Centre</h1><div class="ma-sub">Monitor your MILE platform.</div><div class="ma-status" role="status"><span class="ma-dot"></span><span class="ma-status-text">Loading live overview</span></div><div class="ma-toolbar"><h2 style="margin:0">Overview</h2><div class="ma-range" aria-label="Date range"><button data-days="7">Last 7 days</button><button data-days="30">30 days</button><button data-days="90">90 days</button></div></div><div class="ma-grid"></div><section class="ma-card ma-section"><h2>Athlete growth</h2><div class="ma-growth-summary ma-sub"></div><svg class="ma-chart" viewBox="0 0 300 112" preserveAspectRatio="none" role="img" aria-label="Cumulative registered athletes over selected period"></svg><div class="ma-chart-labels"></div></section><section class="ma-card ma-section"><h2>System health</h2><div class="ma-health ma-sub"></div><div class="ma-freshness ma-sub"></div><button data-ma-refresh style="margin-top:6px">Refresh overview</button></section><section class="ma-section"><h2>Management</h2><button class="ma-module" data-ma-athletes>Athlete Management <span>›</span></button><button class="ma-module" data-ma-reports>Beta reports &amp; feedback <span>›</span></button><button class="ma-module" data-ma-analytics>Usage Analytics <span>›</span></button><button class="ma-module" data-ma-health>Integrations &amp; System Health <span>›</span></button><button class="ma-module" data-ma-announcements>Announcements &amp; Releases <span>›</span></button><button class="ma-module" data-ma-security>Security &amp; Audit Logs <span>›</span></button><section class="ma-management" aria-label="Management details"></section></section></div>';
   root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-ma-close')){close();window.mileV3Go?.('settings');return}if(b.dataset.days){days=Number(b.dataset.days);load();return}if(b.hasAttribute('data-ma-refresh'))load();if(b.hasAttribute('data-ma-athletes')&&!b.disabled)openManagement('athletes');if(b.hasAttribute('data-ma-reports')&&!b.disabled)openManagement('feedback');if(b.hasAttribute('data-ma-analytics')&&!b.disabled)openInsights('analytics');if(b.hasAttribute('data-ma-health')&&!b.disabled)openInsights('health');if(b.hasAttribute('data-ma-announcements')&&!b.disabled)openRelease('announcements');if(b.hasAttribute('data-ma-security')&&!b.disabled)openRelease('security')});
-  root.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('mile-beta-feedback-overlay'))close();if(e.key==='Tab'){const list=[...root.querySelectorAll('button')];if(e.shiftKey&&document.activeElement===list[0]){e.preventDefault();list.at(-1).focus()}else if(!e.shiftKey&&document.activeElement===list.at(-1)){e.preventDefault();list[0].focus()}}});
+  root.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('mile-beta-feedback-overlay'))close();if(e.key==='Tab'){const list=[...root.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),summary')].filter(el=>el.getClientRects().length);if(!list.length)return;if(e.shiftKey&&document.activeElement===list[0]){e.preventDefault();list.at(-1).focus()}else if(!e.shiftKey&&document.activeElement===list.at(-1)){e.preventDefault();list[0].focus()}}});
   document.body.append(root);root.querySelector('[data-ma-close]').focus();load();
  };
  window.addEventListener('storage',()=>{if(root&&session!==token())close()});
