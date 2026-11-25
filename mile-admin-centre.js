@@ -73,7 +73,7 @@
  let root,controller,managementController,session,days=7,oldOverflow='',returnFocus;
  const close=()=>{controller?.abort();managementController?.abort();if(root){root.remove();document.body.style.overflow=oldOverflow;root=null;returnFocus?.focus?.()}session=null};
  const node=(tag,cls,txt)=>{const x=document.createElement(tag);if(cls)x.className=cls;if(txt!==undefined)x.textContent=txt;return x};
- function status(text,state){if(!root)return;const line=root.querySelector('.ma-status');line.dataset.state=state;root.querySelectorAll('[data-ma-reports],[data-ma-athletes],[data-ma-analytics],[data-ma-health]').forEach(b=>b.disabled=state!=='ready');line.querySelector('.ma-status-text').textContent=text;}
+ function status(text,state){if(!root)return;const line=root.querySelector('.ma-status');line.dataset.state=state;root.querySelectorAll('[data-ma-reports],[data-ma-athletes],[data-ma-analytics],[data-ma-health],[data-ma-announcements],[data-ma-security]').forEach(b=>b.disabled=state!=='ready');line.querySelector('.ma-status-text').textContent=text;}
  function display(data){
   const grid=root.querySelector('.ma-grid');grid.replaceChildren();
   for(const [id,label,desc] of modules){const card=node('div','ma-card');card.dataset.metric=id;const v=data.metrics?.[id];card.append(node('div','ma-label',label),node('div','ma-value',typeof v==='number'&&Number.isFinite(v)?v.toLocaleString():'—'),node('div','ma-sub',desc));grid.append(card)}
@@ -198,13 +198,69 @@
   }
   back.addEventListener('click',()=>{managementController?.abort();holder.replaceChildren();root?.querySelector(usage?'[data-ma-analytics]':'[data-ma-health]')?.focus()});refresh.addEventListener('click',get);get();heading.scrollIntoView({block:'start'});back.focus()
  }
+
+ function openRelease(view){
+  if(!root||root.querySelector('.ma-status').dataset.state!=='ready')return;
+  managementController?.abort();const holder=root.querySelector('.ma-management');holder.replaceChildren();
+  const current=root,credential=session,announcements=view==='announcements';let offset=0,busy=false,audience=null;
+  const heading=node('div','ma-toolbar'),title=node('h2','',announcements?'Announcements & Releases':'Security & Audit Logs'),back=node('button','','‹ Overview');back.type='button';heading.append(title,back);holder.append(heading);
+  const statusLine=node('p','ma-sub');statusLine.setAttribute('role','status');const body=node('div');body.dataset.maRelease=view;
+  const form=node('form','ma-card ma-section'),fields=node('div','ma-controls'),subject=node('input'),message=node('textarea'),kind=optionSelect([['announcement','Announcement'],['release','Release notes']],'Announcement type');
+  subject.required=true;subject.minLength=3;subject.maxLength=100;subject.placeholder='Announcement title';subject.setAttribute('aria-label','Announcement title');
+  message.required=true;message.minLength=5;message.maxLength=600;message.placeholder='Message to athletes';message.setAttribute('aria-label','Announcement message');message.rows=4;message.style.width='100%';message.style.cssText+=';background:var(--panel2);color:inherit;border:1px solid var(--line);border-radius:9px;padding:10px;font:inherit';
+  const save=node('button','','Save draft');save.type='submit';save.disabled=true;fields.append(kind,subject);form.append(node('h2','','Create announcement'),node('p','ma-sub','Drafts are private until you explicitly publish. Publication creates an in-app notification for each current beta member.'),fields,message,save);
+  const refresh=node('button','','Refresh data');refresh.type='button';
+  const pagination=node('div','ma-pagination'),prev=node('button','','‹ Previous'),next=node('button','','Next ›'),pageLabel=node('span','ma-sub');prev.type=next.type='button';pagination.append(prev,pageLabel,next);
+  if(announcements)holder.append(form);holder.append(statusLine,body,pagination,refresh);
+  const alive=()=>root===current&&credential===token()&&holder.isConnected&&holder.contains(body);
+  const endpoint=base+'/functions/v1/mile-admin-release?view='+view;
+  const headers=()=>({apikey:key,Authorization:'Bearer '+credential,'Content-Type':'application/json'});
+  async function mutate(payload){
+   if(!alive()||busy)return false;busy=true;save.disabled=true;refresh.disabled=true;
+   body.querySelectorAll('button').forEach(b=>b.disabled=true);statusLine.textContent='Saving…';
+   try{const r=await fetch(endpoint,{method:'POST',headers:headers(),body:JSON.stringify(payload)});if(!alive())return false;if(!r.ok){statusLine.textContent=r.status===409?'Draft changed — refresh before retrying':'Action not confirmed — refresh before retrying';return false}
+    const data=await r.json();if(!alive())return false;
+    if(!data.announcement?.id||data.announcement.status!==(payload.action==='draft'?'draft':'published'))throw Error('Action not confirmed');
+    if(payload.action==='draft'){subject.value='';message.value='';offset=0}
+    await get();return true;
+   }catch{if(alive())statusLine.textContent='Action not confirmed — refresh before retrying';return false}
+   finally{busy=false;if(alive()){refresh.disabled=false;save.disabled=audience===null;body.querySelectorAll('button').forEach(b=>b.disabled=false)}}
+  }
+  async function get(){
+   if(!alive())return;managementController?.abort();const request=new AbortController();managementController=request;
+   body.replaceChildren();audience=null;save.disabled=true;prev.disabled=next.disabled=true;statusLine.textContent='Loading…';
+   try{const r=await fetch(endpoint+'&offset='+offset,{headers:headers(),signal:request.signal,cache:'no-store'});if(!alive()||request.signal.aborted)return;
+    if(!r.ok){statusLine.textContent=r.status===401||r.status===403?'Administrator access could not be verified':'Data unavailable — refresh to retry';return}
+    const data=await r.json();if(!alive()||request.signal.aborted)return;if(!Array.isArray(data.rows))throw Error('Invalid response');
+    if(announcements){
+     audience=Number.isFinite(data.audience)?data.audience:null;save.disabled=audience===null;
+     body.append(node('p','ma-sub',audience===null?'Current audience unavailable':'Current audience: '+audience+' registered members (recalculated at publication)'));
+     for(const row of data.rows){const card=node('article','ma-card ma-item');card.append(node('strong','',row.title),node('div','ma-sub',(row.kind==='release'?'Release notes':'Announcement')+' · '+row.status+' · '+formatDate(row.created_at)),node('p','',row.body));
+      if(row.status==='published')card.append(node('div','ma-sub','Published: '+formatDate(row.published_at)+' · '+(Number.isFinite(row.recipient_count)?row.recipient_count:'—')+' recipient notifications created'));
+      else if(row.status==='draft'&&audience!==null){const publish=node('button','','Publish to athletes');publish.type='button';publish.addEventListener('click',()=>{if(confirm('Publish "'+row.title+'" to all current registered beta members? This creates in-app notifications and cannot be undone.'))mutate({action:'publish',id:row.id,confirm:true})});card.append(publish)}
+      body.append(card)}
+    }else{
+     const grid=node('div','ma-insight-grid');for(const [key,label] of [['admin_accounts','Admin accounts'],['public_tables_without_rls','Public tables without RLS'],['recorded_admin_actions','Recorded admin actions']]){const card=node('div','ma-card');card.append(node('div','ma-label',label),node('div','ma-value',Number.isFinite(data.security?.[key])?data.security[key]:'—'));grid.append(card)}body.append(grid);
+     body.append(node('p','ma-sub','Audit coverage starts with actions performed through the new endpoints. This is not a complete historical security audit. Account deletion, role changes and suspension are not enabled.'));
+     for(const row of data.rows){const card=node('article','ma-card ma-item');card.append(node('strong','',row.action),node('div','ma-sub',(row.display_name||row.username||'Administrator')+' · '+formatDate(row.created_at)),node('div','ma-sub','Target: '+(row.target_id||'Not recorded')));
+      if(row.detail&&typeof row.detail==='object'){const details=node('details'),summary=node('summary','','Change details');details.append(summary,node('p','',JSON.stringify(row.detail)));card.append(details)}body.append(card)}
+    }
+    if(!data.rows.length)body.append(node('p','ma-sub','No records yet'));
+    pageLabel.textContent='Page '+(Math.floor(offset/25)+1);prev.disabled=offset===0;next.disabled=!data.has_more;statusLine.textContent='Live data connected';
+   }catch{if(alive()&&!request.signal.aborted)statusLine.textContent='Data unavailable — refresh to retry'}
+  }
+  form.addEventListener('submit',e=>{e.preventDefault();if(!save.disabled)mutate({action:'draft',title:subject.value,body:message.value,kind:kind.value})});
+  back.addEventListener('click',()=>{managementController?.abort();holder.replaceChildren();root?.querySelector(announcements?'[data-ma-announcements]':'[data-ma-security]')?.focus()});
+  refresh.addEventListener('click',()=>{if(!busy)get()});prev.addEventListener('click',()=>{if(!busy){offset=Math.max(0,offset-25);get()}});next.addEventListener('click',()=>{if(!busy){offset+=25;get()}});
+  get();heading.scrollIntoView({block:'start'});back.focus()
+ }
  window.mileBetaAdmin=function(){
   if(!window.mileBetaIsAdmin?.()||!token())return;
   if(root){root.focus();return}
   session=token();returnFocus=document.activeElement;oldOverflow=document.body.style.overflow;document.body.style.overflow='hidden';
   root=node('section');root.id='mile-admin-centre';root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-labelledby','ma-title');root.tabIndex=-1;
-  root.innerHTML='<div class="ma-shell"><header class="ma-header"><span class="ma-brand">MILE.</span><button data-ma-close>‹ Settings</button></header><div class="ma-eyebrow">ADMINISTRATION</div><h1 id="ma-title">Admin Centre</h1><div class="ma-sub">Monitor your MILE platform.</div><div class="ma-status" role="status"><span class="ma-dot"></span><span class="ma-status-text">Loading live overview</span></div><div class="ma-toolbar"><h2 style="margin:0">Overview</h2><div class="ma-range" aria-label="Date range"><button data-days="7">Last 7 days</button><button data-days="30">30 days</button><button data-days="90">90 days</button></div></div><div class="ma-grid"></div><section class="ma-card ma-section"><h2>Athlete growth</h2><div class="ma-growth-summary ma-sub"></div><svg class="ma-chart" viewBox="0 0 300 112" preserveAspectRatio="none" role="img" aria-label="Cumulative registered athletes over selected period"></svg><div class="ma-chart-labels"></div></section><section class="ma-card ma-section"><h2>System health</h2><div class="ma-health ma-sub"></div><div class="ma-freshness ma-sub"></div><button data-ma-refresh style="margin-top:12px">Refresh overview</button></section><section class="ma-section"><h2>Management</h2><button class="ma-module" data-ma-athletes>Athlete Management <span>›</span></button><button class="ma-module" data-ma-reports>Beta reports &amp; feedback <span>›</span></button><button class="ma-module" data-ma-analytics>Usage Analytics <span>›</span></button><button class="ma-module" data-ma-health>Integrations &amp; System Health <span>›</span></button><section class="ma-management" aria-label="Management details"></section></section></div>';
-  root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-ma-close')){close();window.mileV3Go?.('settings');return}if(b.dataset.days){days=Number(b.dataset.days);load();return}if(b.hasAttribute('data-ma-refresh'))load();if(b.hasAttribute('data-ma-athletes')&&!b.disabled)openManagement('athletes');if(b.hasAttribute('data-ma-reports')&&!b.disabled)openManagement('feedback');if(b.hasAttribute('data-ma-analytics')&&!b.disabled)openInsights('analytics');if(b.hasAttribute('data-ma-health')&&!b.disabled)openInsights('health')});
+  root.innerHTML='<div class="ma-shell"><header class="ma-header"><span class="ma-brand">MILE.</span><button data-ma-close>‹ Settings</button></header><div class="ma-eyebrow">ADMINISTRATION</div><h1 id="ma-title">Admin Centre</h1><div class="ma-sub">Monitor your MILE platform.</div><div class="ma-status" role="status"><span class="ma-dot"></span><span class="ma-status-text">Loading live overview</span></div><div class="ma-toolbar"><h2 style="margin:0">Overview</h2><div class="ma-range" aria-label="Date range"><button data-days="7">Last 7 days</button><button data-days="30">30 days</button><button data-days="90">90 days</button></div></div><div class="ma-grid"></div><section class="ma-card ma-section"><h2>Athlete growth</h2><div class="ma-growth-summary ma-sub"></div><svg class="ma-chart" viewBox="0 0 300 112" preserveAspectRatio="none" role="img" aria-label="Cumulative registered athletes over selected period"></svg><div class="ma-chart-labels"></div></section><section class="ma-card ma-section"><h2>System health</h2><div class="ma-health ma-sub"></div><div class="ma-freshness ma-sub"></div><button data-ma-refresh style="margin-top:12px">Refresh overview</button></section><section class="ma-section"><h2>Management</h2><button class="ma-module" data-ma-athletes>Athlete Management <span>›</span></button><button class="ma-module" data-ma-reports>Beta reports &amp; feedback <span>›</span></button><button class="ma-module" data-ma-analytics>Usage Analytics <span>›</span></button><button class="ma-module" data-ma-health>Integrations &amp; System Health <span>›</span></button><button class="ma-module" data-ma-announcements>Announcements &amp; Releases <span>›</span></button><button class="ma-module" data-ma-security>Security &amp; Audit Logs <span>›</span></button><section class="ma-management" aria-label="Management details"></section></section></div>';
+  root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-ma-close')){close();window.mileV3Go?.('settings');return}if(b.dataset.days){days=Number(b.dataset.days);load();return}if(b.hasAttribute('data-ma-refresh'))load();if(b.hasAttribute('data-ma-athletes')&&!b.disabled)openManagement('athletes');if(b.hasAttribute('data-ma-reports')&&!b.disabled)openManagement('feedback');if(b.hasAttribute('data-ma-analytics')&&!b.disabled)openInsights('analytics');if(b.hasAttribute('data-ma-health')&&!b.disabled)openInsights('health');if(b.hasAttribute('data-ma-announcements')&&!b.disabled)openRelease('announcements');if(b.hasAttribute('data-ma-security')&&!b.disabled)openRelease('security')});
   root.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('mile-beta-feedback-overlay'))close();if(e.key==='Tab'){const list=[...root.querySelectorAll('button')];if(e.shiftKey&&document.activeElement===list[0]){e.preventDefault();list.at(-1).focus()}else if(!e.shiftKey&&document.activeElement===list.at(-1)){e.preventDefault();list[0].focus()}}});
   document.body.append(root);root.querySelector('[data-ma-close]').focus();load();
  };
