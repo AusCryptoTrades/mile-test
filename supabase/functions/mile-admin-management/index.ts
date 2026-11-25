@@ -10,7 +10,8 @@ Deno.serve(async(req:Request)=>{
  if(!/^Bearer\s+\S+$/i.test(authorization))return json({error:"Authentication required"},401);
  const url=Deno.env.get("SUPABASE_URL"),key=Deno.env.get("SUPABASE_ANON_KEY"),db=Deno.env.get("SUPABASE_DB_URL");
  if(!url||!key||!db)return json({error:"Service unavailable"},503);
- try{const r=await fetch(url+"/auth/v1/user",{headers:{Authorization:authorization,apikey:key},signal:AbortSignal.timeout(10000)});if(!r.ok)return json({error:"Invalid session"},401);const user=await r.json();if(!user?.id)return json({error:"Invalid session"},401);if(user.app_metadata?.mile_role!=="admin")return json({error:"Administrator access required"},403)}catch{return json({error:"Authentication unavailable"},503)}
+ let actor:string;
+ try{const r=await fetch(url+"/auth/v1/user",{headers:{Authorization:authorization,apikey:key},signal:AbortSignal.timeout(10000)});if(!r.ok)return json({error:"Invalid session"},401);const user=await r.json();if(!user?.id)return json({error:"Invalid session"},401);if(user.app_metadata?.mile_role!=="admin")return json({error:"Administrator access required"},403);actor=user.id}catch{return json({error:"Authentication unavailable"},503)}
  const params=new URL(req.url).searchParams,view=params.get("view");
  if(!["athletes","feedback"].includes(view||""))return json({error:"Unknown view"},400);
  const sql=postgres(db,{max:1,idle_timeout:2,connect_timeout:5});
@@ -20,7 +21,7 @@ Deno.serve(async(req:Request)=>{
    let body;try{body=await req.json()}catch{return json({error:"Invalid JSON"},400)}
    const {id,status,expected_status}=body??{};
    if(typeof id!=="string"||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)||!statuses.includes(status)||!statuses.includes(expected_status))return json({error:"Invalid report status update"},400);
-   const rows=await sql`update public.mile_beta_reports set status=${status},updated_at=now() where id=${id}::uuid and status=${expected_status} returning id,status,updated_at`;
+   const rows=await sql`with changed as (update public.mile_beta_reports set status=${status},updated_at=now() where id=${id}::uuid and status=${expected_status} returning id,status,updated_at), audit as (insert into private.mile_admin_audit(actor_id,action,target_id,detail) select ${actor}::uuid,'feedback.status',id,jsonb_build_object('from',${expected_status}::text,'to',status) from changed returning id) select changed.* from changed,audit`;
    if(!rows.length)return json({error:"Report changed or no longer exists. Refresh and retry."},409);
    return json({report:rows[0]});
   }
