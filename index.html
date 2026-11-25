@@ -2755,11 +2755,11 @@ function m381PreferencesView(){
 }
 function m379NotificationsView(){
  return `<div class="m36-panel"><div class="row between"><h3>NOTIFICATIONS</h3><div class="m36-actions"><button class="m36-btn alt" data-m381-settings="1">Preferences</button><button class="m36-btn alt" data-m379-readall="1" ${!S.notifications.some(n=>!n.is_read)?'disabled title="No unread notifications"':''}>Mark all read</button><button class="m36-btn alt" data-m384-clearall="1" ${!S.notifications.length?'disabled title="No notifications"':''}>Clear all</button></div></div>
- <p class="muted small">In-app alerts for messages, follows, requests, likes and comments. Earlier events may not appear here.</p><button class="m36-btn alt" data-m380-requests="1">Follow requests (${S.follows.filter(f=>f.following_id===userId&&f.status==='pending').length}) — Review / Accept</button>
+ <p class="muted small">In-app alerts for MILE announcements, messages, follows, requests, likes and comments. Earlier events may not appear here.</p><button class="m36-btn alt" data-m380-requests="1">Follow requests (${S.follows.filter(f=>f.following_id===userId&&f.status==='pending').length}) — Review / Accept</button>
  ${S.notificationError?`<p class="warning">${e(S.notificationError)}</p>`:''}
  ${(S.notifications||[]).filter(n=>m381Prefs()[n.kind]!==false).map(n=>{
-  const p=prof(n.actor_id),label=p.display_name||p.username||'An athlete';
-  const icon=({message:'✉',follow:'+',follow_request:'+',follow_accepted:'✓',like:'♥',comment:'☏',pb:'★'})[n.kind]||'•';
+  const p=prof(n.actor_id)||{},label=n.kind==='announcement'?'MILE':p.display_name||p.username||'An athlete';
+  const icon=({message:'✉',follow:'+',follow_request:'+',follow_accepted:'✓',like:'♥',comment:'☏',pb:'★',announcement:'✦'})[n.kind]||'•';
   return `<div class="m384-notification"><button class="m379-item ${n.is_read?'':'unread'}" data-m379-open="${e(n.id)}"><span class="m379-icon">${icon}</span><span class="m379-info"><strong>${e(n.message)}</strong><small>${e(label)} · ${e(new Date(n.created_at).toLocaleString('en-AU'))}</small></span>${n.is_read?'':'<span class="m379-dot"></span>'}</button><button class="m384-dismiss" data-m384-dismiss="${e(n.id)}" aria-label="Dismiss notification" title="Dismiss">×</button></div>`;
  }).join('')||'<p class="muted">No notifications yet.</p>'}</div>`;
 }
