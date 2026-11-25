@@ -9,7 +9,7 @@ test('native bundle includes only approved assets and verifiable build manifest'
   const dest = await stage();
   assert.deepEqual((await readdir(dest)).sort(), [...assets, 'mile-build.json','mile-native-runtime.js'].sort());
   const manifest = JSON.parse(await readFile(path.join(dest, 'mile-build.json'), 'utf8'));
-  assert.equal(manifest.version,'0.1.1');
+  assert.equal(manifest.version,JSON.parse(await readFile(new URL('../package.json',import.meta.url),'utf8')).version);
   assert.match(await readFile(path.join(dest,'index.html'),'utf8'), /<script src="\.\/mile-native-runtime\.js"><\/script>/);
   assert.match(manifest.commit, /^[a-f0-9]{40}$/);
   for (const file of [...assets,'mile-native-runtime.js']) {

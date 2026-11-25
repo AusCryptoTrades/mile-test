@@ -29,4 +29,5 @@ if(platform==='ios'){
  }
  await writeFile(file,xml);
 }
+execFileSync('python3',[path.join(cwd,'scripts','brand.py'),platform],{cwd,stdio:'inherit'});
 run('sync',platform);
