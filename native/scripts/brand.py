@@ -2,9 +2,8 @@
 import math, struct, zlib, json, re, sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-BG=(16,18,16)
-FG=(245,246,242)
-LIME=(198,250,120)
+BG=(16,16,16)
+FG=(255,255,255)
 POLYS=[[(0,0),(46,0),(90,102),(134,0),(180,0),(180,210),(138,210),(138,77),(90,182),(42,77),(42,210),(0,210)],[(213,0),(256,0),(256,210),(213,210)],[(290,0),(333,0),(333,171),(422,171),(422,210),(290,210)],[(450,0),(576,0),(576,39),(493,39),(493,85),(568,85),(568,124),(493,124),(493,171),(576,171),(576,210),(450,210)]]
 def chunk(kind,data):
     return struct.pack('>I',len(data))+kind+data+struct.pack('>I',zlib.crc32(kind+data)&0xffffffff)
@@ -25,7 +24,7 @@ def render(width,height,mark_fraction=.68):
                 lo=max(0,math.ceil(l-.5));hi=min(width,math.ceil(r-.5))
                 if hi>lo: rows[y][lo*3:hi*3]=bytes(color)*(hi-lo)
     for poly in POLYS: polygon([(x-y*.1763,y) for x,y in poly],FG)
-    polygon([(600,169),(643,169),(643,210),(600,210)],LIME)
+    polygon([(600,169),(643,169),(643,210),(600,210)],FG)
     return b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',width,height,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(b''.join(b'\0'+r for r in rows),9))+chunk(b'IEND',b'')
 def apply(platform):
     version=json.loads((ROOT/'package.json').read_text())['version']
@@ -66,7 +65,7 @@ def apply(platform):
         # Android 12+ uses a system splash with a launcher icon; use the dark background.
         for target in res.glob('values*/styles.xml'):
             s=target.read_text()
-            s=re.sub(r'(<item name="windowSplashScreenBackground">)[^<]+',r'\g<1>#101210',s)
+            s=re.sub(r'(<item name="windowSplashScreenBackground">)[^<]+',r'\g<1>#101010',s)
             target.write_text(s)
     else: raise ValueError('Expected ios or android')
 if __name__=='__main__':

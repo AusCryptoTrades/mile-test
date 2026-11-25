@@ -15,3 +15,16 @@ test('Challenge creator exposes supported metrics and does not allow unsupported
  await expect(page.locator('select[name=visibility] option')).toHaveCount(1);
  await expect(page.locator('select[name=eligibility] option')).toHaveCount(1);
 });
+
+test('sport filter labels remain single-line and selectable on narrow screens',async({page})=>{
+ await page.setViewportSize({width:320,height:740});
+ await page.goto('/mile-challenges.html');
+ const chips=page.locator('.filters button');
+ await expect(chips).toHaveText(['All','Running','Cycling','Swimming']);
+ const sizes=await chips.evaluateAll(nodes=>nodes.map(n=>({label:n.textContent,wrap:getComputedStyle(n).whiteSpace,overflow:n.scrollWidth>n.clientWidth+1,height:n.getBoundingClientRect().height})));
+ expect(sizes.every(x=>x.wrap==='nowrap'&&!x.overflow&&x.height<=46)).toBe(true);
+ await page.getByRole('button',{name:'Swimming',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Swimming',exact:true})).toHaveClass('active');
+ await expect(page.getByRole('button',{name:'All',exact:true})).not.toHaveClass('active');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
