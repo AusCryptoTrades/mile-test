@@ -8,11 +8,11 @@ LIME=(198,250,120)
 POLYS=[[(0,0),(46,0),(90,102),(134,0),(180,0),(180,210),(138,210),(138,77),(90,182),(42,77),(42,210),(0,210)],[(213,0),(256,0),(256,210),(213,210)],[(290,0),(333,0),(333,171),(422,171),(422,210),(290,210)],[(450,0),(576,0),(576,39),(493,39),(493,85),(568,85),(568,124),(493,124),(493,171),(576,171),(576,210),(450,210)]]
 def chunk(kind,data):
     return struct.pack('>I',len(data))+kind+data+struct.pack('>I',zlib.crc32(kind+data)&0xffffffff)
-def render(width,height,mark_fraction=.68):
+def render(width,height,mark_fraction=.68,tagline=False):
     rows=[bytearray(bytes(BG)*width) for _ in range(height)]
     scale=min(width,height)*mark_fraction/680
     ox=width/2-320*scale
-    oy=height/2-105*scale
+    oy=height/2-(146 if tagline else 105)*scale
     def polygon(points,color):
         pts=[(ox+x*scale,oy+y*scale) for x,y in points]
         for y in range(max(0,math.floor(min(p[1] for p in pts))),min(height,math.ceil(max(p[1] for p in pts)))):
@@ -26,6 +26,21 @@ def render(width,height,mark_fraction=.68):
                 if hi>lo: rows[y][lo*3:hi*3]=bytes(color)*(hi-lo)
     for poly in POLYS: polygon([(x-y*.1763,y) for x,y in poly],FG)
     polygon([(600,169),(643,169),(643,210),(600,210)],LIME)
+    if tagline:
+        # Compact sans-serif vector lettering, spaced to match the web splash hierarchy.
+        glyphs={"M":["10001","11011","10101","10101","10001","10001","10001"],"A":["01110","10001","10001","11111","10001","10001","10001"],"K":["10001","10010","10100","11000","10100","10010","10001"],"E":["11111","10000","10000","11110","10000","10000","11111"],"I":["111","010","010","010","010","010","111"],"T":["11111","00100","00100","00100","00100","00100","00100"],"L":["10000","10000","10000","10000","10000","10000","11111"],"O":["01110","10001","10001","10001","10001","10001","01110"],"S":["01111","10000","10000","01110","00001","00001","11110"],"Y":["10001","10001","01010","00100","00100","00100","00100"]}
+        label='MAKE IT LOOK EASY'
+        widths=[3 if c==' ' else len(glyphs[c][0])+1 for c in label]
+        unit=4.7
+        x=320-sum(widths)*unit/2
+        for c,advance in zip(label,widths):
+            if c!=' ':
+                for row,line in enumerate(glyphs[c]):
+                    for col,ink in enumerate(line):
+                        if ink=='1':
+                            l=x+col*unit;t=255+row*unit
+                            polygon([(l,t),(l+unit,t),(l+unit,t+unit),(l,t+unit)],FG)
+            x+=advance*unit
     return b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',width,height,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(b''.join(b'\0'+r for r in rows),9))+chunk(b'IEND',b'')
 def apply(platform):
     version=json.loads((ROOT/'package.json').read_text())['version']
@@ -40,7 +55,7 @@ def apply(platform):
                 target=directory/item['filename']
                 raw=target.read_bytes()
                 w,h=struct.unpack('>II',raw[16:24])
-                target.write_bytes(render(w,h,fraction))
+                target.write_bytes(render(w,h,fraction,tagline=folder=='Splash.imageset'))
         project=ROOT/'ios/App/App.xcodeproj/project.pbxproj'
         s=project.read_text()
         for key,value in [('MARKETING_VERSION',version),('CURRENT_PROJECT_VERSION',str(number))]:
@@ -56,7 +71,7 @@ def apply(platform):
             target.write_bytes(render(w,h,.48 if target.stem=='ic_launcher_foreground' else .68));count+=1
         if not count: raise ValueError('No launcher images found')
         for target in res.glob('drawable*/splash.png'):
-            w,h=struct.unpack('>II',target.read_bytes()[16:24]);target.write_bytes(render(w,h,.46))
+            w,h=struct.unpack('>II',target.read_bytes()[16:24]);target.write_bytes(render(w,h,.46,tagline=True))
         gradle=ROOT/'android/app/build.gradle';s=gradle.read_text()
         s,n=re.subn(r'(?m)^(\s*versionCode\s+)\d+',lambda m:m.group(1)+str(number),s)
         if not n: raise ValueError('Missing versionCode')
@@ -75,5 +90,7 @@ if __name__=='__main__':
         assert data[:8]==b'\x89PNG\r\n\x1a\n'
         assert struct.unpack('>II',data[16:24])==(128,128)
         assert data==render(128,128)
+        assert render(256,512,.46,True)!=render(256,512,.46,False)
+        assert render(256,512,.46,True)==render(256,512,.46,True)
         print('Branding PNG generation passed')
     else: apply(sys.argv[1])
