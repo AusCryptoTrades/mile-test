@@ -1,6 +1,6 @@
 {
   "name": "mile-native",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "engines": {
     "node": ">=22"
@@ -10,7 +10,8 @@
     "test": "node --test scripts/*.test.mjs",
     "prepare:ios": "npm run stage && node scripts/prepare-platform.mjs ios",
     "prepare:android": "npm run stage && node scripts/prepare-platform.mjs android",
-    "sync": "npm run stage && node scripts/prepare-platform.mjs ios && node scripts/prepare-platform.mjs android"
+    "sync": "npm run stage && node scripts/prepare-platform.mjs ios && node scripts/prepare-platform.mjs android",
+    "brand": "python3 scripts/brand.py"
   },
   "dependencies": {
     "@capacitor/core": "8.0.0",
