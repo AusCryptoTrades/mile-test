@@ -1830,7 +1830,7 @@ html{scroll-padding-top:env(safe-area-inset-top,0px)}
 <style id="mile-rebrand-v1">
 :root{--av-lime:#86efb5!important;--orange:#86efb5!important}
 body{background:#090b0d}
-.mile-period,.mile-wordmark>span,.mile-mark>span{color:#86efb5!important}
+.mile-period,.mile-wordmark>span,.mile-mark>span{color:inherit!important}
 .mile-wordmark{font-weight:1000;font-style:italic;letter-spacing:-1.8px;font-size:1.23em;line-height:1}
 .mile-mark{display:inline-flex;align-items:center;justify-content:center;flex:none;width:39px;height:39px;background:#111417;border:1px solid #3a4140;border-radius:11px;font-weight:1000;font-style:italic;font-size:30px;letter-spacing:-4px;padding-right:5px;color:white;line-height:1}
 .v47-story-top .mile-mark{width:48px;height:48px;font-size:35px}
@@ -1851,7 +1851,7 @@ body{background:#090b0d}
 #mileSplash .mile-vignette{position:absolute;inset:0;background:linear-gradient(180deg,#050709 0%,#050709 12%,#07090b33 38%,#0507090a 62%,#05070955 100%)}
 #mileSplash .mile-splash-logo{position:absolute;top:24%;left:0;right:0;text-align:center;z-index:2;animation:mile-rise .85s both}
 #mileSplash .mile-splash-logo strong{display:block;font-size:clamp(65px,13vw,120px);line-height:.9;font-weight:1000;font-style:italic;letter-spacing:-.095em;padding-right:.11em;color:#fff;text-shadow:0 3px 28px #0008}
-#mileSplash .mile-splash-logo strong span{color:#86efb5}
+#mileSplash .mile-splash-logo strong span{color:inherit}
 #mileSplash .mile-splash-logo small{display:block;margin-top:13px;font-size:clamp(9px,1.45vw,14px);letter-spacing:.38em;font-weight:800;color:#f4f4f4}
 #mileSplash .mile-splash-bottom{position:absolute;bottom:max(28px,env(safe-area-inset-bottom));font-size:10px;letter-spacing:2px;color:#c2c7c8;z-index:2}
 @keyframes mile-rise{from{transform:translateY(14px);opacity:0}to{transform:translateY(0);opacity:1}}
@@ -3819,7 +3819,7 @@ html[data-m395-theme="forest"]{--bg:#09251a!important;--panel:#193b2b!important;
 <script id="mile-v395-appearance">
 (function(){
 const themes=[['forest','Forest / Mint','#09251a','#193b2b','#a3e9c3','#f2fff6'],['graphite','Graphite / Orange','#17191c','#292d31','#ff914f','#fff'],['midnight','Midnight / Blue','#0a142a','#182b4c','#4c9dff','#fff'],['mono','Black / White','#080808','#222','#fff','#fff'],['light','Clean / Light','#f3f6f2','#fff','#367b55','#173325'],['sand','Sand / Earth','#f1e7d6','#e4d3b9','#9b613b','#39291f'],['ice','Ice / Blue','#eff8fc','#d9edf6','#317cb2','#183b51']];
-const key='mile-appearance-v1',basePrefs={theme:'forest',date:'DD/MM/YYYY',time:'24',distance:'km',weight:'kg',week:'monday',timezone:'auto'};let prefs={...basePrefs};try{prefs={...prefs,...JSON.parse(localStorage.getItem(key)||'{}')}}catch(_){}
+const key='mile-appearance-v1',basePrefs={theme:'mono',date:'DD/MM/YYYY',time:'24',distance:'km',weight:'kg',week:'monday',timezone:'auto'};let prefs={...basePrefs};try{prefs={...prefs,...JSON.parse(localStorage.getItem(key)||'{}')}}catch(_){}
 function apply(){document.documentElement.dataset.m395Theme=prefs.theme;document.documentElement.dataset.m395Distance=prefs.distance;try{localStorage.setItem(key,JSON.stringify(prefs))}catch(_){}}
 apply();
 window.m395AppearancePanel=function(){const choices=(id,arr)=>`<div><label for="m395-${id}">${({date:'Date format',time:'Time format',distance:'Distance',weight:'Weight',week:'Week starts',timezone:'Timezone'})[id]}</label><select id="m395-${id}" data-m395-pref="${id}">${arr.map(([v,l])=>`<option value="${v}" ${prefs[id]===v?'selected':''}>${l}</option>`).join('')}</select></div>`;return `<section class="m395-appearance"><h2>Appearance</h2><p class="muted small">Personalise how MILE looks and displays measurements. Preferences are saved to your MILE account while signed in.</p><h3 style="margin-top:18px">Themes</h3><div class="m395-theme-grid">${themes.map(([id,name,bg,surface,accent,txt])=>`<button type="button" class="m395-theme" data-m395-theme="${id}" onclick="window.m395ThemeSet && window.m395ThemeSet(this.dataset.m395Theme)" aria-pressed="${prefs.theme===id}" style="--preview-bg:${bg};--preview-surface:${surface};--preview-accent:${accent};--preview-text:${txt}">${name}<span></span></button>`).join('')}</div><div class="m395-fields">${choices('date',[['DD/MM/YYYY','DD/MM/YYYY'],['MM/DD/YYYY','MM/DD/YYYY'],['YYYY-MM-DD','YYYY-MM-DD']])}${choices('time',[['24','24-hour'],['12','12-hour']])}${choices('distance',[['km','Kilometres'],['mi','Miles']])}${choices('weight',[['kg','Kilograms'],['lb','Pounds']])}${choices('week',[['monday','Monday'],['sunday','Sunday']])}${choices('timezone',[['auto','Device timezone'],['Australia/Melbourne','Melbourne'],['UTC','UTC']])}</div><p class="muted small" style="margin-top:12px">Unit and format selections are saved; conversion of all legacy screens is still in progress.</p></section>`};
@@ -3962,7 +3962,7 @@ html[data-m395-theme="sand"]{--mile-art-sky:#eadac3;--mile-art-far:#ccb293;--mil
 html[data-m395-theme="ice"]{--mile-art-sky:#e1f1f9;--mile-art-far:#b5d6e7;--mile-art-near:#cce5f2;--mile-art-road:#a9ccdf}
 html[data-m395-theme] .top{background:var(--panel)!important;background-image:none!important;border-color:var(--line)!important;color:var(--text)!important}
 html[data-m395-theme] .top .brand,html[data-m395-theme] .top .eyebrow,html[data-m395-theme] .top .muted,html[data-m395-theme] .top #subtitle{color:var(--text)!important}
-html[data-m395-theme] .top .mile-period,html[data-m395-theme] .top .mile-mark span{color:var(--orange)!important}
+html[data-m395-theme] .top .mile-period,html[data-m395-theme] .top .mile-mark span{color:inherit!important}
 html[data-m395-theme] .mile-ui-dashboard .mile-ui-hero,
 html[data-m395-theme] .mile-ui-dashboard .mile-ui-training{background:var(--mile-art-sky)!important;background-image:none!important;color:var(--text)!important;border-color:var(--line)!important;isolation:isolate}
 html[data-m395-theme] .mile-ui-dashboard .mile-theme-art{position:absolute!important;inset:0;width:100%;height:100%;z-index:0!important;pointer-events:none;display:block;opacity:1}
