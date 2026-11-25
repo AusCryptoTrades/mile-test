@@ -7,7 +7,7 @@
  const token=()=>localStorage.getItem('av-token')||sessionStorage.getItem('av-token');
  const css=document.createElement('style');
  css.textContent=`
- #mile-admin-centre{position:fixed;inset:0;z-index:2147483638;background:var(--bg,#101414);color:var(--mile-ink,var(--text,#eee));overflow:auto;overscroll-behavior:contain;font:inherit;padding:env(safe-area-inset-top,0px) 10px calc(16px + env(safe-area-inset-bottom,0px));box-sizing:border-box}
+ #mile-admin-centre{position:fixed;inset:0;z-index:2147483638;background:var(--bg,#101414);color:var(--mile-ink,var(--text,#eee));overflow:auto;overscroll-behavior:contain;overflow-anchor:none;scroll-behavior:auto!important;font:inherit;padding:env(safe-area-inset-top,0px) 10px calc(16px + env(safe-area-inset-bottom,0px));box-sizing:border-box}
  #mile-admin-centre *{box-sizing:border-box}
  #mile-admin-centre .ma-shell{max-width:850px;margin:auto;padding:9px 0 16px}
  #mile-admin-centre .ma-header{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:8px}
@@ -111,7 +111,7 @@
  }
 
  function enterModule(holder,heading){heading.tabIndex=-1;heading.focus({preventScroll:true});const top=root.scrollTop+holder.getBoundingClientRect().top-root.getBoundingClientRect().top-8;root.scrollTop=Math.max(0,top)}
- function exitModule(holder,selector){managementController?.abort();holder.replaceChildren();if(!root)return;root.querySelector(selector)?.focus({preventScroll:true});root.scrollTop=overviewScroll}
+ function exitModule(holder,selector){managementController?.abort();const current=root,saved=overviewScroll;holder.replaceChildren();if(!current)return;const button=current.querySelector(selector);button?.focus({preventScroll:true});const restore=()=>{if(root!==current||holder.childElementCount)return;current.scrollTop=Math.min(saved,Math.max(0,current.scrollHeight-current.clientHeight))};restore();requestAnimationFrame(restore)}
  const formatDate=value=>{if(!value)return 'Not recorded';const d=new Date(value);return Number.isNaN(d.getTime())?'Not recorded':d.toLocaleString()};
  const mgmtUrl=base+'/functions/v1/mile-admin-management';
  function optionSelect(items,label){const el=node('select');el.setAttribute('aria-label',label);for(const [val,txt] of items){const opt=node('option','',txt);opt.value=val;el.append(opt)}return el}
