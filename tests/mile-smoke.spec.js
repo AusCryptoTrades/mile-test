@@ -1173,3 +1173,42 @@ test('79 post preview and manual mode use existing activity privacy defaults',as
  await expect(page.locator('#m79-activity-preview')).toBeHidden();
  await expect(page.locator('#m383-manual-fields')).toBeVisible();
 });
+
+
+test('82.1 support menu uses compact vector rows and accurate feedback wording',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3ToggleMore());
+ const menu=page.locator('#mile-emergency-more');
+ const support=menu.locator('[data-beta5-entry]');
+ await expect(support).toContainText('SUPPORT');
+ const bug=support.locator('[data-beta5-bug]'),feedback=support.locator('[data-beta5-feedback]');
+ for(const row of [bug,feedback]){
+  await expect(row.locator('svg')).toBeVisible();
+  expect((await row.boundingBox()).height).toBeLessThanOrEqual(65);
+  expect((await row.boundingBox()).height).toBeGreaterThanOrEqual(44);
+ }
+ await expect(support.locator('[data-beta5-admin]')).toHaveCount(0);
+ await feedback.click();
+ const form=page.locator('#mile-beta-feedback-overlay');
+ await expect(form).toBeVisible();await expect(form.getByText('What would you like to improve?')).toBeVisible();
+ await expect(form.locator('select[name=page] option')).toContainText(['Home','Calendar','Build','Training Plans','Stats','Activity Details','MILE IQ','Events & PBs','Race Lab','MILE SIM','Track','Challenges','Social Feed','Profile','Leaderboard','Discover Athletes','Follow Requests','Post Activity','Messages','Notifications','Settings','Admin Centre','Other']);
+ await form.locator('[data-beta5-close]').click();await expect(form).toHaveCount(0);
+});
+test('82.1 Race Lab feature follows seven active palettes without losing simulator entry',async({page})=>{
+ await openApp(page,{signedIn:true});await page.evaluate(()=>window.mileV3Go('predictor'));
+ for(const theme of ['forest','graphite','midnight','mono','light','sand','ice']){
+  await page.evaluate(t=>window.m395ThemeSet(t),theme);
+  const feature=page.locator('.m821-sim-feature');await expect(feature).toBeVisible();
+  expect(await feature.evaluate(n=>{const p=document.createElement('div');p.style.background='var(--panel)';n.appendChild(p);const ok=getComputedStyle(p).backgroundColor===getComputedStyle(n).backgroundColor;p.remove();return ok})).toBe(true);
+  const link=feature.getByRole('link',{name:'Open MILE SIM'});await expect(link).toHaveAttribute('href','./mile-sim.html');await expect(link).toHaveCSS('font-size','13px');
+ }
+});
+test('82.1 announcement preferences persist through account preference schema',async({page})=>{
+ await openApp(page,{signedIn:true});await page.evaluate(()=>window.mileV3Go('settings'));
+ await page.locator('[data-m771-open="notifications"]').click();
+ const toggle=page.getByRole('checkbox',{name:'Announcements & releases'});
+ await expect(toggle).toBeChecked();await toggle.uncheck();
+ await expect.poll(()=>page.evaluate(()=>window.mile776.get('notifications').announcement)).toBe(false);
+ await page.locator('[data-m774-reset-notifications]').click();await expect(toggle).toBeChecked();
+ await expect.poll(()=>page.evaluate(()=>window.mile776.get('notifications').announcement)).toBe(true);
+});
