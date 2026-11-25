@@ -751,7 +751,7 @@ test('77.1 settings hub groups and working subpage navigation',async ({page})=>{
  const hub=page.locator('[data-m771-page="hub"]');
  await expect(hub).toBeVisible();
  await expect(hub.locator('.m771-group')).toHaveCount(4);
- for(const [id,target] of [['appearance','.m395-theme-grid'],['units','#m395-distance'],['profile','#app .card'],['zones','#app .card'],['connections','button[onclick*="v4Connect"]'],['account','[data-m771-action="logout"]'],['data','#backupFile'],['privacy','[data-m771-action="profile"]'],['notifications','[data-m771-action="notifications"]'],['help','[data-m771-action="bug"]'],['about','[data-m771-action="news"]']]){
+ for(const [id,target] of [['appearance','.m395-theme-grid'],['units','#m395-distance'],['profile','#app .card'],['zones','#app .card'],['connections','button[onclick*="v4Connect"]'],['account','[data-m771-action="logout"]'],['data','#backupFile'],['privacy','[data-m771-action="profile"]'],['notifications','[data-m771-action="notifications"]'],['about','[data-m777-action="history"]']]){
   await hub.locator('[data-m771-open="'+id+'"]').first().click();
   const sub=page.locator('[data-m771-page="'+id+'"]');
   await expect(sub).toBeVisible();
@@ -1003,7 +1003,7 @@ test('77.7 theme panels use active palette and help/about links work',async ({pa
  for(const theme of ['forest','graphite','midnight','mono','light','sand','ice']){
   await page.evaluate(t=>window.m395ThemeSet(t),theme);
   await page.evaluate(()=>window.mileV3Go('settings'));
-  for(const name of ['help','about','account','notifications']){
+  for(const name of ['about','account','notifications']){
    await page.locator('[data-m771-open="'+name+'"]').first().click();
    const p=page.locator('[data-m771-page="'+name+'"]');
    await expect(p).toBeVisible();
@@ -1012,8 +1012,9 @@ test('77.7 theme panels use active palette and help/about links work',async ({pa
    await p.locator('[data-m771-open="hub"]').click();
   }
  }
- await page.locator('[data-m771-open="help"]').click();
- await page.getByRole('button',{name:/Report a bug/}).click();
+ await expect(page.locator('[data-m771-open="help"]')).toHaveCount(0);
+ await page.evaluate(()=>window.mileV3ToggleMore());
+ await page.locator('#mile-emergency-more [data-beta5-bug]').click();
  await expect(page.locator('#mile-beta-feedback-overlay')).toBeVisible();
  await page.locator('#mile-beta-feedback-overlay [data-beta5-close]').click();
 });
@@ -1115,4 +1116,47 @@ test('78 shared stylesheet reaches Track SIM and Challenges and preserves critic
   if(kind==='tracker')await expect.poll(()=>page.locator('#backToTrack').evaluate(n=>getComputedStyle(n).borderTopLeftRadius)).toBe('9px');
   if(kind==='sim')await expect.poll(()=>page.locator('#backToRaceLab').evaluate(n=>getComputedStyle(n).borderTopLeftRadius)).toBe('9px');
  }
+});
+
+test('79 More menu compact rows and support entries remain accessible',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3ToggleMore());
+ const menu=page.locator('#mile-emergency-more');
+ await expect(menu).toBeVisible();
+ const row=menu.locator('[data-dest="performance"]');
+ await expect(row.locator('svg')).toBeVisible();
+ expect((await row.boundingBox()).height).toBeLessThanOrEqual(62);
+ await expect(menu.locator('[data-dest="whatsnew"]')).toBeVisible();
+ await expect(menu.locator('[data-beta5-feedback]')).toBeVisible();
+});
+test('79 four social pages return to Social drawer and requests show actual pending directions',async({page})=>{
+ await openApp(page,{signedIn:true});
+ for(const tab of ['discover','requests','share','messages']){
+  await page.evaluate(t=>window.m36Open(t),tab);
+  await expect.poll(()=>page.evaluate(()=>window.m36State.loading)).toBe(false);
+  await expect(page.locator('[data-m79-social-back]')).toBeVisible();
+  if(tab==='requests'){
+   await page.evaluate(()=>{const s=window.m36State,uid=window.m76CurrentUser();s.follows=[{follower_id:'peer1',following_id:uid,status:'pending'},{follower_id:uid,following_id:'peer2',status:'pending'},{follower_id:uid,following_id:'peer3',status:'accepted'}];window.m76Paint()});
+   await expect(page.locator('[data-m79-requests="received"]')).toHaveText('Received 1');
+   await expect(page.locator('[data-m79-requests="sent"]')).toHaveText('Sent 1');
+   await page.locator('[data-m79-requests="sent"]').click();
+   await expect(page.locator('[data-m79-requests="sent"]')).toHaveAttribute('aria-pressed','true');
+   await expect(page.locator('[data-m36-accept]')).toHaveCount(0);
+  }
+  await page.locator('[data-m79-social-back]').click();
+  await expect(page.locator('#m36-drawer')).toBeVisible();
+  await page.evaluate(()=>window.m36CloseDrawer());
+ }
+});
+test('79 post preview and manual mode use existing activity privacy defaults',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.m36Open('share'));
+ await expect.poll(()=>page.evaluate(()=>window.m36State.loading)).toBe(false);
+ await page.evaluate(()=>{state.activities.push({id:'m79-fixture',name:'Preview run',date:'2026-11-20',distance_m:5000,duration_s:1500});window.m76Paint()});
+ await page.locator('#m36-activity').selectOption('m79-fixture');
+ await expect(page.locator('#m79-activity-preview')).toContainText('5.00 km');
+ await expect(page.locator('#m79-activity-preview')).toContainText('25 min');
+ await page.locator('input[name="m383-mode"][value="manual"]').check();
+ await expect(page.locator('#m79-activity-preview')).toBeHidden();
+ await expect(page.locator('#m383-manual-fields')).toBeVisible();
 });
