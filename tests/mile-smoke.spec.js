@@ -99,8 +99,10 @@ test('real Activity Details shows recorded laps and in-bounds charts and closes 
   await openApp(page, { signedIn: true });
   const detail = await openActivity(page);
   await detail.getByRole('button', { name: 'Splits', exact: true }).click();
-  await expect(detail.getByText('Lap 1 · 1.00 km')).toBeVisible();
-  await expect(detail.getByText('5:05 · 5:05/km')).toBeVisible();
+  const table=detail.locator('.m764-splits');
+  await expect(table).toBeVisible();
+  await expect(table.getByRole('columnheader')).toHaveText(['Lap','Time','Distance','Pace /km']);
+  await expect(table.locator('tbody tr').first().getByRole('cell')).toHaveText(['1','5:05','1.00 km','5:05']);
   await detail.getByRole('button', { name: 'Charts', exact: true }).click();
   const charts = detail.locator('.mile355-chart svg');
   await expect(charts).toHaveCount(2);
