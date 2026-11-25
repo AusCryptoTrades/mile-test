@@ -2925,6 +2925,7 @@ function paint(){
  if(Math.abs(window.scrollY-viewportY)>2)window.scrollTo({left:viewportX,top:viewportY,behavior:'instant'});
 }
 async function action(fn){const savedY=window.scrollY;try{await fn();await load();requestAnimationFrame(()=>window.scrollTo({top:savedY,behavior:'instant'}))}catch(err){S.error=err.message;paint();notice('Social Hub: '+err.message)}}
+window.mileRefreshSocial=async()=>{if(S.loading||page!=='social')return false;await load();if(S.error)throw Error(S.error);if(S.tab==='leaderboard')await loadLeaderboard();return true};
 window.m36Open=function(tab='feed'){m385LoadPremium();document.getElementById('mileV3More')?.classList.remove('open');S.profileTarget=null;S.peopleList=null;S.peopleListOwner=null;S.m393History=[];S.showHiddenProfile=false;S.m76ProfileTab='activity';S.tab=tab;if(tab==='requests')S.m79Requests='received';S.editingProfile=false;document.getElementById('m36-dim')?.remove();document.getElementById('m36-drawer')?.remove();page='social';render();load();if(tab==='leaderboard')loadLeaderboard();if(tab==='messages'){S.chatWith=null;paint();loadMessages()}setTimeout(()=>window.m37SyncFeed?.(),1800);window.scrollTo(0,0)};
 function m361Icon(name){const paths={'user-round':'<circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/>',activity:'<path d="M3 12h4l3-7 4 14 3-7h4"/>',search:'<circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/>','user-round-plus':'<circle cx="10" cy="8" r="4"/><path d="M3 21a7 7 0 0 1 14 0M19 8v6m-3-3h6"/>','menu':'<path d="M4 7h16M4 12h16M4 17h16"/>','edit':'<path d="M12 20h9M16 4l4 4-11 11-4 1 1-4L16 4Z"/>','shield':'<path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/>','message-circle':'<path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 9 9 0 0 1-4-.9L3 21l1.9-5.5A9 9 0 1 1 21 11.5Z"/>','share-2':'<circle cx="18" cy="5" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="18" cy="19" r="2"/><path d="m8 11 8-5m-8 7 8 5"/>'};return '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(paths[name]||'')+'</svg>'}
 window.m36Drawer=function(){
@@ -3357,13 +3358,14 @@ document.addEventListener('click',ev=>{const b=ev.target.closest('[data-m388-up]
    ${c('Recovery history',history.length?`<div class="list">${history.slice().sort((x,y)=>String(y.date).localeCompare(String(x.date))).slice(0,14).map(x=>`<div class="item row between"><div><strong>${esc(String(x.date).slice(0,10))}</strong><div class="small muted">Sleep ${fmtSleep(recoveryNumber(x,'sleepHours','sleep'))} · Resting HR ${fmtRecovery(recoveryNumber(x,'restingHR','restingHr'),' bpm')}</div></div><div class="small muted">Score ${fmtRecovery(recoveryNumber(x,'sleepScore'))}</div></div>`).join('')}</div>`:'<div class="empty">No recovery history yet.</div>','half')}</div>`;
  }
  window.mileLoadGarminData=async function(force=false){
-   if(!v4Ready||!token||!userId||loading)return;
+   if(!v4Ready||!token||!userId||loading)return false;const owner=userId;
    if(!force&&Date.now()-lastRead<300000)return;
    loading=true;
    try{
      const res=await fetch(MILE_GARMIN_FUNCTIONS+'garmin-data-read',{method:'GET',headers:{'Authorization':'Bearer '+token,'apikey':state.settings.supabaseAnon,'Accept':'application/json'}});
      const data=await res.json().catch(()=>({}));
      if(!res.ok||data.error)throw Error(data.error||'Garmin data read HTTP '+res.status);
+     if(owner!==userId||!v4Ready)return false;
      const days=new Map((state.recoveryDays||[]).map(x=>[String(x.date||x.day||'').slice(0,10),x]));
      for(const row of (data.health||[])){
        const raw=row.raw_data||{},kind=row.data_type,date=String(raw.calendarDate||row.recorded_at||'').slice(0,10);
@@ -3416,8 +3418,8 @@ document.addEventListener('click',ev=>{const b=ev.target.closest('[data-m388-up]
      if(data.latest_import)state.settings.lastGarminSync=data.latest_import;
      localStorage.setItem(v4LocalKey(userId),JSON.stringify(state));lastRead=Date.now();failedNotice=false;
      if(page==='recovery'){const app=document.getElementById('app');if(app)app.innerHTML=recoveryHtml()}
-     if(page==='dashboard'||page==='performance'){const app=document.getElementById('app');if(app)render()}
-   }catch(err){console.warn('MILE Garmin reader:',err.message);if(!failedNotice){failedNotice=true;const el=document.getElementById('syncStatus');if(el)el.title='Garmin dashboard reader not available: '+err.message}}
+     if(page==='dashboard'||page==='performance'){const app=document.getElementById('app');if(app)render()}return true;
+   }catch(err){console.warn('MILE Garmin reader:',err.message);if(!failedNotice){failedNotice=true;const el=document.getElementById('syncStatus');if(el)el.title='Garmin dashboard reader not available: '+err.message}return false;}
    finally{loading=false}
  };
  const previousGo=window.mileV3Go;
@@ -5402,4 +5404,55 @@ document.addEventListener('input',e=>{if(e.target.id!=='m79-message-search')retu
 document.addEventListener('change',e=>{if(e.target.id!=='m36-activity'&&e.target.name!=='m383-mode')return;const el=document.getElementById('m79-activity-preview');if(!el)return;const select=document.getElementById('m36-activity');const id=select?.value;const a=(state.activities||[]).find(x=>String(x.id)===id);el.hidden=!a||document.querySelector('input[name="m383-mode"]:checked')?.value==='manual';if(el.hidden)return;const payload=window.m79ActivityPayload?.(a,'private')||null;el.replaceChildren();const title=document.createElement('strong');title.textContent=a.name||a.activityName||a.type||'Workout';el.append(title);const grid=document.createElement('div');grid.className='m79-preview-metrics';for(const [label,val] of [['Distance',payload?.distance_m!=null?(payload.distance_m/1000).toFixed(2)+' km':'Not recorded'],['Duration',payload?.duration_s!=null?Math.round(payload.duration_s/60)+' min':'Not recorded']]){const cell=document.createElement('div'),l=document.createElement('small'),v=document.createElement('strong');l.textContent=label;v.textContent=val;cell.append(l,v);grid.append(cell)}el.append(grid)});
 })();
 </script><script src="./mile-admin-centre.js?v=82.2"></script>
+<style id="mile-pull-refresh-style">
+html{overscroll-behavior-y:contain}
+#mile-pull-refresh{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;z-index:9999;pointer-events:none;display:flex;align-items:center;gap:9px;padding:10px 14px;border:1px solid var(--line);border-radius:24px;background:var(--panel);color:var(--text);box-shadow:0 4px 16px #0003;font-size:12px;transform:translate(-50%,-150%);opacity:0;transition:opacity .15s,transform .18s}
+#mile-pull-refresh.visible{opacity:1;transform:translate(-50%,0)}
+#mile-pull-refresh svg{width:20px;height:20px;flex:none}#mile-pull-refresh.busy svg{animation:milePullSpin .8s linear infinite}@keyframes milePullSpin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){#mile-pull-refresh{transition:none}#mile-pull-refresh.busy svg{animation:none}}
+</style><script id="mile-pull-refresh-script">
+(function(){
+'use strict';
+const threshold=78;let gesture=null,busy=false,hideTimer;
+const indicator=document.createElement('div');indicator.id='mile-pull-refresh';indicator.setAttribute('role','status');indicator.setAttribute('aria-live','polite');indicator.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2 6M20 4v7h-7"/></svg><span></span>';document.body.append(indicator);
+const label=indicator.querySelector('span');
+function visible(el){return !!(el&&el.getClientRects().length&&getComputedStyle(el).visibility!=='hidden')}
+function allowed(target){
+ if(!v4Ready||!userId||busy||avCloudPending||avCloudError)return false;
+ if(!['dashboard','calendar','performance','recovery','insights','social'].includes(page))return false;
+ if(page==='social'&&(!['feed','leaderboard','notifications'].includes(window.m36State?.tab)||window.m36State?.editingProfile))return false;
+ if(document.body.classList.contains('mile-native-view-open'))return false;
+ if(target?.closest?.('input,textarea,select,button,a,[contenteditable],iframe,form,[role=dialog],summary'))return false;
+ if([...document.querySelectorAll('#m36-drawer,#mile-emergency-more.open,#m390-dialog,#mile35-detail,#m3927-detail,#mile-beta-feedback-overlay,#mile-admin-centre,#m36-dim,[role=dialog]')].some(visible))return false;
+ if(window.scrollY>1||document.scrollingElement.scrollTop>1)return false;
+ for(let el=target;el&&el!==document.body;el=el.parentElement)if(el.scrollTop>1)return false;
+ return true;
+}
+function show(text,spinning=false){clearTimeout(hideTimer);label.textContent=text;indicator.classList.add('visible');indicator.classList.toggle('busy',spinning)}
+function hide(){indicator.classList.remove('visible','busy');label.textContent=''}
+async function refresh(){
+ if(busy||!allowed(document.getElementById('app')))return false;
+ busy=true;const owner=userId,origin=page;show('Refreshing…',true);
+ try{
+  const confirmed=localStorage.getItem('av-cloud-confirmed-'+owner)||'',edited=localStorage.getItem('av-local-edited-'+owner)||'';
+  // Never overwrite unsynced local changes with a cloud snapshot.
+  let partial=false;
+  if(!avCloudPending&&!avCloudError&&(!edited||edited<=confirmed)){
+   await cloudLoad();
+  }else partial=true;
+  if(owner!==userId||!v4Ready)throw Error('Session changed');
+  if(await window.mileLoadGarminData(true)!==true)partial=true;
+  if(owner!==userId||!v4Ready)throw Error('Session changed');
+  if(origin==='social'&&page==='social'&&await window.mileRefreshSocial()!==true)partial=true;
+  if(page===origin&&page!=='social'&&!document.body.classList.contains('mile-native-view-open'))render();
+  show(partial?'Some data could not refresh':'Up to date');return !partial;
+ }catch(e){show('Could not refresh. Try again.');return false}
+ finally{busy=false;hideTimer=setTimeout(hide,1300)}
+}
+document.addEventListener('touchstart',e=>{if(e.touches.length!==1||!allowed(e.target)){gesture=null;return}const t=e.touches[0];gesture={x:t.clientX,y:t.clientY,armed:false,target:e.target}}, {passive:true});
+document.addEventListener('touchmove',e=>{if(!gesture)return;if(e.touches.length!==1||!allowed(gesture.target)){gesture=null;hide();return}const t=e.touches[0],dy=t.clientY-gesture.y,dx=Math.abs(t.clientX-gesture.x);if(dy<0||dx>Math.max(12,dy*.7)){gesture=null;hide();return}if(dy<12)return;if(e.cancelable)e.preventDefault();gesture.armed=dy>=threshold;show(gesture.armed?'Release to refresh':'Pull to refresh')},{passive:false});
+document.addEventListener('touchend',()=>{const g=gesture;gesture=null;if(g?.armed&&allowed(g.target))void refresh();else if(!busy)hide()},{passive:true});
+document.addEventListener('touchcancel',()=>{gesture=null;if(!busy)hide()},{passive:true});
+})();
+</script>
 </body></html>
