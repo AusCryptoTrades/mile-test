@@ -13,7 +13,7 @@ const samples = Array.from({ length: 11 }, (_, i) => ({
   movingDurationInSeconds: i * 62,
 }));
 
-async function openApp(page, { signedIn = false, laps = true } = {}) {
+async function openApp(page, { signedIn = false, laps = true, syncStore = null } = {}) {
   const origin = 'http://127.0.0.1:4173';
   const backend = 'https://mgixvokjlytjuypzcfzz.supabase.co';
   await page.route('**/*', async route => {
@@ -27,7 +27,7 @@ async function openApp(page, { signedIn = false, laps = true } = {}) {
     } else if (url.pathname === '/rest/v1/av_members') {
       json = [{ user_id: user.id }];
     } else if (url.pathname === '/rest/v1/av_training_data') {
-      json = [{ training_data: { activities: [activity] } }];
+      if(syncStore&&route.request().method()==='POST'){const payload=route.request().postDataJSON();syncStore.data=payload.training_data;syncStore.updated_at=payload.updated_at;json=[];}else json=[{training_data:syncStore?.data||{activities:[activity]},updated_at:syncStore?.updated_at}];
     } else if (url.pathname === '/functions/v1/garmin-data-read' &&
                url.searchParams.get('activityId') === activity.id) {
       json = { details: { raw_data: laps ? {
@@ -773,7 +773,7 @@ test('77.1 settings hub groups and working subpage navigation',async ({page})=>{
 
 
 test('77.2 dashboard widget preferences preserve order, persist and restore defaults',async ({page})=>{
- await openApp(page,{signedIn:true});
+ await openApp(page,{signedIn:true,syncStore:{}});
  await page.evaluate(()=>window.mileV3Go('dashboard'));
  const dash=page.locator('.mile-ui-dashboard');
  await expect(dash).toBeVisible();
@@ -796,6 +796,7 @@ test('77.2 dashboard widget preferences preserve order, persist and restore defa
  await expect(dash.locator('[data-m772-widget="completion"]')).toBeVisible();
  await expect(dash.locator('[data-m772-widget="activity"]')).toBeVisible();
  expect(await dash.locator('[data-m772-widget]').evaluateAll(nodes=>nodes.map(n=>n.dataset.m772Widget))).toEqual(order);
+ await page.evaluate(()=>avCloudQueue);
  await page.reload();
  await expect.poll(()=>page.evaluate(()=>window.mile772?.enabled('training'))).toBe(false);
  expect(await page.evaluate(()=>window.mile772.enabled('completion'))).toBe(true);
@@ -956,4 +957,40 @@ test('77.5 connection page and safe backup export',async ({page})=>{
  expect(payload.settings.supabaseUrl).toBe('');
  await data.locator('#backupFile').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from('{}')});
  await expect(data.locator('[data-m775-status]')).toHaveText('Invalid MILE training backup');
+});
+
+test('77.6 cloud preferences restore in a fresh browser context',async ({page,browser},info)=>{
+ const syncStore={};
+ await openApp(page,{signedIn:true,syncStore});
+ await page.evaluate(()=>window.mileV3Go('settings'));
+ await page.locator('[data-m771-open="appearance"]').click();
+ await page.locator('[data-m395-theme="mono"]').first().click();
+ await page.locator('[data-m771-open="hub"]').click();
+ await page.locator('[data-m771-open="dashboard"]').click();
+ await page.locator('[data-m772-pref="vo2"]').uncheck();
+ await page.locator('[data-m771-open="hub"]').click();
+ await page.locator('[data-m771-open="notifications"]').click();
+ await page.locator('[data-m381-pref="like"]').uncheck();
+ await page.evaluate(()=>avCloudQueue);
+ expect(syncStore.data.settings.preferences776.appearance.theme).toBe('mono');
+ expect(syncStore.data.settings.preferences776.dashboard.vo2).toBe(false);
+ expect(syncStore.data.settings.preferences776.notifications.like).toBe(false);
+ const ctx=await browser.newContext();
+ try{
+  const other=await ctx.newPage();
+  await openApp(other,{signedIn:true,syncStore});
+  await expect(other.locator('html')).toHaveAttribute('data-m395-theme','mono');
+  await other.evaluate(()=>window.mileV3Go('dashboard'));
+  await expect(other.locator('.mile-ui-dashboard')).toBeVisible();
+  await expect(other.locator('[data-m772-widget="vo2"]')).toBeHidden();
+  await other.evaluate(()=>window.mileV3Go('settings'));
+  await other.locator('[data-m771-open="notifications"]').click();
+  await expect(other.locator('[data-m381-pref="like"]')).not.toBeChecked();
+ }finally{await ctx.close()}
+});
+test('77.6 a fresh account does not inherit another account’s global widget or theme preferences',async ({page})=>{
+ await page.addInitScript(()=>{localStorage.setItem('mile-legacy-pref-owner-776','another-account');localStorage.setItem('mile-appearance-v1',JSON.stringify({theme:'mono'}));localStorage.setItem('mile-dashboard-widgets-v1',JSON.stringify({vo2:false}))});
+ await openApp(page,{signedIn:true,syncStore:{}});
+ await expect(page.locator('html')).toHaveAttribute('data-m395-theme','forest');
+ expect(await page.evaluate(()=>window.mile772.enabled('vo2'))).toBe(true);
 });
