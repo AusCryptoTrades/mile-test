@@ -25,4 +25,7 @@ revoke all on private.mile_admin_announcements,private.mile_admin_audit from pub
 create index if not exists mile_admin_audit_created_idx on private.mile_admin_audit(created_at desc,id);
 alter table public.mile_app_notifications drop constraint mile_app_notifications_kind_check;
 alter table public.mile_app_notifications add constraint mile_app_notifications_kind_check check(kind in ('message','follow','follow_request','follow_accepted','like','comment','pb','announcement'));
+-- Recipients can mark notifications read; they cannot edit sender, kind or announcement content.
+revoke update on public.mile_app_notifications from public,anon,authenticated;
+grant update(is_read) on public.mile_app_notifications to authenticated;
 commit;
