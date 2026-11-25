@@ -1,0 +1,30 @@
+const {test,expect}=require('@playwright/test');
+const reply=(route,body)=>route.fulfill({json:body,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*'}});
+test('82.2 foregrounding retains active admin form, filters and unsaved draft',async({page})=>{
+ let requests=0;
+ await page.route('**/functions/v1/mile-admin-overview?*',r=>{requests++;return reply(r,{days:7,metrics:{athletes:4},growth:[],generated_at:'2026-11-25T00:00:00Z'})});
+ await page.route('**/functions/v1/mile-admin-release?*',r=>reply(r,{rows:[],audience:4,has_more:false}));
+ await page.goto('/index.html');
+ await page.evaluate(()=>{sessionStorage.setItem('av-token','test-admin-token');window.mileBetaIsAdmin=()=>true;window.mileBetaAdmin()});
+ const panel=page.locator('#mile-admin-centre');await expect(panel.locator('.ma-status')).toContainText('Overview data connected');
+ await panel.getByRole('button',{name:'Announcements & Releases'}).click();
+ await expect(panel.getByRole('button',{name:'Save draft'})).toBeEnabled();
+ await panel.getByLabel('Announcement title').fill('Unsaved draft');
+ await panel.getByLabel('Announcement message').fill('Preserve this unsaved message');
+ const initial=requests;
+ await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+ await expect(panel.getByLabel('Announcement title')).toHaveValue('Unsaved draft');
+ await expect(panel.getByLabel('Announcement message')).toHaveValue('Preserve this unsaved message');
+ expect(requests).toBe(initial);
+ await page.evaluate(()=>{sessionStorage.setItem('av-token','changed-token');document.dispatchEvent(new Event('visibilitychange'))});
+ await expect(panel).toHaveCount(0);
+});
+test('82.2 closing Admin does not force Settings navigation',async({page})=>{
+ await page.route('**/functions/v1/mile-admin-overview?*',r=>reply(r,{days:7,metrics:{athletes:4},growth:[],generated_at:'2026-11-25T00:00:00Z'}));
+ await page.goto('/index.html');
+ await page.evaluate(()=>{sessionStorage.setItem('av-token','test-admin-token');window.mileBetaIsAdmin=()=>true;window.auditNavigations=[];window.mileV3Go=(p)=>window.auditNavigations.push(p);window.mileBetaAdmin()});
+ const panel=page.locator('#mile-admin-centre');
+ await expect(panel.locator('.ma-status')).toContainText('Overview data connected');
+ await panel.locator('[data-ma-close]').click();await expect(panel).toHaveCount(0);
+ expect(await page.evaluate(()=>window.auditNavigations)).toEqual([]);
+});
