@@ -1283,3 +1283,19 @@ test('Challenges opened from leaderboard has no stale outer banner ',async({page
  await page.waitForTimeout(400);
  await expect(page.locator('#app > .mile-universal-header')).toHaveCount(0);
 });
+
+ test('Weekly Load groups Garmin cardio and HIIT uploads without counting HYROX or previous week',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>{
+ const rows=[['cardio','CARDIO'],['indoor','indoor_cardio'],['hiit','HIIT'],['long-hiit','high_intensity_interval_training'],['strength','strength_training'],['hyrox','HYROX'],['run','running'],['cycle','cycling'],['swim','lap_swimming']].map(([id,type])=>({id:'weekly-'+id,type,date:'2026-11-19T07:00:00',distanceKm:id==='run'?4.7:id==='cycle'?10:id==='swim'?1.105:0,durationMin:30,source:'garmin-developer-api'}));
+ rows.push({id:'weekly-nested',type:'Other',raw:{activityType:{typeKey:'hiit'}},date:'2026-11-19T07:00:00',durationMin:30},{id:'weekly-old',type:'cardio',date:'2026-11-12T07:00:00',durationMin:30});
+ state.activities=rows;window.mileV3Go('dashboard');render();
+ });
+ const load=page.locator('[data-m772-widget="load"]');
+ await expect(load.locator('.mile-ui-sportrow').filter({hasText:'Cardio'})).toContainText('5 sessions');
+ await expect(load.locator('.mile-ui-sportrow').filter({hasText:'Strength'})).toContainText('1 session');
+ await expect(load.locator('.mile-ui-sportrow').filter({hasText:'Running'})).toContainText('4.7 km');
+ await expect(load.locator('.mile-ui-sportrow').filter({hasText:'Cycling'})).toContainText('10.0 km');
+ await expect(load.locator('.mile-ui-sportrow').filter({hasText:'Swimming'})).toContainText('1105 m');
+ await expect(load.getByText('HYROX',{exact:true})).toHaveCount(0);
+ });
