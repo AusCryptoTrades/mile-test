@@ -871,6 +871,9 @@ test('77.3 metrics and zone editors remain separate and preserve saved custom zo
  await p.locator('[data-m771-open="hub"]').click();
  await page.locator('[data-m771-open="zones"]').click();
  const z=page.locator('[data-m771-page="zones"]');
+ await expect(z.locator('.m777-zrow')).toHaveCount(5);
+ await expect(z.locator('.v451-zone-grid')).toBeHidden();
+ await z.locator('[data-m777-zone-editor] summary').click();
  await expect(z.locator('.v451-zone-grid')).toBeVisible();
  await expect(z.locator('#v45FiveK')).toBeHidden();
  await expect(z.getByRole('button',{name:'Save HR Zones'})).toBeVisible();
@@ -993,4 +996,57 @@ test('77.6 a fresh account does not inherit another account’s global widget or
  await openApp(page,{signedIn:true,syncStore:{}});
  await expect(page.locator('html')).toHaveAttribute('data-m395-theme','forest');
  expect(await page.evaluate(()=>window.mile772.enabled('vo2'))).toBe(true);
+});
+
+test('77.7 theme panels use active palette and help/about links work',async ({page})=>{
+ await openApp(page,{signedIn:true});
+ for(const theme of ['forest','graphite','midnight','mono','light','sand','ice']){
+  await page.evaluate(t=>window.m395ThemeSet(t),theme);
+  await page.evaluate(()=>window.mileV3Go('settings'));
+  for(const name of ['help','about','account','notifications']){
+   await page.locator('[data-m771-open="'+name+'"]').first().click();
+   const p=page.locator('[data-m771-page="'+name+'"]');
+   await expect(p).toBeVisible();
+   const mismatches=await p.evaluate(el=>[...el.querySelectorAll('.card,.m774-card,.m775-card,.m777-panel')].filter(n=>{const probe=document.createElement('div');probe.style.background='var(--panel)';n.appendChild(probe);const expected=getComputedStyle(probe).backgroundColor;probe.remove();return getComputedStyle(n).backgroundColor!==expected}).map(n=>n.className));
+   expect(mismatches).toEqual([]);
+   await p.locator('[data-m771-open="hub"]').click();
+  }
+ }
+ await page.locator('[data-m771-open="help"]').click();
+ await page.getByRole('button',{name:/Report a bug/}).click();
+ await expect(page.locator('#mile-beta-feedback-overlay')).toBeVisible();
+ await page.locator('#mile-beta-feedback-overlay [data-beta5-close]').click();
+});
+test('77.7 notification preferences back returns to Settings when launched there',async ({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('settings'));
+ await page.locator('[data-m771-open="notifications"]').click();
+ await page.locator('[data-m771-action="notifications"]').click();
+ await page.locator('[data-m381-settings]').click();
+ await expect(page.locator('[data-m381-back]')).toHaveText('‹ Back');
+ await page.locator('[data-m381-back]').click();
+ await expect(page.locator('[data-m771-page="notifications"]')).toBeVisible();
+ await page.evaluate(()=>window.m36Open('notifications'));
+ await page.locator('[data-m381-settings]').click();
+ await page.locator('[data-m381-back]').click();
+ await expect(page.locator('[data-m381-settings]')).toBeVisible();
+});
+test('77.7 Garmin status distinguishes stored, expired and unknown authorisation',async ({page})=>{
+ await openApp(page,{signedIn:true});
+ let value='authorised';
+ await page.route('**/functions/v1/garmin-connection-status',route=>route.fulfill({json:{status:value},headers:{'access-control-allow-origin':'http://127.0.0.1:4173'}}));
+ await page.evaluate(()=>window.mileV3Go('settings'));
+ for(const [state,label] of [['authorised','Authorisation stored'],['expired','Authorisation expired — reconnect'],['not_connected','Not connected'],['unexpected','Connection status unavailable']]){
+  value=state;
+  await page.locator('[data-m771-open="connections"]').click();
+  await expect(page.locator('[data-m777-garmin-status]')).toHaveText(label);
+  await page.locator('[data-m771-open="hub"]').click();
+ }
+});
+test('77.7 Settings admin row is conditional on existing admin claim',async ({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('settings'));
+ await expect(page.locator('[data-m771-action="admin"]')).toHaveCount(0);
+ await page.evaluate(()=>{localStorage.setItem('av-token','fixture.'+btoa(JSON.stringify({app_metadata:{mile_role:'admin'}}))+'.fixture');render()});
+ await expect(page.locator('[data-m771-action="admin"]')).toBeVisible();
 });
