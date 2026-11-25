@@ -1,0 +1,10 @@
+{
+  "appId": "au.com.milefitness.training.dev",
+  "appName": "MILE Training",
+  "webDir": "www",
+  "server": {
+    "hostname": "localhost",
+    "androidScheme": "https",
+    "iosScheme": "capacitor"
+  }
+}

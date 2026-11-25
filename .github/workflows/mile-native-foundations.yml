@@ -1,0 +1,70 @@
+name: MILE native foundations
+on:
+  pull_request:
+    branches: [main]
+    paths: ['native/**', '.github/workflows/mile-native-foundations.yml', 'index.html', 'mile-*.html', 'mile-*.js', 'mile-*.css']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: mile-native-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  bundle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm --prefix native test
+  android-debug:
+    needs: bundle
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: native
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Select Java 21
+        run: |
+          test -n "$JAVA_HOME_21_X64"
+          echo "JAVA_HOME=$JAVA_HOME_21_X64" >> "$GITHUB_ENV"
+          echo "$JAVA_HOME_21_X64/bin" >> "$GITHUB_PATH"
+      - run: npm install --no-audit --no-fund
+      - run: npm run prepare:android
+      - name: Compile Android debug application
+        run: |
+          cd android
+          ./gradlew assembleDebug --no-daemon
+          test -s app/build/outputs/apk/debug/app-debug.apk
+  ios-simulator:
+    needs: bundle
+    runs-on: macos-26
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: native
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: xcodebuild -version
+      - run: npm install --no-audit --no-fund
+      - run: npm run prepare:ios
+      - name: Compile unsigned iOS simulator application
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath build-ios CODE_SIGNING_ALLOWED=NO build
+          test -d build-ios/Build/Products/Debug-iphonesimulator/App.app
