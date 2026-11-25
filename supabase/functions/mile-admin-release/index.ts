@@ -35,7 +35,7 @@ Deno.serve(async(req:Request)=>{
     if(!drafts.length)return null;
     const d=drafts[0];
     const [sent]=await tx`with inserted as (insert into public.mile_app_notifications(recipient_id,actor_id,kind,entity_id,message)
-      select distinct m.user_id,null,'announcement',${d.id}::text,${d.title+" — "+d.body} from public.av_members m join auth.users u on u.id=m.user_id returning id) select count(*)::int as recipients from inserted`;
+      select distinct m.user_id,null::uuid,'announcement',${d.id}::text,${d.title+" — "+d.body} from public.av_members m join auth.users u on u.id=m.user_id returning id) select count(*)::int as recipients from inserted`;
     const [published]=await tx`update private.mile_admin_announcements set status='published',published_at=now(),recipient_count=${sent.recipients} where id=${d.id}::uuid returning id,status,published_at,recipient_count`;
     await tx`insert into private.mile_admin_audit(actor_id,action,target_id,detail) values(${actor}::uuid,'announcement.publish',${d.id}::uuid,jsonb_build_object('recipient_count',${sent.recipients}::int))`;
     return published;
