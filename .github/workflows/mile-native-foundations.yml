@@ -45,7 +45,17 @@ jobs:
       - name: Compile Android debug application
         run: |
           cd android
-          ./gradlew assembleDebug --no-daemon
+          set -o pipefail
+          for attempt in 1 2 3; do
+            if ./gradlew assembleDebug --no-daemon --max-workers=2 2>&1 | tee "$RUNNER_TEMP/mile-gradle.log"; then
+              break
+            fi
+            if ! grep -Eq '429|Too Many Requests' "$RUNNER_TEMP/mile-gradle.log" || [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+            echo "Dependency server rate limited the build; retrying after backoff."
+            sleep "$((attempt * 60))"
+          done
           test -s app/build/outputs/apk/debug/app-debug.apk
           grep -q 'android.permission.ACCESS_FINE_LOCATION' app/src/main/AndroidManifest.xml
   ios-simulator:
