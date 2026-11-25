@@ -542,8 +542,8 @@ test('calendar HR-zone relocation: Calendar stays focused, Settings retains edit
  await expect(page.locator('#app details.av-hr-collapse, #app details.mile-v31-hr, #app .mile-v3-hr')).toHaveCount(0);
  await expect(page.locator('#app .daygrid')).toBeVisible();
  await page.evaluate(()=>window.mileV3Go('settings'));
- await expect(page.locator('#app')).toContainText('HR Zones');
- await page.evaluate(()=>window.mileV3SetSettingsTab('zones'));
+ await expect(page.locator('#m771-hub')).toContainText('Training zones');
+ await page.locator('[data-m771-open="zones"]').click();
  await expect(page.locator('#app')).toContainText('Custom HR Zones');
  await expect(page.locator('#app')).toContainText('Save HR Zones');
 });
@@ -767,4 +767,20 @@ test('77.1 settings hub groups and working subpage navigation',async ({page})=>{
  await page.locator('[data-m771-open="hub"]').click();
  await hub.locator('[data-m771-open="units"]').click();
  await expect(page.locator('#m395-distance')).toHaveValue('mi');
+});
+
+test('77.1 settings hub routes to existing controls and back',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('settings'));
+ const hub=page.locator('#m771-hub');
+ await expect(hub).toContainText('PERSONALISATION');
+ for(const [id,selector] of [['appearance','.m395-theme-grid'],['units','.m395-fields'],['profile','.m771-legacy .card'],['connections','button[onclick*="v4Connect"]'],['data','#backupFile']]){
+   await hub.locator('[data-m771-open="'+id+'"]').click();
+   await expect(hub.locator(selector).first()).toHaveCount(1);
+   await hub.locator('[data-m771-open="hub"]').click();
+   await expect(hub).toContainText('PERSONALISATION');
+ }
+ await hub.locator('[data-m771-open="help"]').click();
+ await hub.locator('[data-m771-action="feedback"]').click();
+ await expect(page.locator('#mile-beta-feedback-overlay')).toBeVisible();
 });
