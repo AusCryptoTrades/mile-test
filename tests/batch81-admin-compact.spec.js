@@ -11,8 +11,11 @@ test('81 compact admin metric layout and stable management navigation',async({pa
  const card=panel.locator('[data-metric=athletes]');expect(await card.evaluate(el=>el.getBoundingClientRect().height)).toBeLessThan(85);
  await expect(panel.locator('.ma-chart')).toHaveCSS('height','78px');
  const button=panel.getByRole('button',{name:'Athlete Management'});await button.scrollIntoViewIfNeeded();
- const before=await panel.evaluate(el=>el.scrollTop);
+ // Snapshot the real click position, after browser actionability/focus scrolling.
+ await button.evaluate(el=>el.addEventListener('click',()=>{window.m81BeforeClick=el.closest('#mile-admin-centre').scrollTop},{capture:true,once:true}));
  await button.click();
+ const before=await page.evaluate(()=>window.m81BeforeClick);
+ expect(Number.isFinite(before)).toBe(true);
  const heading=panel.getByRole('heading',{name:'Athlete Management'});await expect(heading).toBeVisible();
  await expect(heading).toBeFocused();expect(await panel.getByLabel('Search name or username').evaluate(el=>el!==document.activeElement)).toBe(true);
  const top=await heading.evaluate(el=>el.getBoundingClientRect().top);release();
@@ -20,5 +23,6 @@ test('81 compact admin metric layout and stable management navigation',async({pa
  expect(Math.abs(await heading.evaluate(el=>el.getBoundingClientRect().top)-top)).toBeLessThanOrEqual(4);
  expect(await panel.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
  await panel.getByRole('button',{name:'‹ Overview'}).click();await expect(button).toBeFocused();
- await expect.poll(async()=>Math.abs(await panel.evaluate(el=>el.scrollTop)-before)).toBeLessThanOrEqual(8);
+ await expect.poll(()=>panel.evaluate((el,saved)=>Math.abs(el.scrollTop-Math.max(0,Math.min(saved,el.scrollHeight-el.clientHeight))),before)).toBeLessThanOrEqual(8);
+ await expect(button).toBeInViewport();
 });
