@@ -35,8 +35,7 @@ export async function stage() {
   if (!closing.test(original)) throw new Error('Missing body closing tag');
   const identity = 'window.MILE_NATIVE_BUILD='+JSON.stringify({commit,version})+';';
   await writeFile(path.join(dest,'mile-native-runtime.js'),identity+'\n'+runtime);
-  await writeFile(entry,original.replace(closing,'<script src="./mile-native-runtime.js"></script>  const commit = execFileSync('git', ['rev-parse','HEAD'], { cwd: root, encoding: 'utf8' }).trim();
-  await writeFile'));
+  await writeFile(entry,original.replace(closing,match=>'<script src="./mile-native-runtime.js"></script>'+match));
   for (const name of ['index.html','mile-native-runtime.js']) hashes[name]=createHash('sha256').update(await readFile(path.join(dest,name))).digest('hex');
   await writeFile(path.join(dest, 'mile-build.json'), JSON.stringify({commit,version, assets: hashes}, null, 2)+'\n');
   console.log('Staged ' + (await readdir(dest)).length + ' files for native build ' + commit);
