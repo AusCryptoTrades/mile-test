@@ -5194,7 +5194,7 @@ html[data-m772-one-quick="true"] .mile-ui-dashboard .mile-home-quick{grid-templa
  function panel(){return '<section class="m772-panel"><p class="m772-intro">Choose what appears on Home. Enabled widgets keep their default order. Your training data is unaffected. Preferences are saved to your MILE account.</p>'+items.map(([id,title,desc])=>'<label class="m772-option"><span><strong>'+title+'</strong><small>'+desc+'</small></span><input type="checkbox" data-m772-pref="'+id+'" aria-label="'+title+'" '+(enabled(id)?'checked':'')+'></label>').join('')+'<div class="m772-footer"><small data-m772-count aria-live="polite">'+ids.filter(enabled).length+' of '+ids.length+' widgets enabled</small><button type="button" class="btn alt" data-m772-reset>Restore default dashboard</button></div></section>'}
  document.addEventListener('change',e=>{const id=e.target.dataset?.m772Pref;if(ids.includes(id)){prefs[id]=e.target.checked;update()}});
  document.addEventListener('click',e=>{if(e.target.closest('[data-m772-reset]')){prefs={};update()}});
- window.addEventListener('storage',e=>{if(e.key===key||e.key===null){prefs=read();update(false)}});
+ window.addEventListener('storage',e=>{if(e.key===key||e.key===null){prefs=v4Ready&&window.mile776?window.mile776.get('dashboard'):read();apply()}});
  window.mile772={panel,enabled,hydrate(value){prefs={...value};update(false)}};
  apply();
 })();
