@@ -32,3 +32,29 @@ html[data-mile-buttons="main"] body :is(#app,#m390-dialog) :is(.btn,.m36-btn):di
 html[data-mile-buttons="sim"] body :is(#start,#tap,#finishEarly),html[data-mile-buttons="tracker"] body :is(#start,#pause,#finish,#nextBlock){min-height:48px!important}
 html[data-mile-buttons="main"] body #app button[onclick*="mileStartPlannedRun"]{min-height:44px!important}
 @media(pointer:coarse){:root{--m78-height:44px;--m78-pad:7px 12px}html[data-mile-buttons="main"] body #app .m771-back{min-height:44px!important}}
+
+/* Batch 82.3 — audited interactive targets. Preserve compact icons and labelled
+   checkbox/radio hit areas; enlarge only confirmed undersized navigation/summary controls. */
+html[data-mile-buttons="main"] body #app button[onclick*="shiftMonth("],
+html[data-mile-buttons="main"] body #app .mile-lb-week button,
+html[data-mile-buttons="main"] body #app .m362-menu,
+html[data-mile-buttons="main"] body #mile-emergency-more .em-close,
+html[data-mile-buttons="main"] body #m36-drawer .m36-x,
+html[data-mile-buttons="main"] body #mile-beta-feedback-overlay button[data-beta5-close]{
+ min-width:44px!important;min-height:44px!important;
+}
+html[data-mile-buttons="main"] body #app :is(.m70-filter-button,.iq72-tabs button){
+ min-height:36px!important;min-width:32px;padding:7px 9px!important;
+}
+html[data-mile-buttons="main"] body #app :is(.mile-coach-preview-session>summary,.iq72 summary,.mile-lb-card summary,.mile-lb-explainer summary){
+ min-height:36px;box-sizing:border-box;display:flex;align-items:center;gap:6px;
+}
+html[data-mile-buttons="main"] body #app .mile-coach-preview-session>summary{justify-content:space-between;flex-wrap:wrap}
+html[data-mile-buttons="main"] body #v4Gate .av-remember-row{min-height:36px;padding:4px 0;box-sizing:border-box}
+html[data-mile-buttons="main"] body #app .v42-checks label{min-height:40px;box-sizing:border-box;border-color:var(--line);color:var(--text)}
+html[data-mile-buttons="main"] body #app .m773-days label span{min-height:44px}
+@media(pointer:coarse){
+ html[data-mile-buttons="main"] body #app :is(.m70-filter-button,.iq72-tabs button){min-height:44px!important}
+ html[data-mile-buttons="main"] body #v4Gate .av-remember-row{min-height:44px}
+ html[data-mile-buttons="main"] body #app .v42-checks label{min-height:44px}
+}

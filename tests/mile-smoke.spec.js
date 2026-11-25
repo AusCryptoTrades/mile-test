@@ -926,14 +926,16 @@ test('77.4 notification toggles share existing per-user preference storage and r
  await page.evaluate(()=>window.mileV3Go('settings'));
  await page.locator('[data-m771-open="notifications"]').click();
  const panel=page.locator('[data-m771-page="notifications"]');
- await expect(panel.locator('[data-m381-pref]')).toHaveCount(7);
+ await expect(panel.locator('[data-m381-pref]')).toHaveCount(8);
+ await expect(panel.locator('[data-m381-pref="announcement"]')).toBeChecked();
  await panel.locator('[data-m381-pref="like"]').uncheck();
  expect(await page.evaluate(id=>JSON.parse(localStorage.getItem('mile_notification_prefs_'+id)).like,user.id)).toBe(false);
  await panel.locator('[data-m771-open="hub"]').click();
  await page.locator('[data-m771-open="notifications"]').click();
  await expect(panel.locator('[data-m381-pref="like"]')).not.toBeChecked();
  await panel.locator('[data-m774-reset-notifications]').click();
- await expect(panel.locator('[data-m381-pref]:checked')).toHaveCount(7);
+ await expect(panel.locator('[data-m381-pref]:checked')).toHaveCount(8);
+ await expect(panel.locator('[data-m381-pref="announcement"]')).toBeChecked();
  expect(await page.evaluate(id=>JSON.parse(localStorage.getItem('mile_notification_prefs_'+id)).like,user.id)).toBe(true);
 });
 
@@ -1172,4 +1174,100 @@ test('79 post preview and manual mode use existing activity privacy defaults',as
  await page.locator('input[name="m383-mode"][value="manual"]').check();
  await expect(page.locator('#m79-activity-preview')).toBeHidden();
  await expect(page.locator('#m383-manual-fields')).toBeVisible();
+});
+
+
+test('82.1 support menu uses compact vector rows and accurate feedback wording',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3ToggleMore());
+ const menu=page.locator('#mile-emergency-more');
+ const support=menu.locator('[data-beta5-entry]');
+ await expect(support).toContainText('SUPPORT');
+ const bug=support.locator('[data-beta5-bug]'),feedback=support.locator('[data-beta5-feedback]');
+ for(const row of [bug,feedback]){
+  await expect(row.locator('svg')).toBeVisible();
+  expect((await row.boundingBox()).height).toBeLessThanOrEqual(65);
+  expect((await row.boundingBox()).height).toBeGreaterThanOrEqual(44);
+ }
+ await expect(support.locator('[data-beta5-admin]')).toHaveCount(0);
+ await feedback.click();
+ const form=page.locator('#mile-beta-feedback-overlay');
+ await expect(form).toBeVisible();await expect(form.getByText('What would you like to improve?')).toBeVisible();
+ await expect(form.locator('select[name=page] option')).toContainText(['Home','Calendar','Build','Training Plans','Stats','Activity Details','MILE IQ','Events & PBs','Race Lab','MILE SIM','Track','Challenges','Social Feed','Profile','Leaderboard','Discover Athletes','Follow Requests','Post Activity','Messages','Notifications','Settings','Admin Centre','Other']);
+ await form.locator('[data-beta5-close]').click();await expect(form).toHaveCount(0);
+});
+test('82.1 Race Lab feature follows seven active palettes without losing simulator entry',async({page})=>{
+ await openApp(page,{signedIn:true});await page.evaluate(()=>window.mileV3Go('predictor'));
+ for(const theme of ['forest','graphite','midnight','mono','light','sand','ice']){
+  await page.evaluate(t=>window.m395ThemeSet(t),theme);
+  const feature=page.locator('.m821-sim-feature');await expect(feature).toBeVisible();
+  expect(await feature.evaluate(n=>{const p=document.createElement('div');p.style.background='var(--panel)';n.appendChild(p);const ok=getComputedStyle(p).backgroundColor===getComputedStyle(n).backgroundColor;p.remove();return ok})).toBe(true);
+  const link=feature.getByRole('link',{name:'Open MILE SIM'});await expect(link).toHaveAttribute('href','./mile-sim.html');await expect(link).toHaveCSS('font-size','13px');
+ }
+});
+test('82.1 announcement preferences persist through account preference schema',async({page})=>{
+ await openApp(page,{signedIn:true});await page.evaluate(()=>window.mileV3Go('settings'));
+ await page.locator('[data-m771-open="notifications"]').click();
+ const toggle=page.getByRole('checkbox',{name:'Announcements & releases'});
+ await expect(toggle).toBeChecked();await toggle.uncheck();
+ await expect.poll(()=>page.evaluate(()=>window.mile776.get('notifications').announcement)).toBe(false);
+ await page.locator('[data-m774-reset-notifications]').click();await expect(toggle).toBeChecked();
+ await expect.poll(()=>page.evaluate(()=>window.mile776.get('notifications').announcement)).toBe(true);
+});
+
+
+test('82.3 login and Race Lab use associated field labels and accessible results',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('predictor'));
+ await page.getByLabel('Goal time (mm:ss or h:mm:ss)').fill('1:40:00');
+ await page.getByRole('button',{name:'Calculate race strategy'}).click();
+ await expect(page.locator('#m33RunOut')).toContainText('Required average pace');
+ await expect(page.locator('#m33RunOut')).toHaveAttribute('aria-live','polite');
+ await page.evaluate(()=>window.mile33RaceMode('hyrox'));
+ await expect(page.getByLabel('Average run pace (mm:ss/km)')).toBeVisible();
+ await expect(page.getByLabel('SkiErg (mm:ss)')).toBeVisible();
+ await page.getByRole('button',{name:'Calculate HYROX scenario'}).click();
+ await expect(page.locator('#m33HyroxOut')).toContainText('Projected scenario');
+ await page.evaluate(()=>window.mile33RaceMode('estimates'));
+ await expect(page.getByLabel('Known race distance')).toBeVisible();
+ await expect(page.getByLabel('Time in minutes')).toBeVisible();
+});
+test('82.3 sign-in input labels and audited compact navigation targets',async({page})=>{
+ await openApp(page);
+ await expect(page.getByLabel('Email',{exact:true})).toBeVisible();
+ await expect(page.getByLabel('Password',{exact:true})).toBeVisible();
+ await expect(page.locator('.av-remember-row')).toBeVisible();
+ expect((await page.locator('.av-remember-row').boundingBox()).height).toBeGreaterThanOrEqual(36);
+});
+test('82.3 tracker workout selector has an accessible label',async({page})=>{
+ await page.goto('/mile-run-tracker.html');
+ await expect(page.getByLabel('Workout',{exact:true})).toBeVisible();
+});
+
+
+test('82.4 a newer swim appears above an older run imported later on feed and profile',async({page})=>{
+ await openApp(page,{signedIn:true});
+ const base={user_id:user.id,visibility:'followers',duration_s:1500,distance_m:1000};
+ const rows=[
+  {...base,id:'older-run',title:'Yesterday run imported later',activity_type:'running',activity_at:'2026-11-19T20:00:00Z',created_at:'2026-11-20T10:00:00Z'},
+  {...base,id:'newer-swim',title:'Today swim',activity_type:'swimming',activity_at:'2026-11-20T01:00:00Z',created_at:'2026-11-20T02:00:00Z'},
+  {...base,id:'unknown-date',title:'Undated workout',activity_type:'running',activity_at:null,created_at:'2026-11-20T11:00:00Z'}
+ ];
+ let order='';
+ await page.route('**/rest/v1/mile_social_activities?*',r=>{const params=new URL(r.request().url()).searchParams;if(params.has('source_activity_id'))return r.fallback();order=params.get('order')||'';return r.fulfill({json:rows,headers:{'access-control-allow-origin':'http://127.0.0.1:4173'}})});
+ await page.route('**/rest/v1/mile_profiles?*',r=>r.fulfill({json:[{user_id:user.id,username:'fixture',display_name:'Fixture athlete',is_private:false}],headers:{'access-control-allow-origin':'http://127.0.0.1:4173'}}));
+ await page.evaluate(()=>window.m36Open('feed'));
+ await expect.poll(()=>page.evaluate(()=>window.m36State.loading)).toBe(false);
+ const cards=page.locator('#app article[data-m388-post]');
+ await expect(cards).toHaveCount(3);
+ await expect(cards.locator('h3')).toHaveText(['Today swim','Yesterday run imported later','Undated workout']);
+ expect(order).toBe('activity_at.desc.nullslast,created_at.desc.nullslast,id.desc');
+ await expect(cards.last()).toContainText('Posted');
+ await page.locator('#m37-sport-filter').selectOption('swim');
+ await expect(cards.locator('h3')).toHaveText(['Today swim']);
+ await page.locator('#m37-sport-filter').selectOption('all');
+ await expect(cards.locator('h3')).toHaveText(['Today swim','Yesterday run imported later','Undated workout']);
+ await page.evaluate(()=>window.m36Open('profile'));
+ await expect.poll(()=>page.evaluate(()=>window.m36State.loading)).toBe(false);
+ await expect(cards.locator('h3')).toHaveText(['Today swim','Yesterday run imported later','Undated workout']);
 });
