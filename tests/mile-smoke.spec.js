@@ -926,7 +926,8 @@ test('77.4 notification toggles share existing per-user preference storage and r
  await page.evaluate(()=>window.mileV3Go('settings'));
  await page.locator('[data-m771-open="notifications"]').click();
  const panel=page.locator('[data-m771-page="notifications"]');
- await expect(panel.locator('[data-m381-pref]')).toHaveCount(7);
+ await expect(panel.locator('[data-m381-pref]')).toHaveCount(8);
+ await expect(panel.locator('[data-m381-pref="announcement"]')).toBeChecked();
  await panel.locator('[data-m381-pref="like"]').uncheck();
  expect(await page.evaluate(id=>JSON.parse(localStorage.getItem('mile_notification_prefs_'+id)).like,user.id)).toBe(false);
  await panel.locator('[data-m771-open="hub"]').click();
