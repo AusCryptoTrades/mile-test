@@ -742,3 +742,29 @@ test('76.1 actual Edit Activity modal matches compact proof at phone widths', as
  await expect(editor).toHaveCount(0);
  expect(patch.caption).toBe('Updated test caption');expect(patch.share_route).toBe(true);expect(patch.visibility).toBe('followers');
 });
+
+test('77.1 settings hub groups and working subpage navigation',async ({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('settings'));
+ const hub=page.locator('[data-m771-page="hub"]');
+ await expect(hub).toBeVisible();
+ await expect(hub.locator('.m771-group')).toHaveCount(4);
+ for(const [id,target] of [['appearance','.m395-theme-grid'],['units','#m395-distance'],['profile','#app .card'],['zones','#app .card'],['connections','button[onclick*="v4Connect"]'],['account','#sbEmail'],['data','#backupFile'],['privacy','[data-m771-action="profile"]'],['notifications','[data-m771-action="notifications"]'],['help','[data-m771-action="bug"]'],['about','[data-m771-action="news"]']]){
+  await hub.locator('[data-m771-open="'+id+'"]').first().click();
+  const sub=page.locator('[data-m771-page="'+id+'"]');
+  await expect(sub).toBeVisible();
+  await expect(sub.locator(target.replace('#app ','' )).first()).toBeAttached();
+  expect(await sub.evaluate(el=>el.scrollWidth<=document.documentElement.clientWidth+2)).toBe(true);
+  await sub.getByRole('button',{name:'‹ Settings',exact:true}).click();
+  await expect(hub).toBeVisible();
+ }
+ await hub.locator('[data-m771-open="appearance"]').click();
+ await page.locator('[data-m395-theme="mono"]').first().click();
+ await expect(page.locator('html')).toHaveAttribute('data-m395-theme','mono');
+ await page.locator('[data-m771-open="hub"]').click();
+ await hub.locator('[data-m771-open="units"]').click();
+ await page.locator('#m395-distance').selectOption('mi');
+ await page.locator('[data-m771-open="hub"]').click();
+ await hub.locator('[data-m771-open="units"]').click();
+ await expect(page.locator('#m395-distance')).toHaveValue('mi');
+});
