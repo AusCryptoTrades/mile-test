@@ -47,6 +47,7 @@ jobs:
           cd android
           ./gradlew assembleDebug --no-daemon
           test -s app/build/outputs/apk/debug/app-debug.apk
+          grep -q 'android.permission.ACCESS_FINE_LOCATION' app/src/main/AndroidManifest.xml
   ios-simulator:
     needs: bundle
     runs-on: macos-26
@@ -68,3 +69,5 @@ jobs:
         run: |
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath build-ios CODE_SIGNING_ALLOWED=NO build
           test -d build-ios/Build/Products/Debug-iphonesimulator/App.app
+          /usr/libexec/PlistBuddy -c 'Print :NSLocationWhenInUseUsageDescription' build-ios/Build/Products/Debug-iphonesimulator/App.app/Info.plist
+          plutil -lint build-ios/Build/Products/Debug-iphonesimulator/App.app/Info.plist

@@ -22,12 +22,23 @@ export async function stage() {
   await rm(dest, { recursive: true, force: true });
   await mkdir(dest, { recursive: true });
   const hashes = {};
+  const commit = execFileSync('git', ['rev-parse','HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+  const version = JSON.parse(await readFile(path.join(root,'native/package.json'),'utf8')).version;
   for (const file of assets) {
     await copyFile(path.join(root, file), path.join(dest, file));
     hashes[file] = createHash('sha256').update(await readFile(path.join(dest,file))).digest('hex');
   }
-  const commit = execFileSync('git', ['rev-parse','HEAD'], { cwd: root, encoding: 'utf8' }).trim();
-  await writeFile(path.join(dest, 'mile-build.json'), JSON.stringify({commit, assets: hashes}, null, 2)+'\n');
+  const runtime = await readFile(path.join(root,'native/runtime.cjs'),'utf8');
+  const entry = path.join(dest,'index.html');
+  const original = await readFile(entry,'utf8');
+  const closing = /<\/body\s*>/i;
+  if (!closing.test(original)) throw new Error('Missing body closing tag');
+  const identity = 'window.MILE_NATIVE_BUILD='+JSON.stringify({commit,version})+';';
+  await writeFile(path.join(dest,'mile-native-runtime.js'),identity+'\n'+runtime);
+  await writeFile(entry,original.replace(closing,'<script src="./mile-native-runtime.js"></script>  const commit = execFileSync('git', ['rev-parse','HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+  await writeFile'));
+  for (const name of ['index.html','mile-native-runtime.js']) hashes[name]=createHash('sha256').update(await readFile(path.join(dest,name))).digest('hex');
+  await writeFile(path.join(dest, 'mile-build.json'), JSON.stringify({commit,version, assets: hashes}, null, 2)+'\n');
   console.log('Staged ' + (await readdir(dest)).length + ' files for native build ' + commit);
   return dest;
 }
