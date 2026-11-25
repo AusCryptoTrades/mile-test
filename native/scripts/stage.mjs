@@ -4,6 +4,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
+import {migrateNativeAuth} from './native-auth-transform.mjs';
 
 export const assets = Object.freeze([
   'index.html', 'mile-admin-centre.js', 'mile-buttons.css',
@@ -25,9 +26,13 @@ export async function stage() {
   const commit = execFileSync('git', ['rev-parse','HEAD'], { cwd: root, encoding: 'utf8' }).trim();
   const version = JSON.parse(await readFile(path.join(root,'native/package.json'),'utf8')).version;
   for (const file of assets) {
-    await copyFile(path.join(root, file), path.join(dest, file));
+    if(file.endsWith('.html')||file.endsWith('.js'))await writeFile(path.join(dest,file),migrateNativeAuth(file,await readFile(path.join(root,file),'utf8')));else await copyFile(path.join(root, file), path.join(dest, file));
     hashes[file] = createHash('sha256').update(await readFile(path.join(dest,file))).digest('hex');
   }
+  const vault=await readFile(path.join(root,'native/session-vault.cjs'),'utf8');
+  const bridge=await readFile(path.join(root,'native/session-bridge.cjs'),'utf8');
+  await writeFile(path.join(dest,'mile-native-session.js'),vault+'\n'+bridge);
+  hashes['mile-native-session.js']=createHash('sha256').update(await readFile(path.join(dest,'mile-native-session.js'))).digest('hex');
   const runtime = await readFile(path.join(root,'native/runtime.cjs'),'utf8');
   const entry = path.join(dest,'index.html');
   const original = await readFile(entry,'utf8');

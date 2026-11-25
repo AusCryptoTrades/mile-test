@@ -14,4 +14,5 @@ function createSessionVault(cap){
   clear:()=>serial(()=>plugin.remove({key}))
  });
 }
-module.exports={createSessionVault};
+if(typeof module!=='undefined'&&module.exports)module.exports={createSessionVault};
+else window.mileCreateSessionVault=createSessionVault;
