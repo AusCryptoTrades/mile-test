@@ -1271,3 +1271,15 @@ test('82.4 a newer swim appears above an older run imported later on feed and pr
  await expect.poll(()=>page.evaluate(()=>window.m36State.loading)).toBe(false);
  await expect(cards.locator('h3')).toHaveText(['Today swim','Yesterday run imported later','Undated workout']);
 });
+
+test('Challenges opened from leaderboard has no stale outer banner ',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>{window.mileV3Go('social');window.m36Open('leaderboard')});
+ await expect(page.locator('#app > .mile-universal-header')).toContainText('Weekly Leaderboard');
+ await page.evaluate(()=>window.mileOpenChallenges());
+ const f=page.frameLocator('#mile-native-view');
+ await expect(f.getByRole('heading',{name:'CHALLENGES.'})).toBeVisible();
+ await expect(page.locator('#app > .mile-universal-header')).toHaveCount(0);
+ await page.waitForTimeout(400);
+ await expect(page.locator('#app > .mile-universal-header')).toHaveCount(0);
+});
