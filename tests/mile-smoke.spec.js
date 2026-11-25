@@ -1050,3 +1050,37 @@ test('77.7 Settings admin row is conditional on existing admin claim',async ({pa
  await page.evaluate(()=>{localStorage.setItem('av-token','fixture.'+btoa(JSON.stringify({app_metadata:{mile_role:'admin'}}))+'.fixture');render()});
  await expect(page.locator('[data-m771-action="admin"]')).toBeVisible();
 });
+
+test('77.7 password update requires matching new passwords and reauthenticates the current owner',async ({page})=>{
+ await openApp(page,{signedIn:true});
+ let verified=0,updated=0;
+ await page.route('**/auth/v1/user',async route=>{
+  if(route.request().method()==='PUT'){
+   expect(route.request().headers()['authorization']).toBe('Bearer fixture-reauth-token');
+   expect(route.request().postDataJSON()).toEqual({password:'new-fixture-password'});
+   updated++;
+  }
+  await route.fulfill({json:{id:user.id,email:'runner@example.test'},headers:{'access-control-allow-origin':'http://127.0.0.1:4173'}});
+ });
+ await page.route('**/auth/v1/token?grant_type=password',async route=>{
+  verified++;
+  expect(route.request().postDataJSON()).toEqual({email:'runner@example.test',password:'fixture-password'});
+  await route.fulfill({json:{user,access_token:'fixture-reauth-token'},headers:{'access-control-allow-origin':'http://127.0.0.1:4173'}});
+ });
+ await page.evaluate(()=>window.mileV3Go('settings'));
+ await page.locator('[data-m771-open="account"]').first().click();
+ await expect(page.locator('[data-m775-value="email"]')).toHaveText('runner@example.test');
+ await page.locator('.m777-security summary').click();
+ const form=page.locator('[data-m777-password]');
+ await form.locator('[name="current"]').fill('fixture-password');
+ await form.locator('[name="next"]').fill('new-fixture-password');
+ await form.locator('[name="confirm"]').fill('different-password');
+ await form.getByRole('button',{name:'Update password'}).click();
+ await expect(form.locator('[role="status"]')).toContainText('matching passwords');
+ expect(verified).toBe(0);
+ await form.locator('[name="confirm"]').fill('new-fixture-password');
+ await form.getByRole('button',{name:'Update password'}).click();
+ await expect(form.locator('[role="status"]')).toContainText('Password updated');
+ expect(verified).toBe(1);
+ expect(updated).toBe(1);
+});
