@@ -1,0 +1,26 @@
+name: Admin API access smoke
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  anonymous-denial:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Verify live Admin APIs deny unauthenticated and invalid-token requests
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://mgixvokjlytjuypzcfzz.supabase.co/functions/v1'
+          for endpoint in 'mile-admin-overview?days=7' 'mile-admin-management?view=athletes' 'mile-admin-analytics?days=7' 'mile-admin-release?view=security'; do
+            for mode in anonymous invalid; do
+              args=()
+              if [[ "$mode" == invalid ]]; then args=(-H 'Authorization: Bearer invalid-test-token'); fi
+              code=$(curl --silent --show-error --max-time 20 -o /dev/null -w '%{http_code}' "${args[@]}" "$base/$endpoint")
+              echo "$endpoint $mode: HTTP $code"
+              if [[ "$code" != 401 && "$code" != 403 ]]; then exit 1; fi
+            done
+          done
