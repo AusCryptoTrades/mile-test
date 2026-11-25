@@ -99,8 +99,10 @@ test('real Activity Details shows recorded laps and in-bounds charts and closes 
   await openApp(page, { signedIn: true });
   const detail = await openActivity(page);
   await detail.getByRole('button', { name: 'Splits', exact: true }).click();
-  await expect(detail.getByText('Lap 1 · 1.00 km')).toBeVisible();
-  await expect(detail.getByText('5:05 · 5:05/km')).toBeVisible();
+  const table=detail.locator('.m764-splits');
+  await expect(table).toBeVisible();
+  await expect(table.getByRole('columnheader')).toHaveText(['Lap','Time','Distance','Pace /km']);
+  await expect(table.locator('tbody tr').first().getByRole('cell')).toHaveText(['1','5:05','1.00 km','5:05']);
   await detail.getByRole('button', { name: 'Charts', exact: true }).click();
   const charts = detail.locator('.mile355-chart svg');
   await expect(charts).toHaveCount(2);
@@ -542,7 +544,7 @@ test('calendar HR-zone relocation: Calendar stays focused, Settings retains edit
  await expect(page.locator('#app details.av-hr-collapse, #app details.mile-v31-hr, #app .mile-v3-hr')).toHaveCount(0);
  await expect(page.locator('#app .daygrid')).toBeVisible();
  await page.evaluate(()=>window.mileV3Go('settings'));
- await expect(page.locator('#m771-hub')).toContainText('Training zones');
+ await expect(page.locator('[data-m771-page="hub"]')).toContainText('Training zones');
  await page.locator('[data-m771-open="zones"]').click();
  await expect(page.locator('#app')).toContainText('Custom HR Zones');
  await expect(page.locator('#app')).toContainText('Save HR Zones');
@@ -749,7 +751,7 @@ test('77.1 settings hub groups and working subpage navigation',async ({page})=>{
  const hub=page.locator('[data-m771-page="hub"]');
  await expect(hub).toBeVisible();
  await expect(hub.locator('.m771-group')).toHaveCount(4);
- for(const [id,target] of [['appearance','.m395-theme-grid'],['units','#m395-distance'],['profile','#app .card'],['zones','#app .card'],['connections','button[onclick*="v4Connect"]'],['account','#sbEmail'],['data','#backupFile'],['privacy','[data-m771-action="profile"]'],['notifications','[data-m771-action="notifications"]'],['help','[data-m771-action="bug"]'],['about','[data-m771-action="news"]']]){
+ for(const [id,target] of [['appearance','.m395-theme-grid'],['units','#m395-distance'],['profile','#app .card'],['zones','#app .card'],['connections','button[onclick*="v4Connect"]'],['account','[data-m771-action="logout"]'],['data','#backupFile'],['privacy','[data-m771-action="profile"]'],['notifications','[data-m771-action="notifications"]'],['help','[data-m771-action="bug"]'],['about','[data-m771-action="news"]']]){
   await hub.locator('[data-m771-open="'+id+'"]').first().click();
   const sub=page.locator('[data-m771-page="'+id+'"]');
   await expect(sub).toBeVisible();
@@ -769,18 +771,3 @@ test('77.1 settings hub groups and working subpage navigation',async ({page})=>{
  await expect(page.locator('#m395-distance')).toHaveValue('mi');
 });
 
-test('77.1 settings hub routes to existing controls and back',async({page})=>{
- await openApp(page,{signedIn:true});
- await page.evaluate(()=>window.mileV3Go('settings'));
- const hub=page.locator('#m771-hub');
- await expect(hub).toContainText('PERSONALISATION');
- for(const [id,selector] of [['appearance','.m395-theme-grid'],['units','.m395-fields'],['profile','.m771-legacy .card'],['connections','button[onclick*="v4Connect"]'],['data','#backupFile']]){
-   await hub.locator('[data-m771-open="'+id+'"]').click();
-   await expect(hub.locator(selector).first()).toHaveCount(1);
-   await hub.locator('[data-m771-open="hub"]').click();
-   await expect(hub).toContainText('PERSONALISATION');
- }
- await hub.locator('[data-m771-open="help"]').click();
- await hub.locator('[data-m771-action="feedback"]').click();
- await expect(page.locator('#mile-beta-feedback-overlay')).toBeVisible();
-});
