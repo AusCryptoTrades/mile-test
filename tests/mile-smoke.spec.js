@@ -874,3 +874,48 @@ test('77.3 metrics and zone editors remain separate and preserve saved custom zo
  await expect(z.locator('#v45FiveK')).toBeHidden();
  await expect(z.getByRole('button',{name:'Save HR Zones'})).toBeVisible();
 });
+
+test('77.4 Settings privacy loads and patches only the signed-in profile',async ({page})=>{
+ await openApp(page,{signedIn:true});
+ let profile={user_id:user.id,is_private:true,is_discoverable:true,workout_privacy:'followers',message_privacy:'followers',auto_share_activities:false};
+ let patch,patchUrl;
+ await page.route('**/rest/v1/mile_profiles**',async route=>{
+  const req=route.request();
+  if(req.method()==='PATCH'){patch=req.postDataJSON();patchUrl=req.url();profile={...profile,...patch}}
+  await route.fulfill({json:[profile],headers:{'access-control-allow-origin':'http://127.0.0.1:4173'}});
+ });
+ await page.evaluate(()=>window.mileV3Go('settings'));
+ await page.locator('[data-m771-open="privacy"]').click();
+ const panel=page.locator('[data-m774-privacy]');
+ await expect(panel.locator('[data-m774-field="is_private"]')).toBeChecked();
+ await expect(panel.locator('[data-m774-field="auto_share_activities"]')).not.toBeChecked();
+ await panel.locator('[data-m774-field="is_discoverable"]').uncheck();
+ await panel.locator('[data-m774-field="message_privacy"]').selectOption('anyone');
+ await panel.locator('[data-m774-save]').click();
+ await expect(panel.locator('[data-m774-status]')).toHaveText('Privacy settings saved.');
+ expect(patchUrl).toContain('user_id=eq.'+user.id);
+ expect(patch).toEqual({is_private:true,is_discoverable:false,workout_privacy:'followers',message_privacy:'anyone',auto_share_activities:false});
+ await page.locator('[data-m771-open="hub"]').click();
+ await page.locator('[data-m771-open="privacy"]').click();
+ await expect(panel.locator('[data-m774-field="is_discoverable"]')).not.toBeChecked();
+ await expect(panel.locator('[data-m774-field="message_privacy"]')).toHaveValue('anyone');
+ await panel.locator('[data-m774-field="auto_share_activities"]').check();
+ page.once('dialog',d=>d.dismiss());
+ await panel.locator('[data-m774-save]').click();
+ expect(patch.auto_share_activities).toBe(false);
+});
+test('77.4 notification toggles share existing per-user preference storage and reset',async ({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('settings'));
+ await page.locator('[data-m771-open="notifications"]').click();
+ const panel=page.locator('[data-m771-page="notifications"]');
+ await expect(panel.locator('[data-m381-pref]')).toHaveCount(7);
+ await panel.locator('[data-m381-pref="like"]').uncheck();
+ expect(await page.evaluate(id=>JSON.parse(localStorage.getItem('mile_notification_prefs_'+id)).like,user.id)).toBe(false);
+ await panel.locator('[data-m771-open="hub"]').click();
+ await page.locator('[data-m771-open="notifications"]').click();
+ await expect(panel.locator('[data-m381-pref="like"]')).not.toBeChecked();
+ await panel.locator('[data-m774-reset-notifications]').click();
+ await expect(panel.locator('[data-m381-pref]:checked')).toHaveCount(7);
+ expect(await page.evaluate(id=>JSON.parse(localStorage.getItem('mile_notification_prefs_'+id)).like,user.id)).toBe(true);
+});
