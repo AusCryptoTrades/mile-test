@@ -1,0 +1,3 @@
+# Batch 83.3 authentication migration
+
+Phase 83.3.1: add pinned native secure storage dependency and isolated vault contract with mock tests. No production token path changed yet. The existing app has direct token reads/writes in login, refresh, logout, embedded Challenges, shared activity details and admin paths. Do not ship native builds as secure until all paths are migrated, startup restoration is gated, logout deletion and refresh races are tested, and device storage inspection is complete. No password persistence. No web fallback. Garmin OAuth and account synchronization still require end-to-end verification.
