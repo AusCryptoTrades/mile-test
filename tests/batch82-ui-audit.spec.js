@@ -135,3 +135,21 @@ test('82 audit Social, activity details, support and embedded screens',async({pa
   catch(e){console.log('MILE_AUDIT_ROUTE_ERROR '+JSON.stringify({label:kind,error:String(e.message).slice(0,240)}))}
  }
 });
+
+test('82 audit all admin modules and their rendered controls',async({page},info)=>{
+ test.setTimeout(120000);
+ await openApp(page,{signedIn:true});
+ const respond=(r,data)=>r.fulfill({json:data,headers:{'access-control-allow-origin':'http://127.0.0.1:4173'}});
+ await page.route('**/functions/v1/mile-admin-overview?*',r=>respond(r,{days:Number(new URL(r.request().url()).searchParams.get('days')),metrics:{athletes:4,garmin_activities:14,open_reports:2},growth:[{day:'2026-11-19',total:4},{day:'2026-11-25',total:4}],generated_at:'2026-11-25T00:00:00Z'}));
+ await page.route('**/functions/v1/mile-admin-management?*',r=>respond(r,new URL(r.request().url()).searchParams.get('view')==='athletes'?{rows:[{display_name:'Fixture athlete',username:'fixture',activities_30d:6}],has_more:false}:{rows:[{id:'00000000-0000-4000-8000-000000000005',kind:'bug',page:'Calendar',description:'Fixture bug report',status:'new'}],counts:[{status:'new',count:1}],has_more:false}));
+ await page.route('**/functions/v1/mile-admin-analytics?*',r=>respond(r,{days:Number(new URL(r.request().url()).searchParams.get('days')),usage:{members_with_recorded_events:2,registered_members:4,garmin_activities:14},health:{webhook_events:297,connection_records:2},trend:[{day:'2026-11-25',garmin:2,posts:1}],webhook_status:[{status:'processed',count:297}],file_status:[],generated_at:'2026-11-25T00:00:00Z'}));
+ await page.route('**/functions/v1/mile-admin-release?*',r=>respond(r,new URL(r.request().url()).searchParams.get('view')==='announcements'?{rows:[{title:'Fixture draft',kind:'release',status:'draft',body:'Fixture only'}],audience:4,has_more:false}:{rows:[{action:'feedback.status',detail:{from:'new',to:'fixed'}}],security:{admin_accounts:1,public_tables_without_rls:0,recorded_admin_actions:1},has_more:false}));
+ await page.evaluate(()=>{window.mileBetaIsAdmin=()=>true;window.mileBetaAdmin()});
+ const panel=page.locator('#mile-admin-centre');
+ await expect(panel.locator('.ma-status')).toContainText('Overview data connected');
+ await scan(page,panel,'Admin / Overview');
+ for(const [selector,view,ready] of [['[data-ma-athletes]','Athletes','Fixture athlete'],['[data-ma-reports]','Feedback','Fixture bug report'],['[data-ma-analytics]','Usage','Members with recorded events'],['[data-ma-health]','Health','Latest recorded events'],['[data-ma-announcements]','Announcements','Fixture draft'],['[data-ma-security]','Security','feedback.status']]){
+  await step(page,info,'Admin / '+view,async()=>{await panel.locator(selector).click();await expect(panel.locator('.ma-management')).toContainText(ready)},'#mile-admin-centre');
+  await panel.getByRole('button',{name:'‹ Overview'}).click().catch(()=>{});
+ }
+});
