@@ -11,8 +11,8 @@ def chunk(kind,data):
 def render(width,height,mark_fraction=.68,tagline=False):
     rows=[bytearray(bytes(BG)*width) for _ in range(height)]
     scale=min(width,height)*mark_fraction/680
-    ox=width/2-320*scale
-    oy=height/2-(146 if tagline else 105)*scale
+    ox=width/2-(302.9885 if tagline else 320)*scale
+    oy=height/2-(127.65 if tagline else 105)*scale
     def polygon(points,color):
         pts=[(ox+x*scale,oy+y*scale) for x,y in points]
         for y in range(max(0,math.floor(min(p[1] for p in pts))),min(height,math.ceil(max(p[1] for p in pts)))):
@@ -32,13 +32,13 @@ def render(width,height,mark_fraction=.68,tagline=False):
         label='MAKE IT LOOK EASY'
         widths=[3 if c==' ' else len(glyphs[c][0])+1 for c in label]
         unit=2.9
-        x=320-sum(widths)*unit/2
+        x=302.9885-(sum(widths)-1)*unit/2
         for c,advance in zip(label,widths):
             if c!=' ':
                 for row,line in enumerate(glyphs[c]):
                     for col,ink in enumerate(line):
                         if ink=='1':
-                            l=x+col*unit;t=255+row*unit
+                            l=x+col*unit;t=235+row*unit
                             polygon([(l,t),(l+unit,t),(l+unit,t+unit),(l,t+unit)],FG)
             x+=advance*unit
     return b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',width,height,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(b''.join(b'\0'+r for r in rows),9))+chunk(b'IEND',b'')
@@ -92,5 +92,22 @@ if __name__=='__main__':
         assert data==render(128,128)
         assert render(256,512,.60,True)!=render(256,512,.60,False)
         assert render(256,512,.60,True)==render(256,512,.60,True)
+        # Verify visible horizontal centres of logo and tagline within raster rounding.
+        png=render(680,1000,.60,True)
+        pos=8; compressed=b''
+        while pos<len(png):
+            length=struct.unpack('>I',png[pos:pos+4])[0]
+            if png[pos+4:pos+8]==b'IDAT': compressed+=png[pos+8:pos+8+length]
+            pos+=length+12
+        raw=zlib.decompress(compressed); stride=680*3+1
+        spans=[]
+        for y in range(1000):
+            row=raw[y*stride+1:(y+1)*stride]
+            xs=[x for x in range(680) if row[x*3:x*3+3]!=bytes(BG)]
+            if xs: spans.append((y,min(xs),max(xs)))
+        logo=[v for v in spans if v[0]<557]; label=[v for v in spans if v[0]>=557]
+        assert logo and label
+        for group in (logo,label):
+            assert abs((min(v[1] for v in group)+max(v[2] for v in group))/2-339.5)<=2
         print('Branding PNG generation passed')
     else: apply(sys.argv[1])
