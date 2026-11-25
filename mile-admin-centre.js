@@ -110,13 +110,13 @@
  }
 
  function enterModule(holder,heading){heading.tabIndex=-1;heading.focus({preventScroll:true});const top=root.scrollTop+holder.getBoundingClientRect().top-root.getBoundingClientRect().top-8;root.scrollTop=Math.max(0,top)}
- function exitModule(holder,selector){managementController?.abort();const current=root,saved=overviewScroll;holder.replaceChildren();if(!current)return;const button=current.querySelector(selector);button?.focus({preventScroll:true});const restore=()=>{if(root!==current||holder.childElementCount)return;current.scrollTop=Math.min(saved,Math.max(0,current.scrollHeight-current.clientHeight))};restore();requestAnimationFrame(restore)}
+ function exitModule(holder,selector){managementController?.abort();const current=root,saved=overviewScroll;if(!current)return;holder.replaceChildren();const button=current.querySelector(selector);const restore=()=>{if(root!==current||holder.childElementCount)return;current.scrollTop=Math.max(0,Math.min(saved,current.scrollHeight-current.clientHeight))};restore();button?.focus({preventScroll:true});restore();requestAnimationFrame(restore)}
  const formatDate=value=>{if(!value)return 'Not recorded';const d=new Date(value);return Number.isNaN(d.getTime())?'Not recorded':d.toLocaleString()};
  const mgmtUrl=base+'/functions/v1/mile-admin-management';
  function optionSelect(items,label){const el=node('select');el.setAttribute('aria-label',label);for(const [val,txt] of items){const opt=node('option','',txt);opt.value=val;el.append(opt)}return el}
  function openManagement(view){
   if(!root||root.querySelector('.ma-status').dataset.state!=='ready')return;
-  const holder=root.querySelector('.ma-management');overviewScroll=root.scrollTop;holder.replaceChildren();
+  const holder=root.querySelector('.ma-management');if(!holder.childElementCount)overviewScroll=root.scrollTop;holder.replaceChildren();
   const current=root,credential=session;
   const alive=()=>root===current&&credential===token()&&holder.isConnected&&holder.contains(form);
   const title=node('h2','',view==='athletes'?'Athlete Management':'Feedback Centre');
@@ -165,7 +165,7 @@
 
  function openInsights(view){
   if(!root||root.querySelector('.ma-status').dataset.state!=='ready')return;
-  managementController?.abort();const holder=root.querySelector('.ma-management');overviewScroll=root.scrollTop;holder.replaceChildren();
+  managementController?.abort();const holder=root.querySelector('.ma-management');if(!holder.childElementCount)overviewScroll=root.scrollTop;holder.replaceChildren();
   const current=root,credential=session,usage=view==='analytics';let selected=days;
   const heading=node('div','ma-toolbar'),title=node('h2','',usage?'Usage Analytics':'Integrations & System Health'),back=node('button','','‹ Overview');back.type='button';heading.append(title,back);holder.append(heading);
   const filters=node('div','ma-range');filters.setAttribute('aria-label','Analytics date range');
@@ -208,7 +208,7 @@
 
  function openRelease(view){
   if(!root||root.querySelector('.ma-status').dataset.state!=='ready')return;
-  managementController?.abort();const holder=root.querySelector('.ma-management');overviewScroll=root.scrollTop;holder.replaceChildren();
+  managementController?.abort();const holder=root.querySelector('.ma-management');if(!holder.childElementCount)overviewScroll=root.scrollTop;holder.replaceChildren();
   const current=root,credential=session,announcements=view==='announcements';let offset=0,busy=false,audience=null;
   const heading=node('div','ma-toolbar'),title=node('h2','',announcements?'Announcements & Releases':'Security & Audit Logs'),back=node('button','','‹ Overview');back.type='button';heading.append(title,back);holder.append(heading);
   const statusLine=node('p','ma-sub');statusLine.setAttribute('role','status');const body=node('div');body.dataset.maRelease=view;
