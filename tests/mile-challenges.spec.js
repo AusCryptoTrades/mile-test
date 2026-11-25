@@ -20,7 +20,7 @@ test('sport filter labels remain single-line and selectable on narrow screens',a
  await page.setViewportSize({width:320,height:740});
  await page.goto('/mile-challenges.html');
  const chips=page.locator('.filters button');
- await expect(chips).toHaveCount(7);
+ await expect(chips).toHaveText(['All','Running','Cycling','Swimming']);
  const sizes=await chips.evaluateAll(nodes=>nodes.map(n=>({label:n.textContent,wrap:getComputedStyle(n).whiteSpace,overflow:n.scrollWidth>n.clientWidth+1,height:n.getBoundingClientRect().height})));
  expect(sizes.every(x=>x.wrap==='nowrap'&&!x.overflow&&x.height<=46)).toBe(true);
  await page.getByRole('button',{name:'Swimming',exact:true}).click();
