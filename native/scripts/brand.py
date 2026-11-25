@@ -31,7 +31,7 @@ def render(width,height,mark_fraction=.68,tagline=False):
         glyphs={"M":["10001","11011","10101","10101","10001","10001","10001"],"A":["01110","10001","10001","11111","10001","10001","10001"],"K":["10001","10010","10100","11000","10100","10010","10001"],"E":["11111","10000","10000","11110","10000","10000","11111"],"I":["111","010","010","010","010","010","111"],"T":["11111","00100","00100","00100","00100","00100","00100"],"L":["10000","10000","10000","10000","10000","10000","11111"],"O":["01110","10001","10001","10001","10001","10001","01110"],"S":["01111","10000","10000","01110","00001","00001","11110"],"Y":["10001","10001","01010","00100","00100","00100","00100"]}
         label='MAKE IT LOOK EASY'
         widths=[3 if c==' ' else len(glyphs[c][0])+1 for c in label]
-        unit=4.7
+        unit=2.9
         x=320-sum(widths)*unit/2
         for c,advance in zip(label,widths):
             if c!=' ':
@@ -47,7 +47,7 @@ def apply(platform):
     number=int(version.split('.')[0])*1000000+int(version.split('.')[1])*1000+int(version.split('.')[2])+1
     if platform=='ios':
         assets=ROOT/'ios/App/App/Assets.xcassets'
-        for folder,fraction in [('AppIcon.appiconset',.68),('Splash.imageset',.46)]:
+        for folder,fraction in [('AppIcon.appiconset',.68),('Splash.imageset',.60)]:
             directory=assets/folder
             manifest=json.loads((directory/'Contents.json').read_text())
             for item in manifest['images']:
@@ -71,7 +71,7 @@ def apply(platform):
             target.write_bytes(render(w,h,.48 if target.stem=='ic_launcher_foreground' else .68));count+=1
         if not count: raise ValueError('No launcher images found')
         for target in res.glob('drawable*/splash.png'):
-            w,h=struct.unpack('>II',target.read_bytes()[16:24]);target.write_bytes(render(w,h,.46,tagline=True))
+            w,h=struct.unpack('>II',target.read_bytes()[16:24]);target.write_bytes(render(w,h,.60,tagline=True))
         gradle=ROOT/'android/app/build.gradle';s=gradle.read_text()
         s,n=re.subn(r'(?m)^(\s*versionCode\s+)\d+',lambda m:m.group(1)+str(number),s)
         if not n: raise ValueError('Missing versionCode')
@@ -90,7 +90,7 @@ if __name__=='__main__':
         assert data[:8]==b'\x89PNG\r\n\x1a\n'
         assert struct.unpack('>II',data[16:24])==(128,128)
         assert data==render(128,128)
-        assert render(256,512,.46,True)!=render(256,512,.46,False)
-        assert render(256,512,.46,True)==render(256,512,.46,True)
+        assert render(256,512,.60,True)!=render(256,512,.60,False)
+        assert render(256,512,.60,True)==render(256,512,.60,True)
         print('Branding PNG generation passed')
     else: apply(sys.argv[1])
