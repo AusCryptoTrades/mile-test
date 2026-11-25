@@ -1212,3 +1212,32 @@ test('82.1 announcement preferences persist through account preference schema',a
  await page.locator('[data-m774-reset-notifications]').click();await expect(toggle).toBeChecked();
  await expect.poll(()=>page.evaluate(()=>window.mile776.get('notifications').announcement)).toBe(true);
 });
+
+
+test('82.3 login and Race Lab use associated field labels and accessible results',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('predictor'));
+ await page.getByLabel('Goal time (mm:ss or h:mm:ss)').fill('1:40:00');
+ await page.getByRole('button',{name:'Calculate race strategy'}).click();
+ await expect(page.locator('#m33RunOut')).toContainText('Required average pace');
+ await expect(page.locator('#m33RunOut')).toHaveAttribute('aria-live','polite');
+ await page.evaluate(()=>window.mile33RaceMode('hyrox'));
+ await expect(page.getByLabel('Average run pace (mm:ss/km)')).toBeVisible();
+ await expect(page.getByLabel('SkiErg (mm:ss)')).toBeVisible();
+ await page.getByRole('button',{name:'Calculate HYROX scenario'}).click();
+ await expect(page.locator('#m33HyroxOut')).toContainText('Projected scenario');
+ await page.evaluate(()=>window.mile33RaceMode('estimates'));
+ await expect(page.getByLabel('Known race distance')).toBeVisible();
+ await expect(page.getByLabel('Time in minutes')).toBeVisible();
+});
+test('82.3 sign-in input labels and audited compact navigation targets',async({page})=>{
+ await openApp(page);
+ await expect(page.getByLabel('Email',{exact:true})).toBeVisible();
+ await expect(page.getByLabel('Password',{exact:true})).toBeVisible();
+ await expect(page.locator('.av-remember-row')).toBeVisible();
+ expect((await page.locator('.av-remember-row').boundingBox()).height).toBeGreaterThanOrEqual(36);
+});
+test('82.3 tracker workout selector has an accessible label',async({page})=>{
+ await page.goto('/mile-run-tracker.html');
+ await expect(page.getByLabel('Workout',{exact:true})).toBeVisible();
+});
