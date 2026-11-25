@@ -1173,3 +1173,31 @@ test('79 post preview and manual mode use existing activity privacy defaults',as
  await expect(page.locator('#m79-activity-preview')).toBeHidden();
  await expect(page.locator('#m383-manual-fields')).toBeVisible();
 });
+
+
+test('82.4 a newer swim appears above an older run imported later on feed and profile',async({page})=>{
+ await openApp(page,{signedIn:true});
+ const base={user_id:user.id,visibility:'followers',duration_s:1500,distance_m:1000};
+ const rows=[
+  {...base,id:'older-run',title:'Yesterday run imported later',activity_type:'running',activity_at:'2026-11-19T20:00:00Z',created_at:'2026-11-20T10:00:00Z'},
+  {...base,id:'newer-swim',title:'Today swim',activity_type:'swimming',activity_at:'2026-11-20T01:00:00Z',created_at:'2026-11-20T02:00:00Z'},
+  {...base,id:'unknown-date',title:'Undated workout',activity_type:'running',activity_at:null,created_at:'2026-11-20T11:00:00Z'}
+ ];
+ let order='';
+ await page.route('**/rest/v1/mile_social_activities?*',r=>{const params=new URL(r.request().url()).searchParams;if(params.has('source_activity_id'))return r.fallback();order=params.get('order')||'';return r.fulfill({json:rows,headers:{'access-control-allow-origin':'http://127.0.0.1:4173'}})});
+ await page.route('**/rest/v1/mile_profiles?*',r=>r.fulfill({json:[{user_id:user.id,username:'fixture',display_name:'Fixture athlete',is_private:false}],headers:{'access-control-allow-origin':'http://127.0.0.1:4173'}}));
+ await page.evaluate(()=>window.m36Open('feed'));
+ await expect.poll(()=>page.evaluate(()=>window.m36State.loading)).toBe(false);
+ const cards=page.locator('#app article[data-m388-post]');
+ await expect(cards).toHaveCount(3);
+ await expect(cards.locator('h3')).toHaveText(['Today swim','Yesterday run imported later','Undated workout']);
+ expect(order).toBe('activity_at.desc.nullslast,created_at.desc.nullslast,id.desc');
+ await expect(cards.last()).toContainText('Posted');
+ await page.locator('#m37-sport-filter').selectOption('swim');
+ await expect(cards.locator('h3')).toHaveText(['Today swim']);
+ await page.locator('#m37-sport-filter').selectOption('all');
+ await expect(cards.locator('h3')).toHaveText(['Today swim','Yesterday run imported later','Undated workout']);
+ await page.evaluate(()=>window.m36Open('profile'));
+ await expect.poll(()=>page.evaluate(()=>window.m36State.loading)).toBe(false);
+ await expect(cards.locator('h3')).toHaveText(['Today swim','Yesterday run imported later','Undated workout']);
+});
