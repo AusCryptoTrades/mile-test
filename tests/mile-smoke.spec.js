@@ -919,3 +919,41 @@ test('77.4 notification toggles share existing per-user preference storage and r
  await expect(panel.locator('[data-m381-pref]:checked')).toHaveCount(7);
  expect(await page.evaluate(id=>JSON.parse(localStorage.getItem('mile_notification_prefs_'+id)).like,user.id)).toBe(true);
 });
+
+test('77.5 account details use authenticated identity and confirm cloud save',async ({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.route('**/auth/v1/user',route=>route.fulfill({json:{id:user.id,email:'runner@example.test'},headers:{'access-control-allow-origin':'http://127.0.0.1:4173'}}));
+ await page.evaluate(()=>window.mileV3Go('settings'));
+ await page.locator('[data-m771-open="account"]').first().click();
+ const panel=page.locator('[data-m775-account]');
+ await expect(panel.locator('[data-m775-value="email"]')).toHaveText('runner@example.test');
+ await panel.locator('[data-m775-action="cloud-save"]').click();
+ await expect(panel.locator('[data-m775-status]')).toHaveText('Cloud save confirmed.');
+ await expect(panel.locator('[data-m775-value="cloudstatus"]')).toHaveText('Saved');
+});
+test('77.5 connection page and safe backup export',async ({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('settings'));
+ await page.locator('[data-m771-open="connections"]').click();
+ const con=page.locator('[data-m775-connections]');
+ await expect(con.getByRole('button',{name:'Connect / reconnect Garmin'})).toBeVisible();
+ await expect(con).toContainText('does not prove your current Garmin authorisation is active');
+ await con.locator('[data-m775-action="garmin-refresh"]').click();
+ await expect(con.locator('[data-m775-status]')).toContainText('Refresh requested');
+ await page.locator('[data-m771-open="hub"]').click();
+ await page.locator('[data-m771-open="data"]').click();
+ const data=page.locator('[data-m775-data]');
+ await expect(data.locator('#backupFile')).toBeAttached();
+ await page.evaluate(()=>{state.settings.garminKey='fixture-private-key'});
+ const download=page.waitForEvent('download');
+ await data.locator('[data-m775-action="export"]').click();
+ const file=await download;
+ expect(file.suggestedFilename()).toMatch(/^mile-training-backup-/);
+ const fs=require('node:fs/promises');
+ const payload=JSON.parse(await fs.readFile(await file.path(),'utf8'));
+ expect(payload.settings.garminKey).toBe('');
+ expect(payload.settings.supabaseAnon).toBe('');
+ expect(payload.settings.supabaseUrl).toBe('');
+ await data.locator('#backupFile').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from('{}')});
+ await expect(data.locator('[data-m775-status]')).toHaveText('Invalid MILE training backup');
+});
