@@ -822,7 +822,8 @@ test('77.2 dashboard widget preferences preserve order, persist and restore defa
   await page.locator('#v4Email').fill('runner@example.test');
   await page.locator('#v4Password').fill('fixture-password');
   await page.locator('#v4Gate button[onclick*="v4Authenticate"]').click();
-  await page.getByRole('button',{name:'Skip for now'}).click();
+  // The first sign-in already saved the skip preference for this athlete.
+  await expect(page.locator('#v4Gate')).toBeHidden({timeout: 10000});
  }
  await page.evaluate(()=>window.mileV3Go('settings'));
  await page.locator('[data-m771-open="dashboard"]').click();
