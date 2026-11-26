@@ -12,3 +12,14 @@ export function createCheckpointStore({storage,accountId,installationId,activeAc
   async remove(id,w){await storage.remove(key(id,w));guard(id)}
  });
 }
+
+export function createIOSCheckpointStorage(cap){
+ if(!cap?.isNativePlatform?.()||cap.getPlatform()!=='ios')throw Error('Native iOS secure storage required');
+ const plugin=cap.Plugins?.MILEHealthKit;
+ if(!plugin||!['checkpointGet','checkpointSet','checkpointRemove'].every(k=>typeof plugin[k]==='function'))throw Error('Native checkpoint bridge unavailable');
+ return Object.freeze({
+  async get(key){const result=await plugin.checkpointGet({key});if(!result||!Object.hasOwn(result,'value'))throw Error('Invalid native storage response');return result.value},
+  async set(key,value){await plugin.checkpointSet({key,value})},
+  async remove(key){await plugin.checkpointRemove({key})}
+ });
+}
