@@ -4,7 +4,7 @@ const activity = {
   id: '123456789', name: 'Fixture morning run', sport: 'Running',
   date: '2026-11-18T07:00:00', distanceKm: 2, durationSeconds: 620, averageHR: 145,
 };
-const user = { id: '00000000-0000-4000-8000-000000000001' };
+const user = { id: '00000000-0000-4000-8000-000000000001', email: 'runner@example.test', email_confirmed_at: '2026-11-19T12:00:00Z' };
 const samples = Array.from({ length: 11 }, (_, i) => ({
   timestamp: 1739343600000 + i * 62000,
   distanceInMeters: i * 200,
@@ -24,6 +24,8 @@ async function openApp(page, { signedIn = false, laps = true, syncStore = null }
     let json;
     if (url.pathname === '/auth/v1/token' && signedIn) {
       json = { access_token: 'fixture-auth-token', refresh_token: 'fixture-refresh-token', user };
+    } else if (url.pathname === '/auth/v1/user' && signedIn) {
+      json = user;
     } else if (url.pathname === '/functions/v1/garmin-connection-status') {
       json = { status: 'not_connected' };
     } else if (url.pathname === '/rest/v1/av_members') {
@@ -945,7 +947,7 @@ test('77.4 notification toggles share existing per-user preference storage and r
 
 test('77.5 account details use authenticated identity and confirm cloud save',async ({page})=>{
  await openApp(page,{signedIn:true});
- await page.route('**/auth/v1/user',route=>route.fulfill({json:{id:user.id,email:'runner@example.test'},headers:{'access-control-allow-origin':'http://127.0.0.1:4173'}}));
+ await page.route('**/auth/v1/user',route=>route.fulfill({json:user,headers:{'access-control-allow-origin':'http://127.0.0.1:4173'}}));
  await page.evaluate(()=>window.mileV3Go('settings'));
  await page.locator('[data-m771-open="account"]').first().click();
  const panel=page.locator('[data-m775-account]');
@@ -1080,7 +1082,7 @@ test('77.7 password update requires matching new passwords and reauthenticates t
    expect(route.request().postDataJSON()).toEqual({password:'new-fixture-password'});
    updated++;
   }
-  await route.fulfill({json:{id:user.id,email:'runner@example.test'},headers:{'access-control-allow-origin':'http://127.0.0.1:4173'}});
+  await route.fulfill({json:user,headers:{'access-control-allow-origin':'http://127.0.0.1:4173'}});
  });
  await page.route('**/auth/v1/token?grant_type=password',async route=>{
   verified++;

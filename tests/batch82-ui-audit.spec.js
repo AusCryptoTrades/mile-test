@@ -4,7 +4,7 @@ const activity = {
   id: '123456789', name: 'Fixture morning run', sport: 'Running',
   date: '2026-11-18T07:00:00', distanceKm: 2, durationSeconds: 620, averageHR: 145,
 };
-const user = { id: '00000000-0000-4000-8000-000000000001' };
+const user = { id: '00000000-0000-4000-8000-000000000001', email: 'runner@example.test', email_confirmed_at: '2026-11-19T12:00:00Z' };
 const samples = Array.from({ length: 11 }, (_, i) => ({
   timestamp: 1739343600000 + i * 62000,
   distanceInMeters: i * 200,
@@ -24,6 +24,8 @@ async function openApp(page, { signedIn = false, laps = true, syncStore = null }
     let json;
     if (url.pathname === '/auth/v1/token' && signedIn) {
       json = { access_token: 'fixture-auth-token', refresh_token: 'fixture-refresh-token', user };
+    } else if (url.pathname === '/auth/v1/user' && signedIn) {
+      json = user;
     } else if (url.pathname === '/functions/v1/garmin-connection-status') {
       json = { status: 'not_connected' };
     } else if (url.pathname === '/rest/v1/av_members') {

@@ -7,7 +7,7 @@ test('82.2 foregrounding retains active admin form, filters and unsaved draft',a
  await page.goto('/index.html');
  await page.evaluate(()=>{sessionStorage.setItem('av-token','test-admin-token');window.mileBetaIsAdmin=()=>true;window.mileBetaAdmin()});
  const panel=page.locator('#mile-admin-centre');await expect(panel.locator('.ma-status')).toContainText('Overview data connected');
- await panel.getByRole('button',{name:'Announcements & Releases'}).click();
+ await panel.locator('.ma-tabs [data-ma-announcements]').click();
  await expect(panel.getByRole('button',{name:'Save draft'})).toBeEnabled();
  await panel.getByLabel('Announcement title').fill('Unsaved draft');
  await panel.getByLabel('Announcement message').fill('Preserve this unsaved message');

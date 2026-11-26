@@ -10,7 +10,7 @@ test('81 compact admin metric layout and stable management navigation',async({pa
  const value=panel.locator('[data-metric=athletes] .ma-value');await expect(value).toHaveCSS('font-size','19px');
  const card=panel.locator('[data-metric=athletes]');expect(await card.evaluate(el=>el.getBoundingClientRect().height)).toBeLessThan(85);
  await expect(panel.locator('.ma-chart')).toHaveCSS('height','78px');
- const button=panel.getByRole('button',{name:'Athlete Management'});await button.scrollIntoViewIfNeeded();
+ const button=panel.locator('.ma-tabs [data-ma-athletes]');await button.scrollIntoViewIfNeeded();
  // Snapshot the real click position, after browser actionability/focus scrolling.
  await button.evaluate(el=>el.addEventListener('click',()=>{window.m81BeforeClick=el.closest('#mile-admin-centre').scrollTop},{capture:true,once:true}));
  await button.click();
@@ -22,7 +22,7 @@ test('81 compact admin metric layout and stable management navigation',async({pa
  await expect(panel.locator('[data-ma-list=athletes]')).toContainText('Test athlete');
  expect(Math.abs(await heading.evaluate(el=>el.getBoundingClientRect().top)-top)).toBeLessThanOrEqual(4);
  expect(await panel.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
- await panel.getByRole('button',{name:'‹ Overview'}).click();await expect(button).toBeFocused();
- await expect.poll(()=>panel.evaluate((el,saved)=>Math.abs(el.scrollTop-Math.max(0,Math.min(saved,el.scrollHeight-el.clientHeight))),before)).toBeLessThanOrEqual(8);
+ await panel.getByRole('button',{name:'‹ Overview'}).click();await expect(panel.locator('[data-ma-overview]')).toBeFocused();
+ await expect.poll(()=>panel.evaluate(el=>el.scrollTop)).toBeLessThanOrEqual(8);await expect(panel.locator('.ma-overview')).toBeVisible();
  await expect(button).toBeInViewport();
 });
