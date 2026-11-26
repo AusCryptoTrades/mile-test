@@ -1,7 +1,10 @@
 name: MILE native foundations
 on:
+  push:
+    branches: ['feature/batch86-infrastructure']
+    paths: ['native/**', '.github/workflows/mile-native-foundations.yml']
   pull_request:
-    branches: [main]
+    branches: [main, 'feature/batch85-beta-polish']
     paths: ['native/**', '.github/workflows/mile-native-foundations.yml', 'index.html', 'mile-*.html', 'mile-*.js', 'mile-*.css']
   workflow_dispatch:
 permissions:
@@ -22,6 +25,19 @@ jobs:
           node-version: '22'
       - run: npm --prefix native test
       - run: python3 native/scripts/brand.py --test
+      - name: Verify committed native dependency lockfile
+        working-directory: native
+        run: |
+          git ls-files --error-unmatch package-lock.json
+          npm ci --ignore-scripts --no-audit --no-fund
+          git diff --exit-code -- package-lock.json
+      - name: Upload reproducible dependency lockfile
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mile-native-dependency-lock
+          path: native/package-lock.json
+          if-no-files-found: error
+          retention-days: 7
   android-debug:
     needs: bundle
     runs-on: ubuntu-24.04
@@ -41,8 +57,15 @@ jobs:
           test -n "$JAVA_HOME_21_X64"
           echo "JAVA_HOME=$JAVA_HOME_21_X64" >> "$GITHUB_ENV"
           echo "$JAVA_HOME_21_X64/bin" >> "$GITHUB_PATH"
-      - run: npm install --no-audit --no-fund
+      - run: npm ci --no-audit --no-fund
       - run: npm run prepare:android
+      - name: Restore Gradle dependency cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        with:
+          path: |
+            ~/.gradle/caches/modules-2
+            ~/.gradle/wrapper/dists
+          key: mile-gradle-${{ runner.os }}-java21-${{ hashFiles('native/package.json', 'native/package-lock.json', 'native/android/**/*.gradle', 'native/android/gradle/wrapper/gradle-wrapper.properties') }}
       - name: Compile Android debug application
         run: |
           cd android
@@ -74,7 +97,7 @@ jobs:
         with:
           node-version: '22'
       - run: xcodebuild -version
-      - run: npm install --no-audit --no-fund
+      - run: npm ci --no-audit --no-fund
       - run: npm run prepare:ios
       - name: Compile unsigned iOS simulator application
         run: |
@@ -82,3 +105,7 @@ jobs:
           test -d build-ios/Build/Products/Debug-iphonesimulator/App.app
           /usr/libexec/PlistBuddy -c 'Print :NSLocationWhenInUseUsageDescription' build-ios/Build/Products/Debug-iphonesimulator/App.app/Info.plist
           plutil -lint build-ios/Build/Products/Debug-iphonesimulator/App.app/Info.plist
+          /usr/libexec/PlistBuddy -c 'Print :NSHealthShareUsageDescription' build-ios/Build/Products/Debug-iphonesimulator/App.app/Info.plist
+          test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.healthkit' ios/App/App/MILEHealthKit.entitlements)" = true
+          grep -q 'registerPluginInstance(MILEHealthKitPlugin())' ios/App/App/AppDelegate.swift
+          grep -q 'customClass="MILEBridgeViewController"' ios/App/App/Base.lproj/Main.storyboard
