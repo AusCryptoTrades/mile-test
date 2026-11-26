@@ -1333,3 +1333,54 @@ test('86.4 discover athletes requires a search and uses compact non-overlapping 
  await search.fill('   ');await expect(results.locator('.m36-athlete')).toHaveCount(0);
  await expect(results).toContainText('Search for an athlete');
 });
+
+
+test('86.7 chat groups dates, keeps actions accessible and fits conversation width',async({page})=>{
+ await openApp(page,{signedIn:true});
+ const peer='00000000-0000-4000-8000-000000000011',messages=[
+ {id:'fixture-chat-1',sender_id:user.id,recipient_id:peer,body:'First message',created_at:'2026-11-16T01:00:00Z'},
+ {id:'fixture-chat-2',sender_id:peer,recipient_id:user.id,body:'Reply',created_at:'2026-11-16T01:05:00Z'},
+ {id:'fixture-chat-3',sender_id:user.id,recipient_id:peer,body:'Next day '+ 'longword'.repeat(20),created_at:'2026-11-18T01:00:00Z'}];
+ await page.route('**/rest/v1/mile_messages?*',r=>r.fulfill({json:messages,headers:{'access-control-allow-origin':'http://127.0.0.1:4173'}}));
+ await page.evaluate(()=>window.m36Open('messages'));
+ await expect(page.locator('.m37-conversation')).toHaveCount(1);
+ await page.locator('.m37-conversation').click();
+ const chat=page.locator('.m86-chat');
+ await expect(chat.locator('.m37-bubble')).toHaveCount(3);
+ await expect(chat.locator('.m86-chat-date')).toHaveCount(2);
+ await expect(chat.locator('.m37-bubble.mine')).toHaveCount(2);
+ await expect(chat.locator('.m37-bubble').nth(1)).not.toHaveClass(/\bmine\b/);
+ await expect(chat.getByRole('button',{name:'Send message'})).toBeVisible();
+ await expect(chat.getByRole('textbox',{name:'Write a message'})).toBeVisible();
+ await expect(chat.locator('.m86-chat-privacy')).toContainText('Not end-to-end encrypted');
+ for(const theme of ['forest','graphite','midnight','mono','light','sand','ice']){
+  await page.evaluate(t=>window.m395ThemeSet(t),theme);
+  await expect(chat).toBeVisible();
+  expect(await chat.locator('#m37-thread').evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+  const bubble=chat.locator('.m37-bubble').first(),dots=bubble.getByRole('button',{name:'Message options'});
+  expect((await dots.boundingBox()).width).toBeLessThanOrEqual(36);
+ }
+ const last=chat.locator('[data-m375-message="fixture-chat-3"]');
+ await last.getByRole('button',{name:'Message options'}).click();
+ await expect(last.getByRole('button',{name:'Edit',exact:true})).toBeVisible();
+ await expect(last.getByRole('button',{name:'Delete for everyone'})).toBeVisible();
+ await chat.getByRole('button',{name:'Back to inbox'}).click();
+ await expect(page.locator('.m86-inbox')).toBeVisible();
+});
+test('86.5 connected devices distinguishes web availability from native permission preview',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('settings'));
+ await page.locator('[data-m771-open="connections"]').click();
+ const panel=page.locator('[data-m775-connections]');
+ await expect(panel.getByRole('heading',{name:'Apple Health'})).toBeVisible();
+ await expect(panel.locator('[data-m86-health-status]')).toHaveText('Requires the native iPhone app');
+ await expect(panel.locator('[data-m86-health-access]')).toHaveCount(0);
+ await expect(panel.getByRole('heading',{name:'COROS'})).toBeVisible();
+ await expect(panel.getByRole('button',{name:'Connect / reconnect Garmin'})).toBeVisible();
+ await page.locator('[data-m771-open="hub"]').click();
+ await page.evaluate(()=>{window.Capacitor={isNativePlatform:()=>true,getPlatform:()=>'ios',Plugins:{MILEHealthKit:{availability:async()=>({available:true}),requestReadAccess:async()=>({requestCompleted:true})}}}});
+ await page.locator('[data-m771-open="connections"]').click();
+ await panel.locator('[data-m86-health-access]').click();
+ await expect(panel.locator('[data-m86-health-status]')).toHaveText('Permission request completed — import not enabled');
+ await expect(panel).toContainText('No health data is uploaded by this preview');
+});
