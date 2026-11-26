@@ -57,7 +57,7 @@
   const active=current();
   const response=await fetch(state.settings.supabaseUrl+'/functions/v1/mile-garmin-device-sync',{method:'POST',headers:sbHeaders(),cache:'no-store',signal:AbortSignal.timeout(action==='publish_session'?120000:60000),body:JSON.stringify({action,sessionId,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone,...extra})});
   if(current()?.id!==owner.id||current()?.token!==active.token)throw Error('Your session changed. Check the sync status.');
-  const d=await response.json();if(!response.ok)throw Error(typeof d.error==='string'?d.error:'Garmin is temporarily unavailable.');return d;
+  const d=await response.json();if(d.rateLimited===true||response.status===429){const e=Error('Garmin requested a short pause.');e.rateLimited=true;e.retryAfterSeconds=Number.isFinite(Number(d.retryAfterSeconds))?Math.max(1,Number(d.retryAfterSeconds)):60;e.retrySafe=d.retrySafe===true;e.result=d;throw e}if(!response.ok)throw Error(typeof d.error==='string'?d.error:'Garmin is temporarily unavailable.');return d;
  }
  const snapshot=w=>JSON.stringify([w.id,w.block,w.date,w.name,w.detail,w.structuredSteps,w.structuredDetail,w.status,w.matchId,w.revision]);
  const inWindow=w=>eligible(w,today(),add(today(),14));
@@ -69,7 +69,10 @@
   const get=wId=>state.workouts.find(w=>w.id===wId);
   const candidates=()=>block?planSessions(state.workouts,block,today(),add(today(),14)):[get(id)].filter(inWindow);
   const title=block?state.blocks.find(b=>b.id===block)?.name||'Training plan':get(id)?.name||'Workout';
-  let scope=block?'upcoming':'single',attempted=new Set(),checkedIds=[],recovering=false;
+  let scope=block?'upcoming':'single',attempted=new Set(),checkedIds=[],recovering=false,retryAt=0;
+  function limit(e){retryAt=Math.max(retryAt,Date.now()+Math.ceil(e.retryAfterSeconds||60)*1000);recovering=true}
+  function cooled(){if(Date.now()>=retryAt)return true;notice('Garmin is taking a short break. Try again in '+Math.ceil((retryAt-Date.now())/1000)+' seconds.');return false}
+  function pause(){busy(false);hero(d,'Sync paused','Garmin has temporarily limited requests. Your previously synced workouts are safe.','warning');d.append(el('p','','Try again after '+Math.max(1,Math.ceil((retryAt-Date.now())/1000))+' seconds. MILE will recheck existing sessions before sending more.'));actions(d,[{label:'Review remaining workouts',primary:true,run:()=>{if(cooled())prepare()}},{label:'Done',run:()=>d.close()}])}
   function choose(){
    hero(d,'Sync to Device','Choose your training device.');
    const list=candidates();
@@ -85,7 +88,7 @@
    actions(d,[{label:'Cancel',run:()=>d.close()}]);
   }
   async function prepare(){
-   if(!alive()||d.dataset.busy==='true')return;
+   if(!alive()||d.dataset.busy==='true'||!cooled())return;
    let list=candidates();if(scope==='single')list=list.slice(0,1);
    if(!list.length)return choose();
    checkedIds=list.map(w=>w.id);busy(true);hero(d,'Preparing your workouts','Checking Garmin and your saved training plan.','loading');
@@ -104,7 +107,7 @@
       if(!inWindow(local)||snapshot(local)!==before||p.date!==local.date||p.payload?.workoutName!==String(local.name).trim()||p.payload?.description!==String(local.detail).slice(0,1024).trim()||p.publishingEnabled!==true||typeof p.fingerprint!=='string')throw Error('Session changed. Save your plan before syncing.');
       const steps=p.payload?.segments?.flatMap(x=>x.steps||[]);if(!steps?.length)throw Error('No structured steps available.');
       ready.push({id:w.id,name:w.name,date:w.date,km:w.km,steps,fingerprint:p.fingerprint,snapshot:before});
-     }catch(e){unavailable.push({name:w.name,reason:e instanceof Error?e.message:'Unable to prepare'});if(i===0&&!ready.length&&!previous.length&&/reconnect|permission|membership|Garmin not connected|account changed/i.test(unavailable[0].reason))break}
+     }catch(e){if(e?.rateLimited){limit(e);pause();return}unavailable.push({name:w.name,reason:e instanceof Error?e.message:'Unable to prepare'});if(i===0&&!ready.length&&!previous.length&&/reconnect|permission|membership|Garmin not connected|account changed/i.test(unavailable[0].reason))break}
     }
     if(!alive())return;
     busy(false);review(ready,previous,unavailable,list.length);
@@ -121,7 +124,7 @@
    actions(d,[...(ready.length&&!pending?[{label:recovering?'Sync remaining workouts':ready.length===1?'Sync workout':'Sync '+ready.length+' workouts',primary:true,run:()=>publish(ready,previous,unavailable,total)}]:[]),{label:'Check status',run:()=>checkStatus(checkedIds)},{label:'Close',run:()=>d.close()}]);
   }
   async function publish(ready,previous,unavailable,total){
-   if(!alive()||d.dataset.busy==='true')return;busy(true);hero(d,ready.length===1?'Syncing your workout':'Syncing your training plan','Sending your sessions to Garmin Connect.','loading');
+   if(!alive()||d.dataset.busy==='true'||!cooled())return;busy(true);hero(d,ready.length===1?'Syncing your workout':'Syncing your training plan','Sending your sessions to Garmin Connect.','loading');
    const update=progress(d,0,ready.length),results=[];let stopped=false;
    for(let i=0;i<ready.length;i++){
     if(!alive())return;const w=ready[i];update(i,(i+1)+' of '+ready.length+' · '+w.name);
@@ -130,8 +133,8 @@
     attempted.add(w.id);
     try{
      const result=await request(owner,'publish_session',w.id,{confirmed:true,approvedFingerprint:w.fingerprint});
-     let confirmed=resultKind(result)==='confirmed',readback=result.targetReadback;if(!confirmed){try{const recheck=await request(owner,'status_session',w.id);confirmed=resultKind(recheck)==='confirmed';readback=recheck.targetReadback??readback}catch{}}results.push({...w,kind:confirmed?'confirmed':'pending',targets:compareTargets(w.steps,readback)});if(!confirmed)stopped=true;
-    }catch{let confirmed=false,readback=null;try{const recheck=await request(owner,'status_session',w.id);confirmed=resultKind(recheck)==='confirmed';readback=recheck.targetReadback}catch{}results.push({...w,kind:confirmed?'confirmed':'pending',targets:compareTargets(w.steps,readback)});if(!confirmed)stopped=true}
+     let confirmed=resultKind(result)==='confirmed',readback=result.targetReadback;if(!confirmed){try{const recheck=await request(owner,'status_session',w.id);confirmed=resultKind(recheck)==='confirmed';readback=recheck.targetReadback??readback}catch(e){if(e?.rateLimited)limit(e)}}results.push({...w,kind:confirmed?'confirmed':'pending',targets:compareTargets(w.steps,readback)});if(!confirmed||Date.now()<retryAt)stopped=true;
+    }catch(e){if(e?.rateLimited){limit(e);if(e.retrySafe)attempted.delete(w.id);const confirmed=e.result?.calendarMatch===true;results.push({...w,kind:confirmed?'confirmed':e.retrySafe?'not_sent':'pending',targets:compareTargets(w.steps,e.result?.targetReadback)});stopped=true}else{let confirmed=false,readback=null;try{const recheck=await request(owner,'status_session',w.id);confirmed=resultKind(recheck)==='confirmed';readback=recheck.targetReadback}catch(err){if(err?.rateLimited)limit(err)}results.push({...w,kind:confirmed?'confirmed':'pending',targets:compareTargets(w.steps,readback)});if(!confirmed||Date.now()<retryAt)stopped=true}}
     if(alive())update(i+1,(i+1)+' of '+ready.length+' processed');
    }
    if(!alive())return;busy(false);finish(results,previous,unavailable,total);
@@ -142,15 +145,15 @@
    const notSent=Math.max(0,total-confirmed-pending);
    const all=confirmed>0&&pending===0&&notSent===0;
    hero(d,all?(total===1?'Workout synced.':'Training synced.'):confirmed?'Sync partially complete.':pending?'Sync submitted.':'No new workouts synced.',all?'Your training is ready in Garmin Connect.':pending?'Some sessions are awaiting confirmation. Check Garmin before syncing again.':'Review your sessions and check the connection.',all?'success':'warning');
-   if(total!==1||!all)stat(d,[[confirmed,'Confirmed'],[pending,'Pending'],[notSent,'Not sent']]);
+   if(total!==1||!all)stat(d,[[confirmed,'Confirmed'],[pending,'Pending'],[notSent,'Not sent']]);if(Date.now()<retryAt)d.append(el('p','','Garmin requested a pause. Check again after '+Math.ceil((retryAt-Date.now())/1000)+' seconds. Previously confirmed workouts will not be resent.'));
    for(const [kind,label] of [['confirmed','Synced'],['pending','Awaiting confirmation'],['not_sent','Not sent']]){const rows=[...results,...previous].filter(w=>w.kind===kind);if(!rows.length)continue;const group=el('details','mile-sync-list');group.append(el('summary','',label+' · '+rows.length));for(const w of rows){const label=w.targets==='verified'?' · Targets verified':w.targets==='mismatch'?' · Target mismatch':w.targets==='unverified'?' · Targets not verified':'';group.append(el('p','',w.name+(w.date?' · '+nice(w.date):'')+label));}d.append(group)}
    if(results.some(w=>w.targets==='mismatch'))d.append(el('p','','Garmin returned different workout targets. Review the affected session before training.'));else if(results.some(w=>w.targets==='unverified'))d.append(el('p','','Garmin target readback is not yet confirmed. Check your watch before training.'));d.append(el('p','','Sync your compatible watch to receive your workouts.'));
    if(all&&typeof navigator.vibrate==='function')try{navigator.vibrate(25)}catch{}
    actions(d,[...(!all?[{label:'Check Garmin',primary:pending>0,run:()=>checkStatus(checkedIds)}]:[]),...(notSent>0&&pending===0&&block?[{label:'Review remaining workouts',primary:true,run:()=>{recovering=true;prepare()}}]:[]),{label:'Done',primary:all,run:()=>d.close()}]);
   }
   async function checkStatus(ids){
-   if(!alive()||d.dataset.busy==='true')return;busy(true);hero(d,'Checking sync','Looking for your sessions in Garmin Connect.','loading');const update=progress(d,0,ids.length),results=[];
-   for(let i=0;i<ids.length;i++){if(!alive())return;const w=get(ids[i]),name=w?.name||'Workout',date=w?.date;try{const r=await request(owner,'status_session',ids[i]);const k=resultKind(r);results.push({id:ids[i],name,date,kind:k==='new'?(attempted.has(ids[i])?'pending':'not_sent'):k})}catch{results.push({id:ids[i],name,date,kind:'pending'})}update(i+1,(i+1)+' of '+ids.length+' checked')}
+   if(!alive()||d.dataset.busy==='true'||!cooled())return;busy(true);hero(d,'Checking sync','Looking for your sessions in Garmin Connect.','loading');const update=progress(d,0,ids.length),results=[];
+   for(let i=0;i<ids.length;i++){if(!alive())return;const w=get(ids[i]),name=w?.name||'Workout',date=w?.date;try{const r=await request(owner,'status_session',ids[i]);const k=resultKind(r);results.push({id:ids[i],name,date,kind:k==='new'?(attempted.has(ids[i])?'pending':'not_sent'):k})}catch(e){if(e?.rateLimited){limit(e);pause();return}results.push({id:ids[i],name,date,kind:'pending'})}update(i+1,(i+1)+' of '+ids.length+' checked')}
    if(alive()){busy(false);finish(results,[],[],ids.length)}
   }
   choose();
