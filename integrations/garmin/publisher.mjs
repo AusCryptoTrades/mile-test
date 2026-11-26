@@ -27,8 +27,18 @@ export async function publishRunningSession({sessionId,authorize,garmin,registry
  }
  if(record.state==='created'){
   await recheck();await move('created',{state:'scheduling'});
-  let id;try{id=remoteId((await garmin.schedule(record.workoutId,a.date))?.scheduleId)}catch{await move('scheduling',{state:'schedule_uncertain'});return record}
-  await move('scheduling',{state:'scheduled',scheduleId:id});
+  let id;try{id=remoteId((await garmin.schedule(record.workoutId,a.date))?.scheduleId)}catch{await move('scheduling',{state:'schedule_uncertain'})}
+  if(id)await move('scheduling',{state:'scheduled',scheduleId:id});
+ }
+ // Read back the calendar even when Garmin accepted a schedule without returning its ID.
+ // Never replay a write. Only adopt an exact, unique match with a valid returned schedule ID.
+ if(record.state==='schedule_uncertain'&&typeof garmin.findSchedule==='function'){
+  await recheck();
+  let match;try{match=await garmin.findSchedule(record.workoutId,a.date)}catch{/* keep the uncertain state */}
+  if(match&&String(match.workoutId)===record.workoutId&&match.date===a.date){
+   let id;try{id=remoteId(match.scheduleId)}catch{/* ID still unavailable */}
+   if(id)await move('schedule_uncertain',{state:'scheduled',scheduleId:id});
+  }
  }
  if(record.state==='scheduled'){
   await recheck();
