@@ -1,0 +1,36 @@
+name: MILE isolated device database
+on:
+  pull_request:
+    branches: [main, 'feature/batch85-beta-polish']
+    paths: ['supabase/proposals/batch86-device-sync.sql', 'supabase/tests/batch86-*.sql', '.github/workflows/mile-device-database.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: mile-device-db-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  device-db:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: mile_fixture
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d mile_fixture"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Run isolated PostgreSQL ownership and consent regression
+        run: |
+          set -eu
+          export PGHOST=127.0.0.1 PGPORT=5432 PGUSER=postgres PGDATABASE=mile_fixture
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/batch86-fixtures.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/proposals/batch86-device-sync.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/batch86-device-sync.test.sql
