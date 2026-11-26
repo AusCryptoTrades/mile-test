@@ -1,0 +1,19 @@
+/* Compact training builder and plan management, using the app theme. */
+#app .mile873-review-intro,#app .mile873-review{border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0;background:var(--panel)}
+#app .mile873-review-intro h3{font-size:17px;margin:7px 0 12px}
+#app .mile873-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;text-align:center}
+#app .mile873-metrics>div{padding:8px 4px;border:1px solid var(--line);border-radius:9px}
+#app .mile873-metrics strong{display:block;font-size:21px;line-height:1.2}
+#app .mile873-metrics small{display:block;font-size:11px;color:var(--muted);margin-top:3px}
+#app .mile873-review>details{padding:9px 0!important}
+#app .mile873-review>details>summary{font-size:14px;min-height:32px;align-content:center}
+#app .v42-checks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+#app .v42-checks label{padding:9px 4px!important;min-width:0;justify-content:center;gap:4px;font-size:12px!important;min-height:38px}
+#app .v42-checks input{width:14px!important;height:14px!important;min-height:0!important;margin:0}
+#app .mile873-plan{margin:6px 0!important}
+#app .mile873-plan-track{height:4px;border-radius:4px;background:var(--line);margin:12px 0 6px;overflow:hidden}
+#app .mile873-plan-track span{display:block;height:100%;background:var(--orange)}
+#app .mile873-plan [data-mile-device-plan]{width:100%;margin-top:9px;min-height:42px}
+#app .mile873-manage{margin-top:9px;border-top:1px solid var(--line);padding-top:9px}
+#app .mile873-manage>summary{font-size:12px;cursor:pointer;color:var(--muted)}
+@media(max-width:360px){#app .v42-checks{grid-template-columns:repeat(3,minmax(0,1fr))}}
