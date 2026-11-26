@@ -1305,3 +1305,31 @@ test('Challenges opened from leaderboard has no stale outer banner ',async({page
  await expect(load.locator('.mile-ui-sportrow').filter({hasText:'Swimming'})).toContainText('1105 m');
  await expect(load.getByText('HYROX',{exact:true})).toHaveCount(0);
  });
+
+
+test('86.4 discover athletes requires a search and uses compact non-overlapping controls',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.route('**/rest/v1/rpc/mile_discover_athletes',r=>r.fulfill({json:[
+  {user_id:'00000000-0000-4000-8000-000000000011',username:'fixturealpha',display_name:'Fixture Alpha',is_private:true},
+  {user_id:'00000000-0000-4000-8000-000000000012',username:'fixturebeta',display_name:'Fixture Beta',is_private:false}
+ ],headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*'}}));
+ await page.evaluate(()=>window.m36Open('discover'));
+ await expect.poll(()=>page.evaluate(()=>window.m36State.loading)).toBe(false);
+ const search=page.locator('#m36-search'),results=page.locator('#m36-results');
+ await expect(search).toBeVisible();
+ await expect(results.locator('.m36-athlete')).toHaveCount(0);
+ await expect(results).toContainText('Search for an athlete');
+ await search.fill('@FIXTUREALPHA');
+ await expect(results.locator('.m36-athlete')).toHaveCount(1);
+ await expect(results).toContainText('Fixture Alpha');
+ await expect(results).not.toContainText('Fixture Beta');
+ const card=results.locator('.m36-athlete');
+ const follow=card.locator('[data-m36-follow]'),message=card.locator('[data-m37-open]');
+ await expect(follow).toBeVisible();await expect(message).toBeVisible();
+ const a=await follow.boundingBox(),b=await message.boundingBox();
+ expect(a.x+a.width<=b.x+1||b.x+b.width<=a.x+1||a.y+a.height<=b.y+1||b.y+b.height<=a.y+1).toBe(true);
+ expect(await card.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+ await search.fill('no matching fixture');await expect(results).toContainText('No athletes found');
+ await search.fill('   ');await expect(results.locator('.m36-athlete')).toHaveCount(0);
+ await expect(results).toContainText('Search for an athlete');
+});
