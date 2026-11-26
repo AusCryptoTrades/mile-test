@@ -1238,7 +1238,7 @@ test('82.3 login and Race Lab use associated field labels and accessible results
 });
 test('82.3 sign-in input labels and audited compact navigation targets',async({page})=>{
  await openApp(page);
- await expect(page.getByLabel('Email',{exact:true})).toBeVisible();
+ await expect(page.getByLabel('Email address',{exact:true})).toBeVisible();
  await expect(page.getByLabel('Password',{exact:true})).toBeVisible();
  await expect(page.locator('.av-remember-row')).toBeVisible();
  expect((await page.locator('.av-remember-row').boundingBox()).height).toBeGreaterThanOrEqual(36);
