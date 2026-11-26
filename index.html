@@ -1238,6 +1238,16 @@ function signIn(){auth('v1/token?grant_type=password'.replace('v1/',''))}functio
 let v4Ready=false,v4Mode='login',v4Member=false;
 const v4LocalKey=id=>'av-training-v4-'+id;
 const v4PendingKey='av-v4-pending-invite';
+const v4InviteDraftKey='mile-invite-link-draft';
+function v4CaptureInviteLink(){
+ const hash=location.hash;
+ if(!hash.startsWith('#invite='))return false;
+ const raw=new URLSearchParams(hash.slice(1)).get('invite')||'';
+ history.replaceState(history.state,'',location.pathname+location.search);
+ if(!/^[0-9a-f]{32}$/i.test(raw)){sessionStorage.removeItem(v4InviteDraftKey);return false}
+ sessionStorage.setItem(v4InviteDraftKey,raw.toUpperCase());return true;
+}
+function v4InitialGate(){v4Show(sessionStorage.getItem(v4InviteDraftKey)?'register':'login')}
 function v4SetError(msg){let e=document.getElementById('v4Error');if(e)e.textContent=msg}
 const mile842Screens={"login":"<div class=\"eyebrow\">MAKE IT LOOK EASY.</div><h2>Welcome back.</h2><p class=\"intro\">Your training. Your progress.</p><div class=\"field\"><label>Email address<input id=\"v4Email\" type=\"email\" placeholder=\"you@example.com\" autocomplete=\"username\"></label></div><div class=\"field\"><label for=\"v4Password\">Password</label><div class=\"pw\"><input id=\"v4Password\" type=\"password\" placeholder=\"Enter password\" autocomplete=\"current-password\"><button type=\"button\" onclick=\"mile842Toggle(this)\">Show</button></div></div><div class=\"meta\"><label class=\"av-remember-row\"><input id=\"v4RememberEmail\" type=\"checkbox\"> Remember my email</label><a href=\"https://app.milefitness.com.au/mile-reset-password.html\">Forgot password?</a></div><button class=\"primary\" onclick=\"v4Authenticate()\">Sign in &nbsp; →</button><p class=\"center small\">New to MILE? <strong><a href=\"#\" onclick=\"v4Show('register');return false\">Create account</a></strong></p>","register":"<div class=\"step\"><i class=\"on\"></i><i class=\"\"></i><i class=\"\"></i></div><div class=\"eyebrow\">STEP 1 / 3 · YOUR ACCOUNT</div><h2>Start your MILE.</h2><p class=\"intro\">Create your private athlete account.</p><div class=\"field\"><label>Email address<input id=\"v4Email\" type=\"email\" placeholder=\"you@example.com\" autocomplete=\"username\"></label></div><div class=\"field\"><label for=\"v4Password\">Create password</label><div class=\"pw\"><input id=\"v4Password\" type=\"password\" placeholder=\"Enter password\" autocomplete=\"new-password\"><button type=\"button\" onclick=\"mile842Toggle(this)\">Show</button></div></div><div class=\"field\"><label>Invitation code<input id=\"v4Invite\" type=\"text\" autocomplete=\"off\"></label></div><p class=\"small\">By creating an account, you agree to our <a href=\"https://milefitness.com.au/terms\">Terms</a> and acknowledge our <a href=\"https://milefitness.com.au/privacy\">Privacy Policy</a>.</p><button class=\"primary\" onclick=\"v4Authenticate()\">Create account &nbsp; →</button><p class=\"center small\">Already have an account? <strong><a href=\"#\" onclick=\"v4Show('login');return false\">Sign in</a></strong></p>","invite":"<div class=\"step\"><i class=\"on\"></i><i class=\"\"></i><i class=\"\"></i></div><div class=\"eyebrow\">PRIVATE BETA ACCESS</div><h2>You’re almost in.</h2><p class=\"intro\">Enter your invitation code to activate your private beta account.</p><div class=\"field\"><label>Invitation code<input id=\"v4Invite\" type=\"text\" autocomplete=\"off\"></label></div><button class=\"primary\" onclick=\"v4Join()\">Activate account &nbsp; →</button><button class=\"secondary\" onclick=\"v4Logout()\">Sign out</button><p class=\"small center\">Need an invitation? <a href=\"mailto:support@milefitness.com.au\">Contact MILE Support.</a></p>","connect":"<div class=\"step\"><i class=\"on\"></i><i class=\"on\"></i><i class=\"\"></i></div><div class=\"connect\"><div class=\"tile\"><span class=\"logo\">M<span class=\"lime\">.</span></span></div><span class=\"lime\">↔</span><div class=\"tile garmin\">GARMIN<span class=\"lime\">▲</span></div></div><div class=\"eyebrow\">STEP 2 / 3 · CONNECT</div><h2>Connect your Garmin.</h2><p class=\"intro\">Bring your training data together.</p><div class=\"features\"><div class=\"feature\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M2 12h5l3-7 4 14 3-7h5\"/></svg>Activities & workouts</div><div class=\"feature\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 5c-3-3-6-1-8 1-2-2-5-4-8-1s-2 7 0 9l8 7 8-7c2-2 3-6 0-9z\"/></svg>Health & recovery</div><div class=\"feature\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 3v18h18M7 15l5-5 4 3 5-7\"/></svg>Performance insights</div></div><button class=\"primary\" onclick=\"v4Connect()\">Connect Garmin &nbsp; →</button><p class=\"center small\"><a href=\"#\" onclick=\"v4SkipGarmin();return false\">Skip for now</a></p><div class=\"security\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3l8 3v6c0 5-8 9-8 9s-8-4-8-9V6zM9 12l2 2 4-4\"/></svg> Secure authorisation · No Garmin password stored</div>"};
 function mile842Toggle(button){const input=button.previousElementSibling;const show=input.type==='password';input.type=show?'text':'password';button.textContent=show?'Hide':'Show';button.setAttribute('aria-pressed',String(show))}
@@ -1245,20 +1255,22 @@ function v4Show(mode='login'){
  if(!Object.prototype.hasOwnProperty.call(mile842Screens,mode))mode='login';v4Mode=mode;const gate=document.getElementById('v4Gate');gate.classList.remove('hidden');
  gate.innerHTML="<div class=\"layout\"><aside class=\"story\"><div><span class=\"logo\">MILE<span class=\"lime\">.</span></span></div><div><div class=\"eyebrow\">BUILT FOR THE WORK.</div><h1>TRAIN.<br>TRACK.<br><span class=\"lime\">PROGRESS.</span></h1><p>One place to plan your training, understand your performance and keep moving forward.</p><div class=\"sports\"><span>RUNNING</span><span>HYROX</span><span>CYCLING</span><span>SWIMMING</span><span>STRENGTH</span></div></div><div class=\"eyebrow\">MAKE IT LOOK EASY.</div></aside><main class=\"main\"><div class=\"panel\"><div class=\"brand\"><span class=\"logo\">MILE<span class=\"lime\">.</span></span><span class=\"tag\" id=\"tag\">BETA</span></div><div id=\"content\">"+mile842Screens[mode]+"</div><div id=\"v4Error\" class=\"v4err\" role=\"status\" aria-live=\"polite\"></div><div class=\"footer\"><a href=\"https://milefitness.com.au/privacy\" target=\"_blank\">Privacy</a><a href=\"https://milefitness.com.au/terms\" target=\"_blank\">Terms</a><a href=\"mailto:support@milefitness.com.au\">Support</a></div></div></main></div>";
  gate.querySelector('#tag').textContent=mode==='login'?'BETA':'SETUP';const remember=gate.querySelector('#v4RememberEmail');if(remember){remember.checked=localStorage.getItem('av-remember-email-enabled')==='1';if(remember.checked)gate.querySelector('#v4Email').value=localStorage.getItem('av-remember-email-value')||'';}
+ const inviteField=gate.querySelector('#v4Invite');if(inviteField){const draft=sessionStorage.getItem(v4InviteDraftKey);if(draft)inviteField.value=draft;}
  const connect=gate.querySelector('button[onclick="v4Connect()"]');if(connect)connect.type='button';gate.scrollTop=0;
 }
 async function v4AuthRequest(path,body){let r=await fetch(state.settings.supabaseUrl+'/auth/v1/'+path,{method:'POST',headers:{apikey:state.settings.supabaseAnon,'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json();if(!r.ok)throw Error(d.msg||d.error_description||d.message||'Authentication failed');return d}
 function v4SetSession(d){token=d.access_token;userId=d.user.id;sessionStorage.setItem('av-token',token);localStorage.setItem('av-token',token);sessionStorage.setItem('av-user',userId);localStorage.setItem('av-user',userId);if(d.refresh_token){sessionStorage.setItem('av-refresh',d.refresh_token);localStorage.setItem('av-refresh',d.refresh_token)}}
 async function v4Authenticate(){let email=document.getElementById('v4Email')?.value.trim(),password=document.getElementById('v4Password')?.value,invite=document.getElementById('v4Invite')?.value.trim();if(!email||!password)return v4SetError('Enter your email and password.');let remember=document.getElementById('v4RememberEmail')?.checked;if(remember){localStorage.setItem('av-remember-email-enabled','1');localStorage.setItem('av-remember-email-value',email)}else{localStorage.removeItem('av-remember-email-enabled');localStorage.removeItem('av-remember-email-value')}if(v4Mode==='register'&&!invite)return v4SetError('Enter your invitation code.');v4SetError('Please wait…');try{
  let d=await v4AuthRequest(v4Mode==='register'?'signup':'token?grant_type=password',{email,password});
- if(v4Mode==='register')sessionStorage.setItem(v4PendingKey,invite.toUpperCase());
+ if(v4Mode==='register'){sessionStorage.setItem(v4PendingKey,invite.toUpperCase());sessionStorage.removeItem(v4InviteDraftKey);}
  if(!d.access_token){v4Show('login');v4SetError('Account created. Confirm your email if required, then sign in on this device.');return}
  v4SetSession(d);await v4AfterLogin();
 }catch(e){v4SetError(e.message==='Failed to fetch'?'Could not reach Supabase. Check the project URL and your network connection.':e.message)}}
-async function v4Join(){let code=document.getElementById('v4Invite')?.value.trim();if(!code)return v4SetError('Enter an invitation code.');v4SetError('Checking code…');try{let r=await fetch(state.settings.supabaseUrl+'/rest/v1/rpc/av_join',{method:'POST',headers:sbHeaders(),body:JSON.stringify({invite_code:code})});if(!r.ok){let d=await r.json();throw Error(d.message||'Invitation failed')}sessionStorage.removeItem(v4PendingKey);await v4AfterLogin()}catch(e){v4SetError(e.message)}}
+async function v4Join(){let code=document.getElementById('v4Invite')?.value.trim();if(!code)return v4SetError('Enter an invitation code.');v4SetError('Checking code…');try{let r=await fetch(state.settings.supabaseUrl+'/rest/v1/rpc/av_join',{method:'POST',headers:sbHeaders(),body:JSON.stringify({invite_code:code})});if(!r.ok){let d=await r.json();throw Error(d.message||'Invitation failed')}sessionStorage.removeItem(v4PendingKey);sessionStorage.removeItem(v4InviteDraftKey);await v4AfterLogin()}catch(e){v4SetError(e.message)}}
 async function v4AfterLogin(){try{
  let r=await fetch(state.settings.supabaseUrl+'/rest/v1/av_members?user_id=eq.'+encodeURIComponent(userId)+'&select=user_id',{headers:sbHeaders()});if(!r.ok)throw Error('Could not check account membership: '+r.status);
  let rows=await r.json();if(!rows.length){let pending=sessionStorage.getItem(v4PendingKey);v4Show('invite');if(pending){document.getElementById('v4Invite').value=pending;await v4Join()}return}
+ sessionStorage.removeItem(v4InviteDraftKey);sessionStorage.removeItem(v4PendingKey);
  v4Member=true;
  let stored=localStorage.getItem(v4LocalKey(userId));
  let local=null;try{local=stored?JSON.parse(stored):null}catch(e){}
@@ -1338,7 +1350,7 @@ async function v4Connect(){
   }
 }
 function v4SkipGarmin(){if(userId)localStorage.setItem('mile-garmin-onboarding-'+userId,'skipped');document.getElementById('v4Gate').classList.add('hidden');render()}
-async function v4Logout(){if(avCloudPending){notice('Finishing cloud save before signing out…');await avCloudQueue}if(avCloudError&&!confirm('Cloud save failed. Your latest edits may exist only on this device. Sign out anyway?'))return;token='';userId='';v4Ready=false;v4Member=false;sessionStorage.removeItem('av-token');localStorage.removeItem('av-token');sessionStorage.removeItem('av-user');localStorage.removeItem('av-user');sessionStorage.removeItem('av-refresh');localStorage.removeItem('av-refresh');state=seed();state.workouts=[];state.activities=[];state.goals=[];v4Show('login')}
+async function v4Logout(){if(avCloudPending){notice('Finishing cloud save before signing out…');await avCloudQueue}if(avCloudError&&!confirm('Cloud save failed. Your latest edits may exist only on this device. Sign out anyway?'))return;token='';userId='';v4Ready=false;v4Member=false;sessionStorage.removeItem(v4InviteDraftKey);sessionStorage.removeItem(v4PendingKey);sessionStorage.removeItem('av-token');localStorage.removeItem('av-token');sessionStorage.removeItem('av-user');localStorage.removeItem('av-user');sessionStorage.removeItem('av-refresh');localStorage.removeItem('av-refresh');state=seed();state.workouts=[];state.activities=[];state.goals=[];v4Show('login')}
 const avSyncOriginalRender=render;
 render=function(){avSyncOriginalRender();let badge=document.querySelector('.top .row');if(v4Ready&&badge&&!document.getElementById('avCloudStatus')){let el=document.createElement('span');el.id='avCloudStatus';el.className='small muted';el.style.fontSize='11px';badge.appendChild(el)}avCloudIndicator()};
 const v4OriginalRender=render;
@@ -1362,15 +1374,16 @@ function v4ShowRestoring(){
  </div><style>@keyframes mileSessionSpin{to{transform:rotate(360deg)}}</style>`;
 }
 (async()=>{
+ v4CaptureInviteLink();
  const hasSession=!!(token&&userId);
  const refreshToken=localStorage.getItem('av-refresh')||sessionStorage.getItem('av-refresh');
  if(hasSession&&refreshToken){
    v4ShowRestoring();
    try{const ok=await refreshSession();if(ok){await v4AfterLogin();return}}
    catch(e){/* A failed refresh falls through to the normal sign-in screen. */}
-   v4Show('login');
+   v4InitialGate();
  }else{
-   v4Show('login');
+   v4InitialGate();
  }
 })();
 
