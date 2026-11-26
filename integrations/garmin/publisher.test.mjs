@@ -48,3 +48,21 @@ test('Postgres adapter uses parameter binding and rejects invalid transitions',a
  await adapter.transition('op','creating',{state:'created',workoutId:'123'});
  assert.match(queries[2].sql,/where operation_id=\$1 and state=\$2/);
 });
+
+test('schedule response missing ID reconciles via calendar without another POST',async()=>{
+ const f=fixture();let n=0;
+ f.garmin.schedule=async()=>{n++;return {}};
+ f.garmin.findSchedule=async()=>({scheduleId:456,workoutId:123,date:f.a.date});
+ assert.equal((await publishRunningSession(f.args)).state,'verified');
+ assert.equal((await publishRunningSession(f.args)).state,'verified');
+ assert.equal(n,1);assert.equal(f.counts()[0],1);
+});
+test('ambiguous calendar matching never silently marks delivery or retries writes',async()=>{
+ const f=fixture();let n=0;
+ f.garmin.schedule=async()=>{n++;throw Error('timeout')};
+ f.garmin.findSchedule=async()=>({scheduleId:456,workoutId:999,date:f.a.date});
+ assert.equal((await publishRunningSession(f.args)).state,'schedule_uncertain');
+ f.garmin.findSchedule=async()=>({workoutId:123,date:f.a.date});
+ assert.equal((await publishRunningSession(f.args)).state,'schedule_uncertain');
+ assert.equal(n,1);assert.equal(f.counts()[0],1);
+});
