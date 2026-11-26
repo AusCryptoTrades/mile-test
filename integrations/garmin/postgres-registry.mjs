@@ -3,7 +3,7 @@
 const transitions=Object.freeze({
  claimed:['creating'],creating:['created','create_uncertain'],
  created:['scheduling'],scheduling:['scheduled','schedule_uncertain'],
- scheduled:['verified']
+ schedule_uncertain:['scheduled'],scheduled:['verified']
 });
 const columns='athlete_id,garmin_identity,session_id,revision,scheduled_date::text as date,payload_sha256,operation_id,state,workout_id::text as workout_id,schedule_id::text as schedule_id';
 const map=r=>r?({athleteId:r.athlete_id,garminIdentity:r.garmin_identity,sessionId:r.session_id,revision:r.revision,date:r.date,payloadSha256:r.payload_sha256,operationId:r.operation_id,state:r.state,workoutId:r.workout_id,scheduleId:r.schedule_id}):null;
