@@ -62,21 +62,13 @@ function basicAuth(id: string, secret: string): string {
 async function garminRequest(
   url: string,
   token: string,
-  method = "GET",
-  body?: unknown,
 ) {
   const response = await fetch(url, {
-    method,
+    method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/json",
-      ...(body === undefined
-        ? {}
-        : { "Content-Type": "application/json" }),
     },
-    ...(body === undefined
-      ? {}
-      : { body: JSON.stringify(body) }),
     signal: AbortSignal.timeout(20000),
   });
 
@@ -97,6 +89,7 @@ async function garminRequest(
   };
 }
 async function getToken(sql:any,userId:string){
+ if(!CLIENT_ID||!CLIENT_SECRET)throw Error("CONFIG_UNAVAILABLE");
     return await sql.begin(async (tx) => {
       await tx`
         SELECT pg_advisory_xact_lock(
