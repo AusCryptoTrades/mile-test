@@ -3,7 +3,7 @@
  'use strict';
  const validId=id=>typeof id==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
  const eligible=(w,from,to)=>!!w&&validId(w.id)&&w.sport==='Running'&&w.status==='planned'&&!w.matchId&&typeof w.date==='string'&&w.date>=from&&w.date<=to&&Array.isArray(w.structuredSteps)&&w.structuredSteps.length>0&&w.structuredDetail===w.detail;
- const clock=s=>Math.floor(s/60)+':'+String(Math.round(s%60)).padStart(2,'0');
+ const clock=s=>{const n=Math.round(s);return Math.floor(n/60)+':'+String(n%60).padStart(2,'0')};
  const describeStep=s=>{
   if(s.type==='WorkoutRepeatStep')return s.repeatValue+' × repeat';
   const duration=s.durationType==='TIME'?clock(s.durationValue):s.durationType==='DISTANCE'?(s.durationValue/1000)+' km':'Lap to continue';
