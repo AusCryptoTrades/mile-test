@@ -3,6 +3,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import postgres from "npm:postgres@3.4.5";
 import {createAuthenticatedPublisher} from "./authenticated-publisher.mjs";
 import {createPostgresPublicationRegistry} from "./postgres-registry.mjs";
+import {requestCheck,retryDelaySeconds} from "./request-checks.mjs";
 const DB_URL = Deno.env.get("SUPABASE_DB_URL");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
@@ -91,6 +92,7 @@ async function garminRequest(
 
   return {
     status: response.status,
+    retryAfter: response.headers.get("Retry-After"),
     ok: response.ok,
     data: parsed,
   };
@@ -216,6 +218,7 @@ Deno.serve(async(req:Request)=>{
  }catch{return reply({error:"Valid athlete timezone required"},400)}
  const horizon=new Date(today+"T00:00:00Z");horizon.setUTCDate(horizon.getUTCDate()+14);const lastDate=horizon.toISOString().slice(0,10);
  const sql=postgres(DB_URL,{max:2,idle_timeout:2,connect_timeout:5});
+ let rateLimit=0;let publicationLookup:(()=>Promise<any>)|null=null;
  try{
   const authenticate=async()=>{
    const r=await fetch(SUPABASE_URL+"/auth/v1/user",{headers:{Authorization:auth,apikey:ANON_KEY},signal:AbortSignal.timeout(10000),cache:"no-store"});
@@ -233,10 +236,19 @@ Deno.serve(async(req:Request)=>{
   };
   const connection=await loadConnection(userId);
   if(!connection?.garminIdentity)return reply({error:"Reconnect Garmin to verify your account identity"},409);
+  const getRecord=async()=>{
+   const rows=await sql`select operation_id,state,scheduled_date::text as date,workout_id::text as workout_id,schedule_id::text as schedule_id,garmin_identity from private.mile_garmin_publications where athlete_id=${userId} and session_id=${sessionId}`;
+   return rows[0]??null;
+  };
+  publicationLookup=getRecord;
+  if(input.action==="status_session"){
+   const existing=await getRecord();
+   if(!existing)return reply({publicationState:"not_published",calendarMatch:null});
+  }
   const token=await getToken(sql,userId);
-  const checked=async(url:string,method:"GET"|"POST"="GET",body?:unknown)=>{const r=await garminRequest(url,token,method,body);if(!r.ok)throw Error("Garmin request failed: "+r.status);return r.data};
-  const identity=async()=>{const v=await checked(GARMIN_USER_ID_URL);if(!v?.userId)throw Error("GARMIN_IDENTITY_UNAVAILABLE");return String(v.userId)};
-  const permissions=async()=>{const v=await checked(PERMISSIONS_URL);if(!Array.isArray(v?.permissions))throw Error("GARMIN_PERMISSIONS_UNAVAILABLE");return v.permissions};
+  const checked=async(url:string,method:"GET"|"POST"="GET",body?:unknown)=>{if(rateLimit)throw Error("GARMIN_RATE_LIMIT");const r=await garminRequest(url,token,method,body);if(r.status===429){rateLimit=retryDelaySeconds(r.retryAfter);throw Error("GARMIN_RATE_LIMIT")}if(!r.ok)throw Error("Garmin request failed: "+r.status);return r.data};
+  const identity=requestCheck(async()=>{const v=await checked(GARMIN_USER_ID_URL);if(!v?.userId)throw Error("GARMIN_IDENTITY_UNAVAILABLE");return String(v.userId)});
+  const permissions=requestCheck(async()=>{const v=await checked(PERMISSIONS_URL);if(!Array.isArray(v?.permissions))throw Error("GARMIN_PERMISSIONS_UNAVAILABLE");return v.permissions});
   if(await identity()!==connection.garminIdentity)return reply({error:"Garmin account changed; reconnect before syncing"},409);
   if(!(await permissions()).includes("WORKOUT_IMPORT"))return reply({error:"Reconnect Garmin and approve workout import"},403);
   const findSchedule=async(id:string,date:string)=>{
@@ -250,10 +262,6 @@ Deno.serve(async(req:Request)=>{
    const x=matches[0];return {workoutId:String(x.workoutId),date:x.date,scheduleId:remoteId(x.scheduleId)?String(x.scheduleId):null};
   };
   const registry=createPostgresPublicationRegistry((q:string,params:any[])=>sql.unsafe(q,params));
-  const getRecord=async()=>{
-   const rows=await sql`select operation_id,state,scheduled_date::text as date,workout_id::text as workout_id,schedule_id::text as schedule_id,garmin_identity from private.mile_garmin_publications where athlete_id=${userId} and session_id=${sessionId}`;
-   return rows[0]??null;
-  };
   const summarize=async()=>{
    let record=await getRecord();if(!record)return {publicationState:"not_published",calendarMatch:null};
    if(record.garmin_identity!==connection.garminIdentity)return {publicationState:"account_changed",calendarMatch:null};
@@ -276,7 +284,7 @@ Deno.serve(async(req:Request)=>{
      if(String(workout?.workoutId)===String(record.workout_id)&&Array.isArray(workout?.segments))targetReadback=workout.segments.flatMap((seg:any)=>Array.isArray(seg.steps)?fields(seg.steps):[]);
     }catch{/* target readback remains unconfirmed */}
    }
-   return {publicationState:record.state,date:record.date,workoutId:record.workout_id,scheduleId:record.schedule_id,calendarMatch,targetReadback,watchVisibility:"unverified"};
+   return {publicationState:record.state,date:record.date,workoutId:record.workout_id,scheduleId:record.schedule_id,calendarMatch,targetReadback,watchVisibility:"unverified",...(rateLimit?{rateLimited:true,retryAfterSeconds:rateLimit,retrySafe:false}:{})};
   };
   if(input.action==="status_session")return reply(await summarize());
   const garmin={identity,permissions,create:async(payload:unknown)=>checked(WORKOUT_URL,"POST",payload),schedule:async(id:string,date:string)=>{
@@ -310,6 +318,7 @@ Deno.serve(async(req:Request)=>{
   return reply(await summarize());
  }catch(e){
   const msg=e instanceof Error?e.message:"";
+  if(rateLimit){let record:any=null,known=false;try{if(publicationLookup){record=await publicationLookup();known=true}}catch{}return reply({error:"Garmin is temporarily limiting requests.",rateLimited:true,retryAfterSeconds:rateLimit,retrySafe:known&&!record,publicationState:known?(record?.state??"not_published"):"unknown"},429)}
   if(msg==="AUTH_REQUIRED")return reply({error:"Confirmed MILE session required"},401);
   if(["NOT_CONNECTED","RECONNECT_REQUIRED"].includes(msg))return reply({error:"Reconnect Garmin"},409);
   return reply({error:errorMessages.has(msg)?msg:input.action==="publish_session"?"Publication outcome requires verification. Check sync status; do not resend.":"Garmin sync unavailable. Check the saved session and connection."},409);
