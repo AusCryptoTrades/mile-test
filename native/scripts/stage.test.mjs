@@ -17,5 +17,9 @@ test('native bundle includes only approved assets and verifiable build manifest'
     assert.equal(createHash('sha256').update(await readFile(path.join(dest, file))).digest('hex'), manifest.assets[file]);
   }
   assert.match(await readFile(path.join(dest,'index.html'),'utf8'), /<html\b/i);
-  for (const name of ['mile-run-tracker.html','mile-sim.html','mile-challenges.html']) assert.ok(assets.includes(name));
+  for (const name of ['mile-run-tracker.html','mile-sim.html','mile-challenges.html','mile-79.css','mile-85-auth.css','mile-873.css','mile-device-sync.js','mile-split-share.js','mile-86.css','mile-86-health-preview.js','mile-garmin-plan.js']) assert.ok(assets.includes(name));
+  const html = await readFile(path.join(dest,'index.html'),'utf8');
+  for (const match of html.matchAll(/(?:src|href)=["']\.\/([^"'?#]+)(?:[?#][^"']*)?["']/g)) {
+    assert.ok([...assets,'mile-native-runtime.js'].includes(match[1]), 'Missing staged local dependency: '+match[1]);
+  }
 });
