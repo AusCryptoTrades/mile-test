@@ -47,3 +47,12 @@ test('configured aerobic range becomes a real HR target, including explicit ceil
  const speed=structuredRun('speed',{...input,pace:null,zoneRanges:zones});
  assert.equal(flatten(speed.steps).find(s=>s.duration.seconds===180).target.kind,'open');
 });
+
+test('target readback comparison distinguishes confirmed, changed and absent ranges',()=>{
+ const {compareTargets}=createRequire(import.meta.url)('../../mile-device-sync.js');
+ const steps=[{targetType:'HEART_RATE',targetValueLow:108,targetValueHigh:125},{steps:[{targetType:'PACE',targetValueLow:3.6,targetValueHigh:3.9}]}];
+ const returned=[steps[0],steps[1].steps[0]];
+ assert.equal(compareTargets(steps,returned),'verified');
+ assert.equal(compareTargets(steps,[returned[0],{...returned[1],targetValueHigh:4.1}]),'mismatch');
+ assert.equal(compareTargets(steps,null),'unverified');
+});
