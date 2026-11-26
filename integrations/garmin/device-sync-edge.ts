@@ -201,7 +201,7 @@ Deno.serve(async(req:Request)=>{
  if(req.method!=="POST")return reply({error:"POST required"},405);
  if(!DB_URL||!SUPABASE_URL||!ANON_KEY||!CLIENT_ID||!CLIENT_SECRET)return reply({error:"Configuration unavailable"},503);
  const auth=req.headers.get("Authorization")??"";
- if(!/^Bearer\\s+\\S+$/i.test(auth))return reply({error:"Authentication required"},401);
+ if(!/^Bearer\s+\S+$/i.test(auth))return reply({error:"Authentication required"},401);
  let input:any;try{input=await req.json()}catch{return reply({error:"Invalid JSON"},400)}
  if(!["status_session","preview_session","publish_session"].includes(input?.action)||!uuid(input.sessionId)||input.sessionId===controlledId)return reply({error:"Valid planned session required"},400);
  const sessionId=input.sessionId;
@@ -209,7 +209,7 @@ Deno.serve(async(req:Request)=>{
  try{
   if(typeof input.timeZone!=="string"||input.timeZone.length>100)throw Error();
   today=new Intl.DateTimeFormat("en-CA",{timeZone:input.timeZone,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
-  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(today))throw Error();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(today))throw Error();
  }catch{return reply({error:"Valid athlete timezone required"},400)}
  const horizon=new Date(today+"T00:00:00Z");horizon.setUTCDate(horizon.getUTCDate()+14);const lastDate=horizon.toISOString().slice(0,10);
  const sql=postgres(DB_URL,{max:2,idle_timeout:2,connect_timeout:5});
