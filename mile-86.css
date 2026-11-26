@@ -1,0 +1,43 @@
+
+html body #app[data-m79-social="discover"] #m36-results{display:grid;gap:8px;margin-top:12px}
+html body #app[data-m79-social="discover"] #m36-results .m36-athlete{grid-template-columns:40px minmax(0,1fr)!important;gap:4px 10px!important;padding:12px!important;margin:0!important;border-radius:12px!important}
+html body #app[data-m79-social="discover"] #m36-results .m36-athlete>div:not(.m36-avatar){grid-column:2;grid-row:1;min-width:0}
+html body #app[data-m79-social="discover"] #m36-results .m36-athlete>button[data-m37-open],html body #app[data-m79-social="discover"] #m36-results .m36-athlete>button[data-m36-follow]{grid-row:2!important;grid-column:2!important;width:auto!important;min-height:36px!important;min-width:0!important;padding:5px 10px!important;font-size:12px!important;line-height:1.2!important;border-radius:7px!important}
+html body #app[data-m79-social="discover"] #m36-results .m36-athlete>button[data-m37-open]{justify-self:start!important}
+html body #app[data-m79-social="discover"] #m36-results .m36-athlete>button[data-m36-follow]{justify-self:end!important}
+html body #app[data-m79-social="discover"] #m36-results .m36-athlete strong{font-size:15px!important;overflow-wrap:anywhere}
+html body #app[data-m79-social="discover"] #m36-results .m36-athlete small{font-size:12px!important}
+.m86-discover-empty{padding:20px 12px;text-align:center;color:var(--muted);font-size:13px;border:1px dashed var(--line);border-radius:10px}.m86-discover-empty small{display:block;margin-top:5px;font-size:12px}
+@media(max-width:340px){html body #app[data-m79-social="discover"] #m36-results .m36-athlete>button[data-m36-follow]{grid-row:3!important;justify-self:start!important}}
+
+
+html body #app[data-m79-social="messages"] .m86-chat{padding:12px!important}
+html body #app[data-m79-social="messages"] .m86-chat .m37-chat-head{display:flex;flex-wrap:nowrap!important;gap:10px;margin:0 0 10px;padding:0 0 10px;border-bottom:1px solid var(--line)}
+html body #app[data-m79-social="messages"] .m86-chat .m37-chat-head [data-m37-back]{margin:0!important;min-width:36px!important;width:36px!important;min-height:40px!important;padding:0!important;font-size:26px!important;background:transparent!important;border:0!important;color:var(--text)!important}
+.m86-chat .m37-chat-head .m36-avatar{width:40px;height:40px;flex:none}
+.m86-chat .m380-profile-link{flex:1;min-width:0;overflow-wrap:anywhere}
+.m86-chat .m380-profile-link strong{font-size:15px}
+.m86-chat .m380-profile-link small{font-size:12px;color:var(--muted)!important}
+html body #app[data-m79-social="messages"] .m86-chat .m37-thread{background:transparent!important;border:0!important;height:clamp(180px,42dvh,560px);max-height:none;min-height:0;gap:9px;padding:8px 2px 14px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;box-shadow:none!important}
+.m86-chat-date{align-self:center;color:var(--muted);font-size:11px;line-height:1.4;margin:6px 0 2px;text-align:center}
+html body #app[data-m79-social="messages"] .m86-chat .m37-bubble{max-width:86%;width:max-content;min-width:0;flex:none;padding:8px 12px 3px!important;border:0!important;border-radius:16px 16px 16px 5px!important;background:var(--panel2)!important;color:var(--text)!important;box-shadow:none!important}
+html body #app[data-m79-social="messages"] .m86-chat .m37-bubble.mine{border-radius:16px 16px 5px 16px!important;background:var(--text)!important;color:var(--bg)!important}
+.m86-chat-body{font-size:14px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
+.m86-chat-meta{display:flex;gap:4px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+html body #app[data-m79-social="messages"] .m86-chat .m37-bubble small{font-size:10px!important;line-height:1.2;margin:0!important;color:var(--muted)!important}
+html body #app[data-m79-social="messages"] .m86-chat .m37-bubble.mine small{color:var(--bg)!important;opacity:.8}
+.m86-chat .m380-action-wrap{margin:0!important;display:inline-flex}
+html body #app[data-m79-social="messages"] .m86-chat .m375-dots{display:inline-flex!important;align-items:center;justify-content:center;margin:0!important;min-width:32px!important;min-height:32px!important;width:32px!important;height:32px!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important;color:inherit!important;font-size:16px!important;line-height:1!important;border-radius:8px!important}
+html body #app[data-m79-social="messages"] .m86-chat .m380-popover{background:var(--panel)!important;color:var(--text)!important;border-color:var(--line)!important;right:auto;left:0;bottom:calc(100% + 4px);min-width:150px;max-width:200px}
+html body #app[data-m79-social="messages"] .m86-chat .mine .m380-popover{left:auto;right:0}
+html body #app[data-m79-social="messages"] .m86-chat .m380-popover button{background:transparent!important;color:var(--text)!important;border:0!important;min-height:44px!important;text-align:left;font-size:13px!important}
+html body #app[data-m79-social="messages"] .m86-chat .m37-compose{position:relative;bottom:auto;background:transparent!important;padding:10px 0 0;margin:0;align-items:center;border-top:1px solid var(--line)}
+html body #app[data-m79-social="messages"] .m86-chat #m37-body{border-radius:24px!important;font-size:16px!important;min-height:44px!important;padding:10px 14px!important;flex:1;width:0!important}
+html body #app[data-m79-social="messages"] .m86-chat .m37-compose button{width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;border-radius:50%!important;padding:0!important;display:grid;place-items:center;background:var(--text)!important;color:var(--bg)!important}
+.m86-chat-privacy{text-align:center;font-size:11px!important;color:var(--muted)!important;margin:10px 0 0!important}
+.m86-chat-empty{text-align:center;margin:auto!important}
+html body #app[data-m79-social="messages"] .m86-inbox .m37-conversation{padding:10px 4px!important;gap:10px!important;min-height:60px!important}
+.m86-inbox .m37-conversation .m36-avatar{width:42px;height:42px;flex:none}
+.m86-inbox .m37-conversation strong{font-size:15px}
+.m86-inbox .m37-conversation small{font-size:12px}
+.m86-inbox .m79-message-meta{font-size:11px;color:var(--muted);white-space:nowrap}

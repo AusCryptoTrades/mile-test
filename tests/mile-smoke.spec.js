@@ -412,7 +412,7 @@ test('batch 3: Social menu uses isolated scrolling sheet and restores navigation
 test('batch 3: one home Sleep Score and persistent theme on Home',async({page})=>{
  await openApp(page,{signedIn:true});
  await page.evaluate(()=>window.m395ThemeSet('ice'));
- await page.evaluate(()=>window.mileV3Go('dashboard'));
+ await page.evaluate(()=>{state.recoveryDays=[{date:new Date().toLocaleDateString('en-CA'),sleepScore:86,sleepHours:7.5,bodyBattery:72,restingHR:48,hrvMs:60}];window.mileV3Go('dashboard')});
  await expect(page.locator('.mile-ui-dashboard .mile-ui-recovery .sleep-score')).toHaveCount(1);
  await expect(page.locator('.mile-ui-dashboard .mile-ui-recovery .sleep')).toHaveCount(0);
  await expect.poll(()=>page.evaluate(()=>document.documentElement.dataset.m395Theme)).toBe('ice');
@@ -501,7 +501,7 @@ test('dashboard audit batch 1: recovery cards respond to keyboard',async({page})
 
 test('dashboard batch 2: recovery freshness and accurate sleep status labels',async({page})=>{
  await openApp(page,{signedIn:true});
- await page.evaluate(()=>window.mileV3Go('dashboard'));
+ await page.evaluate(()=>{state.recoveryDays=[{date:new Date().toLocaleDateString('en-CA'),sleepScore:86,sleepHours:7.5,bodyBattery:72,restingHR:48,hrvMs:60}];window.mileV3Go('dashboard')});
  await expect(page.locator('.mile-ui-recovery-date')).toBeVisible();
  await expect(page.locator('.mile-ui-recovery .readiness')).toContainText('Resting HR');
  await expect(page.locator('.mile-ui-recovery [data-mile-recovery-link]')).toHaveCount(4);
@@ -721,7 +721,7 @@ test('batch 71 Stats insets and mobile More perimeter',async({page})=>{
  await expect(page.locator('.m70-stats > section.card').first()).toHaveCSS('padding-right','16px');
 });
 
-test('batch 72 combined IQ navigation and chart controls',async({page})=>{await page.setViewportSize({width:390,height:844});await openApp(page,{signedIn:true});await page.evaluate(()=>window.mileV3ToggleMore());const menu=page.locator('#mile-emergency-more');await expect(menu.locator('[data-dest="recovery"]')).toHaveCount(0);await expect(menu.locator('[data-dest="insights"]')).toContainText('MILE IQ');await menu.locator('[data-dest="insights"]').click();await expect(page.locator('.iq72')).toBeVisible();await expect(page.locator('.iq72')).toContainText('Sleep score');await page.locator('.iq72').getByRole('button',{name:'30 days',exact:true}).click();await expect(page.locator('.iq72 input[aria-label="Select chart date"]')).toHaveCount(0);const chart=page.locator('#recoveryTrends svg');await expect(chart).toBeVisible();const bounds=await chart.boundingBox();await chart.click({position:{x:bounds.width*.2,y:bounds.height*.5}});const cursor=page.locator('#iq72-cursor');await expect(cursor).toHaveCount(1);await expect(cursor).toHaveAttribute('x1',/^[0-9.]+$/);await expect.poll(async()=>cursor.evaluate(el=>{const x=Number(el.getAttribute('x1'));return x===Number(el.getAttribute('x2'))&&Number(el.getAttribute('y2'))>Number(el.getAttribute('y1'))&&getComputedStyle(el).visibility==='visible'&&getComputedStyle(el).display!=='none'&&getComputedStyle(el).stroke!=='none'&&Number(getComputedStyle(el).opacity)>0;})).toBe(true);await page.locator('.iq72').getByRole('button',{name:'Performance',exact:true}).click();await expect(page.locator('.iq72')).toContainText('Weekly performance report');});
+test('batch 72 combined IQ navigation and chart controls',async({page})=>{await page.setViewportSize({width:390,height:844});await openApp(page,{signedIn:true});await page.evaluate(()=>{state.recoveryDays=[{date:new Date().toLocaleDateString('en-CA'),sleepScore:86,sleepHours:7.5,bodyBattery:72,restingHR:48,hrvMs:60}];window.mileV3ToggleMore()});const menu=page.locator('#mile-emergency-more');await expect(menu.locator('[data-dest="recovery"]')).toHaveCount(0);await expect(menu.locator('[data-dest="insights"]')).toContainText('MILE IQ');await menu.locator('[data-dest="insights"]').click();await expect(page.locator('.iq72')).toBeVisible();await expect(page.locator('.iq72')).toContainText('Sleep score');await page.locator('.iq72').getByRole('button',{name:'30 days',exact:true}).click();await expect(page.locator('.iq72 input[aria-label="Select chart date"]')).toHaveCount(0);const chart=page.locator('#recoveryTrends svg');await expect(chart).toBeVisible();const bounds=await chart.boundingBox();await chart.click({position:{x:bounds.width*.2,y:bounds.height*.5}});const cursor=page.locator('#iq72-cursor');await expect(cursor).toHaveCount(1);await expect(cursor).toHaveAttribute('x1',/^[0-9.]+$/);await expect.poll(async()=>cursor.evaluate(el=>{const x=Number(el.getAttribute('x1'));return x===Number(el.getAttribute('x2'))&&Number(el.getAttribute('y2'))>Number(el.getAttribute('y1'))&&getComputedStyle(el).visibility==='visible'&&getComputedStyle(el).display!=='none'&&getComputedStyle(el).stroke!=='none'&&Number(getComputedStyle(el).opacity)>0;})).toBe(true);await page.locator('.iq72').getByRole('button',{name:'Performance',exact:true}).click();await expect(page.locator('.iq72')).toContainText('Weekly performance report');});
 
 test('76.1 actual Edit Activity modal matches compact proof at phone widths', async ({page}, info) => {
  await openApp(page,{signedIn:true});
@@ -795,7 +795,7 @@ test('77.2 dashboard widget preferences preserve order, persist and restore defa
  await page.evaluate(()=>window.mileV3Go('dashboard'));
  const dash=page.locator('.mile-ui-dashboard');
  await expect(dash).toBeVisible();
- const order=['training','load','distribution','sleep','hrv','battery','rhr','race','completion','vo2','insights','activity'];
+ const order=['training','load','distribution','hrv','rhr','race','completion','vo2','insights','activity'];
  await expect(dash.locator('[data-m772-widget]')).toHaveCount(order.length);
  expect(await dash.locator('[data-m772-widget]').evaluateAll(nodes=>nodes.map(n=>n.dataset.m772Widget))).toEqual(order);
  await page.evaluate(()=>window.mileV3Go('settings'));
@@ -1305,3 +1305,104 @@ test('Challenges opened from leaderboard has no stale outer banner ',async({page
  await expect(load.locator('.mile-ui-sportrow').filter({hasText:'Swimming'})).toContainText('1105 m');
  await expect(load.getByText('HYROX',{exact:true})).toHaveCount(0);
  });
+
+
+test('86.4 discover athletes requires a search and uses compact non-overlapping controls',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.route('**/rest/v1/rpc/mile_discover_athletes',r=>r.fulfill({json:[
+  {user_id:'00000000-0000-4000-8000-000000000011',username:'fixturealpha',display_name:'Fixture Alpha',is_private:true},
+  {user_id:'00000000-0000-4000-8000-000000000012',username:'fixturebeta',display_name:'Fixture Beta',is_private:false}
+ ],headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*'}}));
+ await page.evaluate(()=>window.m36Open('discover'));
+ await expect.poll(()=>page.evaluate(()=>window.m36State.loading)).toBe(false);
+ const search=page.locator('#m36-search'),results=page.locator('#m36-results');
+ await expect(search).toBeVisible();
+ await expect(results.locator('.m36-athlete')).toHaveCount(0);
+ await expect(results).toContainText('Search for an athlete');
+ await search.fill('@FIXTUREALPHA');
+ await expect(results.locator('.m36-athlete')).toHaveCount(1);
+ await expect(results).toContainText('Fixture Alpha');
+ await expect(results).not.toContainText('Fixture Beta');
+ const card=results.locator('.m36-athlete');
+ const follow=card.locator('[data-m36-follow]'),message=card.locator('[data-m37-open]');
+ await expect(follow).toBeVisible();await expect(message).toBeVisible();
+ const a=await follow.boundingBox(),b=await message.boundingBox();
+ expect(a.x+a.width<=b.x+1||b.x+b.width<=a.x+1||a.y+a.height<=b.y+1||b.y+b.height<=a.y+1).toBe(true);
+ expect(await card.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+ await search.fill('no matching fixture');await expect(results).toContainText('No athletes found');
+ await search.fill('   ');await expect(results.locator('.m36-athlete')).toHaveCount(0);
+ await expect(results).toContainText('Search for an athlete');
+});
+
+
+test('86.7 chat groups dates, keeps actions accessible and fits conversation width',async({page})=>{
+ await openApp(page,{signedIn:true});
+ const peer='00000000-0000-4000-8000-000000000011',messages=[
+ {id:'fixture-chat-1',sender_id:user.id,recipient_id:peer,body:'First message',created_at:'2026-11-16T01:00:00Z'},
+ {id:'fixture-chat-2',sender_id:peer,recipient_id:user.id,body:'Reply',created_at:'2026-11-16T01:05:00Z'},
+ {id:'fixture-chat-3',sender_id:user.id,recipient_id:peer,body:'Next day '+ 'longword'.repeat(20),created_at:'2026-11-18T01:00:00Z'}];
+ await page.route('**/rest/v1/mile_messages?*',r=>r.fulfill({json:messages,headers:{'access-control-allow-origin':'http://127.0.0.1:4173'}}));
+ await page.evaluate(()=>window.m36Open('messages'));
+ await expect(page.locator('.m37-conversation')).toHaveCount(1);
+ await page.locator('.m37-conversation').click();
+ const chat=page.locator('.m86-chat');
+ await expect(chat.locator('.m37-bubble')).toHaveCount(3);
+ await expect(chat.locator('.m86-chat-date')).toHaveCount(2);
+ await expect(chat.locator('.m37-bubble.mine')).toHaveCount(2);
+ await expect(chat.locator('.m37-bubble').nth(1)).not.toHaveClass(/\bmine\b/);
+ await expect(chat.getByRole('button',{name:'Send message'})).toBeVisible();
+ await expect(chat.getByRole('textbox',{name:'Write a message'})).toBeVisible();
+ await expect(chat.locator('.m86-chat-privacy')).toContainText('Not end-to-end encrypted');
+ for(const theme of ['forest','graphite','midnight','mono','light','sand','ice']){
+  await page.evaluate(t=>window.m395ThemeSet(t),theme);
+  await expect(chat).toBeVisible();
+  expect(await chat.locator('#m37-thread').evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+  const bubble=chat.locator('.m37-bubble').first(),dots=bubble.getByRole('button',{name:'Message options'});
+  expect((await dots.boundingBox()).width).toBeLessThanOrEqual(36);
+ }
+ const last=chat.locator('[data-m375-message="fixture-chat-3"]');
+ await last.getByRole('button',{name:'Message options'}).click();
+ await expect(last.getByRole('button',{name:'Edit',exact:true})).toBeVisible();
+ await expect(last.locator('.m397-msg-menu')).toBeVisible();
+ // Safari may deliver delayed scroll events after chat repaint or menu placement.
+ await chat.locator('#m37-thread').evaluate(el=>el.dispatchEvent(new Event('scroll')));
+ await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+ await expect(last.getByRole('button',{name:'Delete for everyone'})).toBeVisible();
+ await expect(last.getByRole('button',{name:'Edit',exact:true})).toBeVisible();
+ await chat.getByRole('button',{name:'Back to inbox'}).click();
+ await expect(page.locator('.m86-inbox')).toBeVisible();
+});
+test('86.5 connected devices distinguishes web availability from native permission preview',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('settings'));
+ await page.locator('[data-m771-open="connections"]').click();
+ const panel=page.locator('[data-m775-connections]');
+ await expect(panel.getByRole('heading',{name:'Apple Health'})).toBeVisible();
+ await expect(panel.locator('[data-m86-health-status]')).toHaveText('Requires the native iPhone app');
+ await expect(panel.locator('[data-m86-health-access]')).toHaveCount(0);
+ await expect(panel.getByRole('heading',{name:'COROS'})).toBeVisible();
+ await expect(panel.getByRole('button',{name:'Connect / reconnect Garmin'})).toBeVisible();
+ await page.locator('[data-m771-open="hub"]').click();
+ await page.evaluate(()=>{window.Capacitor={isNativePlatform:()=>true,getPlatform:()=>'ios',Plugins:{MILEHealthKit:{availability:async()=>({available:true}),requestReadAccess:async()=>({requestCompleted:true})}}}});
+ await page.locator('[data-m771-open="connections"]').click();
+ await panel.locator('[data-m86-health-access]').click();
+ await expect(panel.locator('[data-m86-health-status]')).toHaveText('Permission request completed — import not enabled');
+ await expect(panel).toContainText('No health data is uploaded by this preview');
+});
+
+test('86.8 recovery widgets adapt to recorded sleep and battery without inventing values',async({page})=>{
+ await openApp(page,{signedIn:true});
+ const sleep=page.locator('.mile-ui-dashboard [data-m772-widget="sleep"]'),battery=page.locator('.mile-ui-dashboard [data-m772-widget="battery"]');
+ await page.evaluate(()=>{state.recoveryDays=[];window.mileV3Go('dashboard')});
+ await expect(sleep).toHaveCount(0);await expect(battery).toHaveCount(0);
+ await page.evaluate(()=>{state.recoveryDays=[{date:new Date().toLocaleDateString('en-CA'),sleepHours:7.5,restingHR:48,hrvMs:60}];window.mileV3Go('dashboard')});
+ await expect(sleep).toContainText('Sleep Duration');await expect(sleep).toContainText('7.5 h');await expect(battery).toHaveCount(0);
+ await page.evaluate(()=>window.mileV3Go('recovery'));
+ await expect(page.locator('#recoveryTrends').getByRole('button',{name:'Sleep duration',exact:true})).toBeVisible();
+ await expect(page.locator('#recoveryTrends').getByRole('button',{name:'Body Battery',exact:true})).toHaveCount(0);
+ await page.evaluate(()=>{state.recoveryDays=[{date:new Date().toLocaleDateString('en-CA'),sleepScore:86,sleepHours:7.5,bodyBattery:72,restingHR:48,hrvMs:60}];window.mileV3Go('dashboard')});
+ await expect(sleep).toContainText('Sleep Score');await expect(sleep).toContainText('86/100');await expect(battery).toContainText('72/100');
+ await page.evaluate(()=>window.mileV3Go('recovery'));
+ await expect(page.locator('#recoveryTrends').getByRole('button',{name:'Sleep score',exact:true})).toBeVisible();
+ await expect(page.locator('#recoveryTrends').getByRole('button',{name:'Body Battery',exact:true})).toBeVisible();
+});

@@ -8,8 +8,11 @@ import { execFileSync } from 'node:child_process';
 export const assets = Object.freeze([
   'index.html', 'mile-admin-centre.js', 'mile-buttons.css',
   'mile-challenges.html', 'mile-run-tracker.html', 'mile-shared-header.js',
-  'mile-sim-sync.js', 'mile-sim.html'
+  'mile-sim-sync.js', 'mile-sim.html',
+  'mile-79.css', 'mile-85-auth.css', 'mile-873.css', 'mile-device-sync.js',
+  'mile-split-share.js', 'mile-86.css', 'mile-86-health-preview.js', 'mile-garmin-plan.js'
 ]);
+export const syncAssets = Object.freeze(['workouts.mjs','apple-import.mjs','apple-transport.mjs','checkpoints.mjs','apple-native.mjs']);
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const dest = path.join(root, 'native', 'www');
 export async function stage() {
@@ -27,6 +30,15 @@ export async function stage() {
   for (const file of assets) {
     await copyFile(path.join(root, file), path.join(dest, file));
     hashes[file] = createHash('sha256').update(await readFile(path.join(dest,file))).digest('hex');
+  }
+  await mkdir(path.join(dest,'sync'));
+  for (const file of syncAssets) {
+    const source=path.join(root,'native','sync',file);
+    const stat=await lstat(source);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.size===0) throw Error('Invalid sync asset: '+file);
+    const relative='sync/'+file;
+    await copyFile(source,path.join(dest,relative));
+    hashes[relative]=createHash('sha256').update(await readFile(path.join(dest,relative))).digest('hex');
   }
   const runtime = await readFile(path.join(root,'native/runtime.cjs'),'utf8');
   const entry = path.join(dest,'index.html');
