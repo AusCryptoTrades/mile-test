@@ -22,7 +22,7 @@
  const style=document.createElement('style');
  style.textContent=
  '.mile-device-sync-dialog{background:var(--panel,#171717);color:var(--orange,#f5f5f5);border:1px solid var(--line,#444);border-radius:20px;padding:22px;width:min(92vw,460px);max-height:84dvh;overflow:auto;box-sizing:border-box;font:inherit;box-shadow:0 20px 60px #0005}.mile-device-sync-dialog::backdrop{background:#000a;backdrop-filter:blur(3px)}.mile-device-sync-dialog h2{font-size:23px;line-height:1.15;letter-spacing:-.6px;margin:9px 0}.mile-device-sync-dialog p{font-size:13px;line-height:1.5;margin:6px 0;color:var(--muted,#bbb);white-space:pre-wrap;overflow-wrap:anywhere}.mile-device-sync-dialog .mile-sync-kicker{font-size:10px;letter-spacing:1.9px;font-weight:800;color:var(--muted,#aaa)}.mile-sync-hero{text-align:center;margin:5px 0 19px}.mile-sync-mark{display:grid;place-items:center;margin:0 auto 14px;width:58px;height:58px;border-radius:50%;border:1px solid var(--line,#555);font-size:30px;font-weight:800}.mile-sync-mark.ok{background:#16372b;color:#92e8b3;border-color:#315b48;animation:mileSyncPop .35s ease-out both}.mile-sync-mark.spin{border:3px solid var(--line,#444);border-top-color:var(--orange,#fff);animation:mileSyncSpin .9s linear infinite}.mile-sync-mark svg{width:29px;height:29px}.mile-sync-actions{display:grid;gap:8px;margin-top:18px}.mile-sync-actions .btn{min-height:44px;margin:0!important;width:100%;font-size:13px!important}.mile-sync-actions [hidden],.mile-device-sync-dialog [hidden]{display:none!important}.mile-sync-provider,.mile-sync-entry{border:1px solid var(--line,#444);border-radius:11px;padding:12px;margin:8px 0;display:flex;align-items:center;gap:12px}.mile-sync-provider{width:100%;text-align:left;background:transparent;color:inherit;box-sizing:border-box;cursor:pointer}.mile-sync-provider[disabled]{opacity:.45;cursor:default}.mile-sync-provider strong,.mile-sync-entry strong{font-size:14px}.mile-sync-provider small,.mile-sync-entry small{display:block;color:var(--muted,#bbb);font-size:11px;margin-top:3px}.mile-sync-provider svg{width:24px;height:24px;flex:none}.mile-sync-provider .mile-sync-provider-copy{flex:1}.mile-sync-entry{display:block;padding:10px 12px}.mile-sync-entry summary{font-size:13px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:9px}.mile-sync-entry summary:after{content:"+";color:var(--muted,#aaa)}.mile-sync-entry[open] summary:after{content:"−"}.mile-sync-entry ul{font-size:12px;line-height:1.55;padding-left:16px}.mile-sync-progress{height:4px;background:var(--line,#444);border-radius:5px;overflow:hidden;margin:12px 0}.mile-sync-progress>i{display:block;height:100%;background:var(--orange,#fff);transition:width .3s ease}.mile-sync-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;text-align:center;border-block:1px solid var(--line,#444);padding:14px 0;margin:14px 0}.mile-sync-stats strong{font-size:22px;display:block}.mile-sync-stats small{font-size:11px;color:var(--muted,#aaa)}.mile-sync-scope{display:flex;gap:9px;align-items:center;font-size:13px;margin:13px 0}.mile-sync-scope input{width:auto!important;min-height:0!important;accent-color:var(--orange,#fff)}@keyframes mileSyncSpin{to{transform:rotate(360deg)}}@keyframes mileSyncPop{from{transform:scale(.75);opacity:0}to{transform:scale(1);opacity:1}}@media(prefers-reduced-motion:reduce){.mile-sync-mark.ok,.mile-sync-mark.spin{animation:none}.mile-sync-progress>i{transition:none}}';
- document.head.append(style);
+ style.textContent+='.mile-device-sync-dialog:focus{outline:none}.mile-device-sync-dialog:focus-visible{outline:2px solid var(--orange,#fff);outline-offset:2px}.mile-sync-list{border-top:1px solid var(--line,#444);padding:10px 0}.mile-sync-list>summary{font-size:13px;font-weight:700;cursor:pointer;padding:6px 0}.mile-sync-list p{padding:5px 0;border-bottom:1px solid var(--line,#444)}';document.head.append(style);
  const current=()=>typeof userId!=='undefined'&&typeof token!=='undefined'&&userId&&token?{id:userId,token}:null;
  const watch='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="5" width="12" height="14" rx="3"/><path d="M9 5V2h6v3M9 19v3h6v-3M12 9v3l2 1"/></svg>';
  const tick='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>';
@@ -30,12 +30,12 @@
  function appendSteps(parent,steps){const ul=el('ul');for(const step of steps||[]){const li=el('li','',describeStep(step));if(step.type==='WorkoutRepeatStep')appendSteps(li,step.steps);ul.append(li)}parent.append(ul)}
  function makeDialog(){
   const old=document.querySelector('.mile-device-sync-dialog');if(old?.dataset.busy==='true')return null;if(old){old.close();old.remove()}
-  const d=el('dialog','mile-device-sync-dialog');d.setAttribute('aria-label','Device Sync');document.body.append(d);
+  const d=el('dialog','mile-device-sync-dialog');d.setAttribute('aria-label','Device Sync');d.tabIndex=-1;document.body.append(d);
   if(typeof d.showModal!=='function'){d.remove();notice('Open MILE in an up-to-date browser for Device Sync.');return null}
   d.showModal();d.addEventListener('cancel',e=>{if(d.dataset.busy==='true')e.preventDefault()});d.addEventListener('close',()=>d.remove(),{once:true});return d;
  }
- function hero(d,heading,description,kind='watch'){
-  d.replaceChildren();const h=el('div','mile-sync-hero');h.append(el('div','mile-sync-kicker','MILE. / DEVICE SYNC'));
+ function hero(d,heading,description,kind='watch',kicker='DEVICE SYNC'){
+  d.replaceChildren();const h=el('div','mile-sync-hero');h.append(el('div','mile-sync-kicker','MILE. / '+kicker));
   const mark=el('div','mile-sync-mark '+(kind==='success'?'ok':kind==='loading'?'spin':''));
   if(kind==='success')mark.innerHTML=tick;else if(kind==='watch')mark.innerHTML=watch;else if(kind==='warning')mark.textContent='!';
   mark.setAttribute('aria-hidden','true');h.append(mark,el('h2','',heading),el('p','',description));h.setAttribute('aria-live','polite');d.append(h);
@@ -61,7 +61,7 @@
   const get=wId=>state.workouts.find(w=>w.id===wId);
   const candidates=()=>block?planSessions(state.workouts,block,today(),add(today(),14)):[get(id)].filter(inWindow);
   const title=block?state.blocks.find(b=>b.id===block)?.name||'Training plan':get(id)?.name||'Workout';
-  let scope=block?'upcoming':'single',attempted=new Set(),checkedIds=[];
+  let scope=block?'upcoming':'single',attempted=new Set(),checkedIds=[],recovering=false;
   function choose(){
    hero(d,'Sync to Device','Choose your training device.');
    const list=candidates();
@@ -90,7 +90,7 @@
      if(!inWindow(w)||(block&&w.block!==block)){unavailable.push({name:list[i].name,reason:'Session changed'});continue}
      try{
       const status=await request(owner,'status_session',w.id);
-      if(resultKind(status)!=='new'||attempted.has(w.id)){previous.push({id:w.id,name:w.name,kind:resultKind(status)});continue}
+      if(resultKind(status)!=='new'||attempted.has(w.id)){previous.push({id:w.id,name:w.name,date:w.date,kind:resultKind(status)==='confirmed'?'confirmed':'pending'});continue}
       const before=snapshot(w),p=await request(owner,'preview_session',w.id);
       if(!alive())return;const local=get(w.id);
       if(!inWindow(local)||snapshot(local)!==before||p.date!==local.date||p.payload?.workoutName!==String(local.name).trim()||p.payload?.description!==String(local.detail).slice(0,1024).trim()||p.publishingEnabled!==true||typeof p.fingerprint!=='string')throw Error('Session changed. Save your plan before syncing.');
@@ -104,13 +104,13 @@
    finally{if(alive())busy(false)}
   }
   function review(ready,previous,unavailable,total){
-   hero(d,ready.length?'Ready to sync':'Device sync status',ready.length?'Review the workouts to send to Garmin Connect.':'No new workouts are ready to send.',ready.length?'watch':'warning');
+   const pending=previous.some(w=>w.kind==='pending');hero(d,ready.length&&!pending?'Ready to sync':'Device sync status',pending?'Check previously submitted workouts before sending more.':ready.length?'Review the workouts to send to Garmin Connect.':'No new workouts are ready to send.',ready.length&&!pending?'watch':'warning');
    if(previous.length||unavailable.length||total!==ready.length)stat(d,[[ready.length,'Ready'],[previous.length,'Already sent / pending'],[total-ready.length-previous.length,'Unavailable']]);
    for(const w of ready){const entry=el('details','mile-sync-entry');const summary=el('summary','',w.name+' · '+nice(w.date));entry.append(summary);appendSteps(entry,w.steps);d.append(entry)}
    if(unavailable.length){const details=el('details','mile-sync-entry');details.append(el('summary','',unavailable.length+' unavailable'));for(const u of unavailable)details.append(el('p','',u.name+': '+u.reason));d.append(details)}
    if(previous.length)d.append(el('p','','Previously submitted sessions are skipped to prevent duplicates.'));
    d.append(el('p','','Changes in MILE won’t update Garmin automatically during this beta.'));
-   actions(d,[...(ready.length?[{label:ready.length===1?'Sync workout':'Sync '+ready.length+' workouts',primary:true,run:()=>publish(ready,previous,unavailable,total)}]:[]),{label:'Check status',run:()=>checkStatus(checkedIds)},{label:'Close',run:()=>d.close()}]);
+   actions(d,[...(ready.length&&!pending?[{label:recovering?'Sync remaining workouts':ready.length===1?'Sync workout':'Sync '+ready.length+' workouts',primary:true,run:()=>publish(ready,previous,unavailable,total)}]:[]),{label:'Check status',run:()=>checkStatus(checkedIds)},{label:'Close',run:()=>d.close()}]);
   }
   async function publish(ready,previous,unavailable,total){
    if(!alive()||d.dataset.busy==='true')return;busy(true);hero(d,ready.length===1?'Syncing your workout':'Syncing your training plan','Sending your sessions to Garmin Connect.','loading');
@@ -122,8 +122,8 @@
     attempted.add(w.id);
     try{
      const result=await request(owner,'publish_session',w.id,{confirmed:true,approvedFingerprint:w.fingerprint});
-     results.push({...w,kind:resultKind(result)==='confirmed'?'confirmed':'pending'});
-    }catch{results.push({...w,kind:'pending'});stopped=true}
+     let confirmed=resultKind(result)==='confirmed';if(!confirmed){try{const recheck=await request(owner,'status_session',w.id);confirmed=resultKind(recheck)==='confirmed'}catch{}}results.push({...w,kind:confirmed?'confirmed':'pending'});if(!confirmed)stopped=true;
+    }catch{let confirmed=false;try{confirmed=resultKind(await request(owner,'status_session',w.id))==='confirmed'}catch{}results.push({...w,kind:confirmed?'confirmed':'pending'});if(!confirmed)stopped=true}
     if(alive())update(i+1,(i+1)+' of '+ready.length+' processed');
    }
    if(!alive())return;busy(false);finish(results,previous,unavailable,total);
@@ -135,28 +135,38 @@
    const all=confirmed>0&&pending===0&&notSent===0;
    hero(d,all?(total===1?'Workout synced.':'Training synced.'):confirmed?'Sync partially complete.':pending?'Sync submitted.':'No new workouts synced.',all?'Your training is ready in Garmin Connect.':pending?'Some sessions are awaiting confirmation. Check Garmin before syncing again.':'Review your sessions and check the connection.',all?'success':'warning');
    if(total!==1||!all)stat(d,[[confirmed,'Confirmed'],[pending,'Pending'],[notSent,'Not sent']]);
-   for(const w of [...results,...previous]){const entry=el('div','mile-sync-entry');entry.append(el('strong','',w.name),el('small','',w.kind==='confirmed'?'Garmin calendar confirmed':w.kind==='pending'?'Awaiting confirmation':'Not sent'));d.append(entry)}
+   for(const [kind,label] of [['confirmed','Synced'],['pending','Awaiting confirmation'],['not_sent','Not sent']]){const rows=[...results,...previous].filter(w=>w.kind===kind);if(!rows.length)continue;const group=el('details','mile-sync-list');group.append(el('summary','',label+' · '+rows.length));for(const w of rows)group.append(el('p','',w.name+(w.date?' · '+nice(w.date):'')));d.append(group)}
    d.append(el('p','','Sync your compatible watch to receive your workouts.'));
    if(all&&typeof navigator.vibrate==='function')try{navigator.vibrate(25)}catch{}
-   actions(d,[{label:'Done',primary:true,run:()=>d.close()},...(!all?[{label:'Check status',run:()=>checkStatus(checkedIds)}]:[])]);
+   actions(d,[...(!all?[{label:'Check Garmin',primary:pending>0,run:()=>checkStatus(checkedIds)}]:[]),...(notSent>0&&pending===0&&block?[{label:'Review remaining workouts',primary:true,run:()=>{recovering=true;prepare()}}]:[]),{label:'Done',primary:all,run:()=>d.close()}]);
   }
   async function checkStatus(ids){
    if(!alive()||d.dataset.busy==='true')return;busy(true);hero(d,'Checking sync','Looking for your sessions in Garmin Connect.','loading');const update=progress(d,0,ids.length),results=[];
-   for(let i=0;i<ids.length;i++){if(!alive())return;const name=get(ids[i])?.name||'Workout';try{const r=await request(owner,'status_session',ids[i]);const k=resultKind(r);results.push({id:ids[i],name,kind:k==='new'?'not_sent':k})}catch{results.push({id:ids[i],name,kind:'pending'})}update(i+1,(i+1)+' of '+ids.length+' checked')}
+   for(let i=0;i<ids.length;i++){if(!alive())return;const w=get(ids[i]),name=w?.name||'Workout',date=w?.date;try{const r=await request(owner,'status_session',ids[i]);const k=resultKind(r);results.push({id:ids[i],name,date,kind:k==='new'?(attempted.has(ids[i])?'pending':'not_sent'):k})}catch{results.push({id:ids[i],name,date,kind:'pending'})}update(i+1,(i+1)+' of '+ids.length+' checked')}
    if(alive()){busy(false);finish(results,[],[],ids.length)}
   }
   choose();
  }
+ root.mileReviewCreate=()=>{
+  if(v42Step!==3)return;
+  v42Capture();const p=v42Form,sp=v42Sport,start=p.Start||today(),weeks=Number(p.Weeks)||8,days=Number(p.Days)||3;
+  const existing=state.workouts.filter(w=>v456Visible(w.block)&&w.date>=start&&w.date<=add(start,weeks*7-1));
+  const d=makeDialog();if(!d)return;
+  hero(d,'Create training plan?',existing.length?'Your new plan will be added alongside '+existing.length+' existing sessions. MILE will flag potential clashes.':'Your new plan will be added to your MILE Calendar.','watch','BUILD');
+  stat(d,[[weeks,'Weeks'],[weeks*days,'Sessions'],[days,'Per week']]);
+  d.append(el('p','','Existing plans and completed workouts will stay in place.'));
+  actions(d,[{label:'Create plan',primary:true,run:()=>{d.close();root.mileBuildApproved=true;try{v42Generate()}finally{root.mileBuildApproved=false}}},{label:'Back',run:()=>d.close()}]);
+ };
  root.milePlanCreated=async(blockId)=>{
   const owner=current();if(!owner)return;const block=state.blocks.find(b=>b.id===blockId);if(!block)return;
   const d=makeDialog();if(!d)return;
-  hero(d,'Saving your plan','Adding your workouts to your MILE Calendar.','loading');d.dataset.busy='true';
+  hero(d,'Saving your plan','Adding your workouts to your MILE Calendar.','loading','BUILD');d.dataset.busy='true';
   if(typeof avCloudQueue!=='undefined')await avCloudQueue;
   if(!d.isConnected||current()?.id!==owner.id){d.close();return}
   d.dataset.busy='false';
   const saved=typeof avCloudError==='undefined'||!avCloudError;
   const sessions=state.workouts.filter(w=>w.block===blockId);
-  hero(d,saved?'You’re ready to train.':'Plan saved on this device.',saved?'Your training plan is ready in MILE.':'Cloud save is not confirmed. Reconnect and save before syncing. ',saved?'success':'warning');
+  hero(d,saved?'You’re ready to train.':'Plan saved on this device.',saved?'Your training plan is ready in MILE.':'Cloud save is not confirmed. Reconnect and save before syncing. ',saved?'success':'warning','BUILD');
   stat(d,[[block.v42?.weeks||'—','Weeks'],[sessions.length,'Sessions'],[block.v42?.days||'—','Per week']]);
   const eligibleNow=planSessions(sessions,blockId,today(),add(today(),14)).length;
   if(saved&&eligibleNow)d.append(el('p','','Send your upcoming workouts to your connected training device.'));
