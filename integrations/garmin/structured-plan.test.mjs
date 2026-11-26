@@ -20,8 +20,8 @@ test('intervals exclude recovery after final main effort and retain exact pace',
  assert.equal(flat.find(s=>s.duration.seconds===360).target.slowSecondsPerKm,270);
  assert.equal(flat.filter(s=>s.intensity==='interval'&&s.duration.seconds===20).length,4);
 });
-test('long run preserves total distance and no missing pace is invented',()=>{
- const a=structuredRun('long',input);assert.equal(a.steps[0].duration.meters,9000);assert.equal(a.steps[0].target.kind,'open');
+test('long run preserves total distance and no missing target is invented',()=>{
+ const a=structuredRun('long',input);assert.equal(a.steps[0].duration.meters,9000);assert.equal(a.steps[0].target.kind,'pace');
  const b=structuredRun('easy',{...input,pace:null});assert.equal(b.steps.find(s=>s.intensity==='active').target.kind,'open');
  assert.equal(structuredRun('stations',input),null);
 });
@@ -29,4 +29,21 @@ test('generated session is ready, edited prose and historical sessions require r
  const a=structuredRun('easy',input),session={id:'fixture',date:'2026-12-01',sport:'Running',status:'planned',name:'Easy aerobic run',detail:a.detail,structuredDetail:a.detail,structuredSteps:a.steps};
  assert.equal(preparePlannedRunningSession(session).status,'preview_ready');
  assert.equal(preparePlannedRunningSession({...session,detail:'Edited session'}).status,'review_required');
+});
+
+test('configured aerobic range becomes a real HR target, including explicit ceiling',()=>{
+ const zones=[{min:90,max:107},{min:108,max:125},{min:126,max:143},{min:144,max:161},{min:162,max:180}];
+ for(const kind of ['easy','long']){
+  const a=structuredRun(kind,{...input,pace:null,easyHr:123,zoneRanges:zones});
+  const p=buildGarminRunningWorkout({name:kind,sport:'running',description:a.detail,steps:a.steps});
+  const main=p.segments[0].steps.find(s=>s.intensity==='ACTIVE');
+  assert.equal(main.targetType,'HEART_RATE');assert.equal(main.targetValueLow,108);assert.equal(main.targetValueHigh,123);
+  assert.match(a.detail,/108–123 bpm/);
+ }
+ const a=structuredRun('threshold',{...input,pace:null,zoneRanges:zones});
+ assert.deepEqual(flatten(a.steps).find(s=>s.duration.seconds===360).target,{kind:'heart_rate',lowBpm:144,highBpm:161});
+ const b=structuredRun('threshold',{...input,zoneRanges:zones});
+ assert.equal(flatten(b.steps).find(s=>s.duration.seconds===360).target.kind,'pace');
+ const speed=structuredRun('speed',{...input,pace:null,zoneRanges:zones});
+ assert.equal(flatten(speed.steps).find(s=>s.duration.seconds===180).target.kind,'open');
 });
