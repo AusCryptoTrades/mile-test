@@ -46,6 +46,13 @@ jobs:
           echo "$JAVA_HOME_21_X64/bin" >> "$GITHUB_PATH"
       - run: npm install --no-audit --no-fund
       - run: npm run prepare:android
+      - name: Restore Gradle dependency cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        with:
+          path: |
+            ~/.gradle/caches/modules-2
+            ~/.gradle/wrapper/dists
+          key: mile-gradle-${{ runner.os }}-java21-${{ hashFiles('native/package.json', 'native/package-lock.json', 'native/android/**/*.gradle', 'native/android/gradle/wrapper/gradle-wrapper.properties') }}
       - name: Compile Android debug application
         run: |
           cd android
