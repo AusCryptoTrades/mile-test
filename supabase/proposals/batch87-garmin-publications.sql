@@ -1,6 +1,6 @@
 -- Batch 87 proposal only; not applied to production.
--- Server-only durable publication journal. One record per athlete, verified
--- provider identity and stable session. Revision changes require reconciliation,
+-- Server-only durable publication journal. One record per athlete and stable session, bound to a verified
+-- provider identity. Revision changes require reconciliation,
 -- not a fresh create. No direct browser access, no credentials stored here.
 create table private.mile_garmin_publications (
   athlete_id uuid not null references auth.users(id) on delete cascade,
@@ -18,7 +18,7 @@ create table private.mile_garmin_publications (
   schedule_id bigint check (schedule_id > 0),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  primary key (athlete_id,garmin_identity,session_id),
+  primary key (athlete_id,session_id),
   check (
     (state in ('claimed','creating','create_uncertain') and workout_id is null and schedule_id is null)
     or (state in ('created','scheduling','schedule_uncertain') and workout_id is not null and schedule_id is null)
