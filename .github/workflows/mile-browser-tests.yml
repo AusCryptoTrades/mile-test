@@ -1,9 +1,9 @@
 name: MILE browser tests
 on:
   push:
-    branches: [main, 'test/**', 'fix/**']
+    branches: [main, 'test/**', 'fix/**', 'feature/batch86-infrastructure']
   pull_request:
-    branches: [main]
+    branches: [main, 'feature/batch85-beta-polish']
   workflow_dispatch:
 concurrency:
   group: mile-browser-${{ github.workflow }}-${{ github.ref }}
