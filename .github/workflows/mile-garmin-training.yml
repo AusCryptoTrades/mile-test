@@ -1,8 +1,9 @@
 name: MILE Garmin training contract
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches: [main]
-    paths: ['integrations/garmin/**', 'mile-garmin-plan.js', 'index.html', 'mile-garmin-diagnostic.html', 'supabase/proposals/batch87-garmin-publications.sql', 'supabase/tests/batch87-garmin-publications.test.sql', '.github/workflows/mile-garmin-training.yml']
+    paths: ['integrations/garmin/**', 'mile-garmin-plan.js', 'mile-device-sync.js', 'tests/batch87-device-sync.spec.js', 'index.html', 'mile-garmin-diagnostic.html', 'supabase/proposals/batch87-garmin-publications.sql', 'supabase/tests/batch87-garmin-publications.test.sql', '.github/workflows/mile-garmin-training.yml']
   workflow_dispatch:
 permissions:
   contents: read
