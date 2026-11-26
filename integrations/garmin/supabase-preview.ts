@@ -4,6 +4,7 @@ import postgres from "npm:postgres@3.4.5";
 import {createAuthenticatedPublisher} from "./authenticated-publisher.mjs";
 import {createPostgresPublicationRegistry} from "./postgres-registry.mjs";
 import {buildGarminRunningWorkout} from "./training-payload.mjs";
+const DB_URL = Deno.env.get("SUPABASE_DB_URL");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 const CLIENT_ID = Deno.env.get("GARMIN_CLIENT_ID");
