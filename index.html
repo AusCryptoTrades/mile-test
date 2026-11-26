@@ -3511,14 +3511,17 @@ document.addEventListener('click',ev=>{const b=ev.target.closest('[data-m388-up]
   popup.classList.add('m397-msg-menu');
   const r=trigger.getBoundingClientRect(),vw=window.innerWidth,vh=window.innerHeight;
   const width=Math.min(220,vw-20);popup.style.width=width+'px';popup.style.right='auto';popup.style.bottom='auto';
-  const h=Math.min(popup.scrollHeight||220,vh*.65);
+  const h=Math.min(popup.scrollHeight||220,vh*.65,390,vh-20);
   const left=Math.max(10,Math.min(vw-width-10,r.right-width));
-  const top=r.bottom+8+h<=vh-12?r.bottom+8:Math.max(10,r.top-h-8);
-  popup.style.left=left+'px';popup.style.top=top+'px';
+  const top=Math.max(10,Math.min(vh-h-10,r.bottom+8+h<=vh-12?r.bottom+8:r.top-h-8));
+  popup.style.left=left+'px';popup.style.top=top+'px';popup.style.visibility='visible';
  }
  document.addEventListener('click',e=>{if(e.target.closest('[data-m375-menu]'))requestAnimationFrame(positionMenu)},true);
  window.addEventListener('resize',()=>requestAnimationFrame(positionMenu));
- document.addEventListener('scroll',()=>{const popup=document.querySelector('.m397-msg-menu');if(popup)popup.style.visibility='hidden'},true);
+ let menuFrame=0;
+ function scheduleMenuPosition(){if(menuFrame)return;menuFrame=requestAnimationFrame(()=>{menuFrame=0;positionMenu()})}
+ document.addEventListener('scroll',ev=>{const popup=document.querySelector('.m380-popover');if(popup&&!(ev.target instanceof Node&&popup.contains(ev.target)))scheduleMenuPosition()},true);
+ const menuHost=document.getElementById('app');if(menuHost)new MutationObserver(()=>{const popup=menuHost.querySelector('.m380-popover');if(popup&&!popup.classList.contains('m397-msg-menu'))scheduleMenuPosition()}).observe(menuHost,{childList:true,subtree:true});
 })();
 </script>
 <style id="mile-v398-polish">

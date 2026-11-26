@@ -1363,7 +1363,12 @@ test('86.7 chat groups dates, keeps actions accessible and fits conversation wid
  const last=chat.locator('[data-m375-message="fixture-chat-3"]');
  await last.getByRole('button',{name:'Message options'}).click();
  await expect(last.getByRole('button',{name:'Edit',exact:true})).toBeVisible();
+ await expect(last.locator('.m397-msg-menu')).toBeVisible();
+ // Safari may deliver delayed scroll events after chat repaint or menu placement.
+ await chat.locator('#m37-thread').evaluate(el=>el.dispatchEvent(new Event('scroll')));
+ await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
  await expect(last.getByRole('button',{name:'Delete for everyone'})).toBeVisible();
+ await expect(last.getByRole('button',{name:'Edit',exact:true})).toBeVisible();
  await chat.getByRole('button',{name:'Back to inbox'}).click();
  await expect(page.locator('.m86-inbox')).toBeVisible();
 });
