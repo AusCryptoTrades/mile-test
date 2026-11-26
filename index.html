@@ -1242,7 +1242,7 @@ function v4SetError(msg){let e=document.getElementById('v4Error');if(e)e.textCon
 function v4Show(mode='login'){
  v4Mode=mode;let gate=document.getElementById('v4Gate');gate.classList.remove('hidden');
  let isReg=mode==='register',isConnect=mode==='connect',isInvite=mode==='invite';
- gate.innerHTML=`<div class="v47-auth-layout"><aside class="v47-auth-story"><div class="v47-story-top"><span class="mile-mark" aria-hidden="true">M<span>.</span></span><span>MILE<b>.</b></span></div><div class="v47-story-main"><span class="v47-overline">RUNNING · STRENGTH · ENDURANCE</span><h2>TRAIN. TRACK.<br><em>PROGRESS.</em></h2><p>Plan across sports. Prioritise what matters. Track the work that gets you there.</p><div class="v47-story-rule"></div><div class="v47-story-features"><span>01 &nbsp; MULTI-SPORT PLANS</span><span>02 &nbsp; SMART SCHEDULING</span><span>03 &nbsp; TRAINING INSIGHTS</span></div></div><div class="v47-story-bottom">MAKE IT LOOK EASY.</div></aside><div class="v4panel"><div class="v47-form-logo"><span class="mile-mark" aria-hidden="true">M<span>.</span></span><span>MILE.</span></div><div class="v47-form-kicker">MAKE IT LOOK EASY.</div><h1>${isConnect?'Connect Garmin':isInvite?'Invitation required':isReg?'Create account':'Welcome back'}</h1><p>${isConnect?'Enter your own dashboard read key. This must be linked to your own Garmin data source. You can skip for now.':isInvite?'Enter your invitation code to activate this account.':isReg?'Create your private athlete account.':'Sign in to your private training dashboard.'}</p>
+ gate.innerHTML=`<div class="v47-auth-layout"><aside class="v47-auth-story"><div class="v47-story-top"><span class="mile-mark" aria-hidden="true">M<span>.</span></span><span>MILE<b>.</b></span></div><div class="v47-story-main"><span class="v47-overline">RUNNING · STRENGTH · ENDURANCE</span><h2>TRAIN. TRACK.<br><em>PROGRESS.</em></h2><p>Plan across sports. Prioritise what matters. Track the work that gets you there.</p><div class="v47-story-rule"></div><div class="v47-story-features"><span>01 &nbsp; MULTI-SPORT PLANS</span><span>02 &nbsp; SMART SCHEDULING</span><span>03 &nbsp; TRAINING INSIGHTS</span></div></div><div class="v47-story-bottom">MAKE IT LOOK EASY.</div></aside><div class="v4panel"><div class="v47-form-logo"><span class="mile-mark" aria-hidden="true">M<span>.</span></span><span>MILE.</span></div><div class="v47-form-kicker">MAKE IT LOOK EASY.</div><h1>${isConnect?'Connect Garmin':isInvite?'Invitation required':isReg?'Create account':'Welcome back'}</h1><p>${isConnect?'Link your Garmin account to import activities and recovery data.':isInvite?'Enter your invitation code to activate this account.':isReg?'Create your private athlete account.':'Sign in to your private training dashboard.'}</p>
  ${isConnect?`<p style="margin:12px 0;color:#b7cfc2">Connect your Garmin account securely. MILE never needs your Garmin password or personal API key.</p><button onclick="v4Connect()">Connect Garmin</button><button class="alt" onclick="v4SkipGarmin()">Skip for now</button>`:
  isInvite?`<label for="v4Invite">Invitation code</label><input id="v4Invite" placeholder="AVTRAINING" autocomplete="off"><button onclick="v4Join()">Activate account</button><button class="alt" onclick="v4Logout()">Sign out</button>`:
  `<label for="v4Email">Email</label><input id="v4Email" type="email" autocomplete="username" placeholder="you@example.com"><label class="av-remember-row"><input id="v4RememberEmail" type="checkbox" ${localStorage.getItem('av-remember-email-enabled')==='1'?'checked':''}> Remember my email on this device</label><label for="v4Password">Password</label><input id="v4Password" type="password" autocomplete="${isReg?'new-password':'current-password'}" placeholder="Minimum 6 characters">${isReg?'<label for="v4Invite">Invitation code</label><input id="v4Invite" placeholder="Invitation code" autocomplete="off">':''}<button onclick="v4Authenticate()">${isReg?'Create account':'Sign in'}</button><button class="alt" onclick="v4Show('${isReg?'login':'register'}')">${isReg?'Already have an account? Sign in':'New here? Create account'}</button>`}
@@ -1298,13 +1298,25 @@ async function mileGarminCheckAfterLogin(){
     params.delete('garmin');
     history.replaceState(null,'',location.pathname+(params.toString()?'?'+params:'')+location.hash);
   }
-  // Garmin callback redirects only after its database insert succeeds.
-  // This is a one-device indication, NOT a server-verified connection status.
-  if(outcome==='connected'){sessionStorage.setItem('mile-garmin-oauth-return-'+userId,'1');localStorage.setItem('mile-garmin-onboarding-'+userId,'oauth-returned')}
-  if(outcome==='failed')sessionStorage.removeItem('mile-garmin-oauth-return-'+userId);
+  const owner=userId, session=token;
+  if(!owner||!session)return;
+  const key='mile-garmin-onboarding-'+owner;
+  const prior=localStorage.getItem(key);
+  let status='unknown';
+  try{
+    const response=await fetch(MILE_GARMIN_FUNCTIONS+'garmin-connection-status',{headers:sbHeaders(),cache:'no-store',signal:AbortSignal.timeout(10000)});
+    if(response.ok){const data=await response.json();if(['authorised','expired','not_connected'].includes(data.status))status=data.status}
+  }catch(_){}
+  if(owner!==userId||session!==token)return;
+  if(status==='authorised'){
+    localStorage.setItem(key,'server-authorised');
+    if(outcome==='connected')notice('Garmin authorisation confirmed.');
+    return;
+  }
   if(outcome==='failed')notice('Garmin authorization failed. Please try again.');
-  if(outcome==='connected')notice('Garmin authorization returned successfully. Waiting for the first new workout.');
-  if(!localStorage.getItem('mile-garmin-onboarding-'+userId)&&!sessionStorage.getItem('mile-garmin-oauth-return-'+userId))v4Show('connect');
+  if(status==='expired'){notice('Garmin authorisation needs attention. Check Settings before reconnecting.');return}
+  if(status==='unknown'){notice('Garmin connection status unavailable. Check Settings later.');return}
+  if(prior!=='skipped')v4Show('connect');
 }
 async function v4Connect(){
   if(!token||!userId)return v4SetError('Please sign in to MILE first.');

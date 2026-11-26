@@ -1,0 +1,3 @@
+## Batch 84.1 deployment
+
+Deploy callback first, then OAuth start, after CI and review. Existing unprefixed state is legacy; new state prefix is bound to the full hashed state consumed atomically. No DB migration. Do not change Garmin registered callback or secrets. Keep both origins until migration ends. To enable Cloudflare cache headers, append ` && cp _headers dist/` to existing Pages build command after merge; verify response headers and browser revalidation. Test both domains with disposable account; no forced reconnection of existing users. Roll back start first then callback after pending states expire; previous deployed versions start 11 callback 14. Keep old GitHub Pages available.
