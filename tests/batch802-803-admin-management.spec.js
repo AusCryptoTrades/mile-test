@@ -9,7 +9,7 @@ const response=(route,body,status=200)=>route.fulfill({status,contentType:'appli
 test('80.2 athlete management searches and filters server records',async({page})=>{
  let query;
  await page.route('**/functions/v1/mile-admin-management?*',r=>{query=new URL(r.request().url()).searchParams;const rows=query.get('q')==='missing'?[]:[{display_name:'Test athlete',username:'runner',garmin:true,premium:false,activities_30d:6,primary_sport:'Running'}];return response(r,{rows,has_more:false})});
- const panel=await open(page);await panel.getByRole('button',{name:'Athlete Management'}).click();
+ const panel=await open(page);await panel.locator('.ma-tabs [data-ma-athletes]').click();
  await expect(panel.locator('[data-ma-list=athletes]')).toContainText('Test athlete');await expect(panel.locator('[data-ma-list=athletes]')).toContainText('Garmin activities (30 days): 6');
  await panel.getByLabel('Athlete filter').selectOption('garmin');await expect.poll(()=>query?.get('filter')).toBe('garmin');
  await panel.getByLabel('Search name or username').fill('missing');await panel.getByRole('button',{name:'Search',exact:true}).click();
@@ -23,7 +23,7 @@ test('80.3 feedback uses explicit save, server confirmation and refresh',async({
   if(r.request().method()==='PATCH'){patch=r.request().postDataJSON();status=patch.status;return response(r,{report:{status}})}
   return response(r,{rows:[{id:'00000000-0000-4000-8000-000000000001',kind:'bug',page:'Calendar',description:'Calendar layout issue',status}],counts:[{status,count:1}],has_more:false});
  });
- const panel=await open(page);await panel.getByRole('button',{name:'Beta reports & feedback'}).click();
+ const panel=await open(page);await panel.locator('.ma-tabs [data-ma-reports]').click();
  await expect(panel.locator('[data-ma-list=feedback]')).toContainText('Calendar layout issue');
  const select=panel.getByLabel('Update report status');await expect(select).toHaveValue('new');
  await select.selectOption('investigating');expect(patch).toBeUndefined();
@@ -34,7 +34,7 @@ test('80.3 feedback uses explicit save, server confirmation and refresh',async({
 });
 test('80.3 server denial keeps private records hidden',async({page})=>{
  await page.route('**/functions/v1/mile-admin-management?*',r=>response(r,{error:'Administrator access required'},403));
- const panel=await open(page);await panel.getByRole('button',{name:'Beta reports & feedback'}).click();
+ const panel=await open(page);await panel.locator('.ma-tabs [data-ma-reports]').click();
  await expect(panel.locator('.ma-management')).toContainText('Administrator access could not be verified');
  await expect(panel.locator('[data-ma-list=feedback] article')).toHaveCount(0);
 });
