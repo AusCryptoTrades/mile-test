@@ -76,6 +76,9 @@ async function garminRequest(
     signal: AbortSignal.timeout(20000),
   });
 
+  // Record only operation category/status; never log provider IDs, tokens or workout bodies.
+  const route=url===WORKOUT_URL?"workout_create":url===SCHEDULE_URL&&method==="POST"?"schedule_create":url.startsWith(WORKOUT_READ_URL)?"workout_read":url.startsWith(GARMIN_SCHEDULE_READ_URL)?"schedule_read":url.includes("/training-api/schedule?")?"calendar_read":"connection_check";
+  console.info("mile_garmin",route,method,response.status);
   const raw = await response.text();
 
   let parsed: any = null;
@@ -255,7 +258,7 @@ Deno.serve(async(req:Request)=>{
    let record=await getRecord();if(!record)return {publicationState:"not_published",calendarMatch:null};
    if(record.garmin_identity!==connection.garminIdentity)return {publicationState:"account_changed",calendarMatch:null};
    let calendarMatch=null;
-   if(record.workout_id&&["schedule_uncertain","scheduled","verified","delivery_confirmed"].includes(record.state)){
+   if(record.workout_id&&["scheduling","schedule_uncertain","scheduled","verified","delivery_confirmed"].includes(record.state)){
     try{
      const found=await findSchedule(record.workout_id,record.date);
      calendarMatch=!!found;
@@ -265,7 +268,15 @@ Deno.serve(async(req:Request)=>{
      }
     }catch{/* no retries or false confirmation */}
    }
-   return {publicationState:record.state,date:record.date,workoutId:record.workout_id,scheduleId:record.schedule_id,calendarMatch,watchVisibility:"unverified"};
+   let targetReadback=null;
+   if(record.workout_id){
+    try{
+     const workout=await checked(WORKOUT_READ_URL+encodeURIComponent(record.workout_id));
+     const fields=(steps:any[]):any[]=>steps.flatMap(s=>Array.isArray(s?.steps)?fields(s.steps):[{intensity:s.intensity,durationType:s.durationType,durationValue:s.durationValue,targetType:s.targetType,targetValueLow:s.targetValueLow,targetValueHigh:s.targetValueHigh}]);
+     if(String(workout?.workoutId)===String(record.workout_id)&&Array.isArray(workout?.segments))targetReadback=workout.segments.flatMap((seg:any)=>Array.isArray(seg.steps)?fields(seg.steps):[]);
+    }catch{/* target readback remains unconfirmed */}
+   }
+   return {publicationState:record.state,date:record.date,workoutId:record.workout_id,scheduleId:record.schedule_id,calendarMatch,targetReadback,watchVisibility:"unverified"};
   };
   if(input.action==="status_session")return reply(await summarize());
   const garmin={identity,permissions,create:async(payload:unknown)=>checked(WORKOUT_URL,"POST",payload),schedule:async(id:string,date:string)=>{
@@ -287,8 +298,16 @@ Deno.serve(async(req:Request)=>{
   if(existing)return reply({error:"A publication already exists. Check Garmin sync status; do not resend.",...await summarize()},409);
   if(input.action==="preview_session")return reply({...await app.preview(sessionId),publishingEnabled:true});
   if(input.confirmed!==true||typeof input.approvedFingerprint!=="string")return reply({error:"Explicit preview approval required"},400);
-  const record=await app.publish({sessionId,approvedFingerprint:input.approvedFingerprint,confirmed:true});
-  return reply({...await summarize(),publicationState:record.state==="schedule_uncertain"?(await getRecord())?.state??record.state:record.state});
+  try{
+   await app.publish({sessionId,approvedFingerprint:input.approvedFingerprint,confirmed:true});
+  }catch(e){
+   // A successful POST may be followed by a failed read or identity recheck.
+   // Recover using the durable record; never repeat a write.
+   const record=await getRecord();
+   if(!record)throw e;
+   console.warn("mile_garmin publication interrupted",record.state);
+  }
+  return reply(await summarize());
  }catch(e){
   const msg=e instanceof Error?e.message:"";
   if(msg==="AUTH_REQUIRED")return reply({error:"Confirmed MILE session required"},401);
