@@ -1,0 +1,67 @@
+<!doctype html><html lang="en-AU"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><title>MILE. | Garmin delivery check</title><style>
+*{box-sizing:border-box}body{margin:0;background:#101010;color:#f5f5f5;font:15px/1.5 system-ui,sans-serif}main{max-width:480px;margin:auto;padding:28px 20px 40px}h1{font-size:30px;line-height:1.1;margin:18px 0}a{color:#c8fa45}.brand{font-weight:900;font-style:italic;font-size:26px;letter-spacing:-2px}.brand span{color:#c8fa45}p{color:#bdbdbd}label{display:block;margin:14px 0 4px}input,button{width:100%;padding:12px;border-radius:8px;border:1px solid #555;font:inherit;color:inherit;background:#222;min-height:44px}button{background:#c8fa45;color:#111;font-weight:bold;margin:20px 0;cursor:pointer}button:disabled{opacity:.5;cursor:default}pre{white-space:pre-wrap;overflow-wrap:anywhere;padding:16px;background:#1e1e1e;border-radius:10px;font:14px/1.6 system-ui}a:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid #c8fa45;outline-offset:3px}</style></head><body><main><div class="brand">MILE<span>.</span></div><h1>Garmin delivery check</h1><p>Read-only diagnostic for a previously created workout and schedule. No workout will be created, moved or deleted. Garmin may refresh your existing connection token.</p><p>Sign in to MILE on this same website first. Use the exact IDs from the earlier test.</p><form id="check"><label for="workout">Workout ID</label><input id="workout" inputmode="numeric" pattern="[1-9][0-9]{0,14}" required autocomplete="off"><label for="schedule">Schedule ID</label><input id="schedule" inputmode="numeric" pattern="[1-9][0-9]{0,14}" required autocomplete="off"><label for="date">Original scheduled date</label><input id="date" type="date" required><button id="run">Check existing workout</button></form><pre id="result" role="status" aria-live="polite">No check performed.</pre><p>API verification alone cannot confirm Garmin Connect or watch visibility.</p><section style="border-top:1px solid #444;margin-top:25px;padding-top:20px"><h2>Future delivery test</h2><p>Check your linked account, then preview and explicitly send one controlled test workout. The date lookup and preview do not send anything.</p><label for="future-date">Calendar date</label><input id="future-date" type="date" value="2026-11-28"><button id="date-check" type="button">Check Garmin date</button><button id="controlled" type="button" style="margin-top:0">Preview MILE TEST — 28 NOV</button><button id="publish-test" type="button" hidden disabled style="margin-top:0">Send test workout to Garmin</button><pre id="future-result" role="status" aria-live="polite">No check performed.</pre></section><a href="index.html">Return to MILE</a></main><script>
+const base='https://mgixvokjlytjuypzcfzz.supabase.co',key='sb_publishable_gIQO8rNBD9kKQpQdky0-7w_2A55HzO8';
+const $=id=>document.getElementById(id),session=()=>localStorage.getItem('av-token')||sessionStorage.getItem('av-token');
+const label=v=>v===true?'PASS':v===false?'NOT MATCHED':'UNCONFIRMED';
+$('check').addEventListener('submit',async e=>{
+ e.preventDefault();if($('run').disabled)return;
+ $('run').disabled=true;$('result').textContent='Checking your signed-in MILE session…';
+ try{
+  const token=session();if(!token)throw Error('Sign in to MILE on this website first.');
+  const headers={apikey:key,Authorization:'Bearer '+token,'Content-Type':'application/json'};
+  const auth=await fetch(base+'/auth/v1/user',{headers,cache:'no-store',signal:AbortSignal.timeout(10000)});
+  if(!auth.ok)throw Error('MILE session expired. Sign in again.');
+  const user=await auth.json();if(!user.id||!user.email_confirmed_at||user.is_anonymous)throw Error('Confirmed account required.');
+  const membership=await fetch(base+'/rest/v1/av_members?user_id=eq.'+encodeURIComponent(user.id)+'&select=user_id',{headers,cache:'no-store',signal:AbortSignal.timeout(10000)});
+  if(!membership.ok||!(await membership.json()).some(r=>r.user_id===user.id))throw Error('MILE membership required.');
+  if(session()!==token)throw Error('Session changed. Try again.');
+  $('result').textContent='Reading existing Garmin workout and schedule…';
+  const response=await fetch(base+'/functions/v1/garmin-workout-push',{method:'POST',headers,cache:'no-store',signal:AbortSignal.timeout(60000),body:JSON.stringify({action:'diagnose_existing',workout_id:$('workout').value,schedule_id:$('schedule').value,date:$('date').value})});
+  if(session()!==token)throw Error('Session changed. Try again.');
+  if(!response.ok)throw Error('Garmin diagnostic returned HTTP '+response.status+'. No workout writes requested.');
+  const d=await response.json();if(d.mode!=='diagnose_existing'||d.workout_schedule_mutations!==false)throw Error('Unexpected diagnostic response.');
+  const c=d.checks||{},a=d.auth||{};
+  $('result').textContent=['WORKOUT_IMPORT: '+label(a.work_out_import_granted),'Garmin identity: '+label(a.api_user_id_present),'Workout readback: '+label(c.workout_matches_requested),'Schedule readback: '+label(c.schedule_by_id_matches_request),'Schedule links workout: '+label(c.schedule_links_workout),'Calendar date: '+label(c.schedule_date_matches),'Date-range lookup: '+label(c.schedule_exists_in_date_result),'','Garmin Connect / watch visibility: UNVERIFIED','Workout mutations: NONE'].join('\n');
+ }catch(err){$('result').textContent=err instanceof Error?err.message:'Diagnostic unavailable.'}finally{$('run').disabled=false}
+});
+let approval=null,publishAttempted=false;
+async function futureCheck(action){
+ const result=$('future-result'),buttons=[$('date-check'),$('controlled')];
+ approval=null;$('publish-test').disabled=true;$('publish-test').hidden=true;
+ if(buttons.some(b=>b.disabled))return;
+ buttons.forEach(b=>b.disabled=true);
+ result.textContent='Checking your signed-in account…';
+ try{
+  const token=session();if(!token)throw Error('Sign in to MILE on this same preview website first.');
+  const headers={apikey:key,Authorization:'Bearer '+token,'Content-Type':'application/json'};
+  const response=await fetch(base+'/functions/v1/mile-garmin-preview',{method:'POST',headers,cache:'no-store',signal:AbortSignal.timeout(60000),body:JSON.stringify({action,date:$('future-date').value})});
+  if(session()!==token)throw Error('Session changed. Sign in again.');
+  const d=await response.json();
+  if(!response.ok)throw Error((typeof d.error==='string'?d.error:'Diagnostic unavailable')+' (HTTP '+response.status+')');
+  if(d.garminWrites!==false)throw Error('Unexpected diagnostic response.');
+  const lines=['Garmin identity stored: '+label(d.identityBound),'Identity match: '+label(d.identityMatches),'WORKOUT_IMPORT: '+label(d.workoutImport)];
+  if(action==='date_readback')lines.push('Date: '+d.date,'Garmin schedule HTTP: '+d.garminStatus,'Calendar entries returned by API: '+(d.entryCount??'Unknown'));
+  else lines.push('Date: '+d.date,'MILE TEST — 28 NOV','2 min warm-up / 6 min easy / 2 min cooldown','Workout payload: '+(d.payload?.segments?.[0]?.steps?.length===3?'READY':'UNCONFIRMED'));
+  if(action==='preview_controlled'&&d.publishingEnabled===true&&typeof d.fingerprint==='string'&&d.date==='2026-11-28'&&d.payload?.segments?.[0]?.steps?.length===3&&!publishAttempted){approval={token,fingerprint:d.fingerprint};$('publish-test').hidden=false;$('publish-test').disabled=false;}
+  lines.push('','Garmin Connect / watch visibility: UNVERIFIED','Workout writes: NONE');
+  result.textContent=lines.join('\n');
+ }catch(e){result.textContent=e instanceof Error?e.message:'Diagnostic unavailable.'}finally{buttons.forEach(b=>b.disabled=false)}
+}
+$('date-check').addEventListener('click',()=>futureCheck('date_readback'));
+$('controlled').addEventListener('click',()=>futureCheck('preview_controlled'));
+$('publish-test').addEventListener('click',async()=>{
+ const result=$('future-result'),button=$('publish-test');
+ if(button.disabled||publishAttempted||!approval||approval.token!==session())return;
+ if(!confirm('Send one MILE TEST — 28 NOV running workout to your connected Garmin calendar?'))return;
+ publishAttempted=true;button.disabled=true;$('date-check').disabled=true;$('controlled').disabled=true;
+ result.textContent='Submitting once and checking Garmin. Do not reload or repeat the push.';
+ try{
+  const token=session(),headers={apikey:key,Authorization:'Bearer '+token,'Content-Type':'application/json'};
+  const response=await fetch(base+'/functions/v1/mile-garmin-preview',{method:'POST',headers,cache:'no-store',signal:AbortSignal.timeout(120000),body:JSON.stringify({action:'publish_controlled',confirmed:true,approvedFingerprint:approval.fingerprint})});
+  if(session()!==token)throw Error('Session changed. Publication may have started.');
+  const d=await response.json();
+  if(!response.ok)throw Error((typeof d.error==='string'?d.error:'Publication unavailable')+' (HTTP '+response.status+')');
+  result.textContent=['MILE TEST — 28 NOV','Date: '+d.date,'Publication state: '+String(d.publicationState??'UNKNOWN').toUpperCase(),'Workout ID: '+(d.workoutId??'Unconfirmed'),'Schedule ID: '+(d.scheduleId??'Unconfirmed'),'Date-range readback: '+label(d.rangeMatches),'','Garmin Connect / watch visibility: UNVERIFIED','Do not repeat the push. Send a screenshot of this result.'].join('\n');
+ }catch(e){result.textContent=(e instanceof Error?e.message:'Publication unavailable')+'\nOutcome may be uncertain. Do not repeat. Send a screenshot.'}
+});
+</script></body></html>

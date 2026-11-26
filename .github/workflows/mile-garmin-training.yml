@@ -1,0 +1,41 @@
+name: MILE Garmin training contract
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [main]
+    paths: ['integrations/garmin/**', 'mile-garmin-plan.js', 'mile-device-sync.js', 'tests/batch87-device-sync.spec.js', 'index.html', 'mile-garmin-diagnostic.html', 'supabase/proposals/batch87-garmin-publications.sql', 'supabase/tests/batch87-garmin-publications.test.sql', '.github/workflows/mile-garmin-training.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  training-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: node --test integrations/garmin/*.test.mjs
+  registry-database:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/batch87-garmin-publications.test.sql
