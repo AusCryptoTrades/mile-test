@@ -412,7 +412,7 @@ test('batch 3: Social menu uses isolated scrolling sheet and restores navigation
 test('batch 3: one home Sleep Score and persistent theme on Home',async({page})=>{
  await openApp(page,{signedIn:true});
  await page.evaluate(()=>window.m395ThemeSet('ice'));
- await page.evaluate(()=>window.mileV3Go('dashboard'));
+ await page.evaluate(()=>{state.recoveryDays=[{date:new Date().toLocaleDateString('en-CA'),sleepScore:86,sleepHours:7.5,bodyBattery:72,restingHR:48,hrvMs:60}];window.mileV3Go('dashboard')});
  await expect(page.locator('.mile-ui-dashboard .mile-ui-recovery .sleep-score')).toHaveCount(1);
  await expect(page.locator('.mile-ui-dashboard .mile-ui-recovery .sleep')).toHaveCount(0);
  await expect.poll(()=>page.evaluate(()=>document.documentElement.dataset.m395Theme)).toBe('ice');
@@ -501,7 +501,7 @@ test('dashboard audit batch 1: recovery cards respond to keyboard',async({page})
 
 test('dashboard batch 2: recovery freshness and accurate sleep status labels',async({page})=>{
  await openApp(page,{signedIn:true});
- await page.evaluate(()=>window.mileV3Go('dashboard'));
+ await page.evaluate(()=>{state.recoveryDays=[{date:new Date().toLocaleDateString('en-CA'),sleepScore:86,sleepHours:7.5,bodyBattery:72,restingHR:48,hrvMs:60}];window.mileV3Go('dashboard')});
  await expect(page.locator('.mile-ui-recovery-date')).toBeVisible();
  await expect(page.locator('.mile-ui-recovery .readiness')).toContainText('Resting HR');
  await expect(page.locator('.mile-ui-recovery [data-mile-recovery-link]')).toHaveCount(4);
@@ -721,7 +721,7 @@ test('batch 71 Stats insets and mobile More perimeter',async({page})=>{
  await expect(page.locator('.m70-stats > section.card').first()).toHaveCSS('padding-right','16px');
 });
 
-test('batch 72 combined IQ navigation and chart controls',async({page})=>{await page.setViewportSize({width:390,height:844});await openApp(page,{signedIn:true});await page.evaluate(()=>window.mileV3ToggleMore());const menu=page.locator('#mile-emergency-more');await expect(menu.locator('[data-dest="recovery"]')).toHaveCount(0);await expect(menu.locator('[data-dest="insights"]')).toContainText('MILE IQ');await menu.locator('[data-dest="insights"]').click();await expect(page.locator('.iq72')).toBeVisible();await expect(page.locator('.iq72')).toContainText('Sleep score');await page.locator('.iq72').getByRole('button',{name:'30 days',exact:true}).click();await expect(page.locator('.iq72 input[aria-label="Select chart date"]')).toHaveCount(0);const chart=page.locator('#recoveryTrends svg');await expect(chart).toBeVisible();const bounds=await chart.boundingBox();await chart.click({position:{x:bounds.width*.2,y:bounds.height*.5}});const cursor=page.locator('#iq72-cursor');await expect(cursor).toHaveCount(1);await expect(cursor).toHaveAttribute('x1',/^[0-9.]+$/);await expect.poll(async()=>cursor.evaluate(el=>{const x=Number(el.getAttribute('x1'));return x===Number(el.getAttribute('x2'))&&Number(el.getAttribute('y2'))>Number(el.getAttribute('y1'))&&getComputedStyle(el).visibility==='visible'&&getComputedStyle(el).display!=='none'&&getComputedStyle(el).stroke!=='none'&&Number(getComputedStyle(el).opacity)>0;})).toBe(true);await page.locator('.iq72').getByRole('button',{name:'Performance',exact:true}).click();await expect(page.locator('.iq72')).toContainText('Weekly performance report');});
+test('batch 72 combined IQ navigation and chart controls',async({page})=>{await page.setViewportSize({width:390,height:844});await openApp(page,{signedIn:true});await page.evaluate(()=>{state.recoveryDays=[{date:new Date().toLocaleDateString('en-CA'),sleepScore:86,sleepHours:7.5,bodyBattery:72,restingHR:48,hrvMs:60}];window.mileV3ToggleMore()});const menu=page.locator('#mile-emergency-more');await expect(menu.locator('[data-dest="recovery"]')).toHaveCount(0);await expect(menu.locator('[data-dest="insights"]')).toContainText('MILE IQ');await menu.locator('[data-dest="insights"]').click();await expect(page.locator('.iq72')).toBeVisible();await expect(page.locator('.iq72')).toContainText('Sleep score');await page.locator('.iq72').getByRole('button',{name:'30 days',exact:true}).click();await expect(page.locator('.iq72 input[aria-label="Select chart date"]')).toHaveCount(0);const chart=page.locator('#recoveryTrends svg');await expect(chart).toBeVisible();const bounds=await chart.boundingBox();await chart.click({position:{x:bounds.width*.2,y:bounds.height*.5}});const cursor=page.locator('#iq72-cursor');await expect(cursor).toHaveCount(1);await expect(cursor).toHaveAttribute('x1',/^[0-9.]+$/);await expect.poll(async()=>cursor.evaluate(el=>{const x=Number(el.getAttribute('x1'));return x===Number(el.getAttribute('x2'))&&Number(el.getAttribute('y2'))>Number(el.getAttribute('y1'))&&getComputedStyle(el).visibility==='visible'&&getComputedStyle(el).display!=='none'&&getComputedStyle(el).stroke!=='none'&&Number(getComputedStyle(el).opacity)>0;})).toBe(true);await page.locator('.iq72').getByRole('button',{name:'Performance',exact:true}).click();await expect(page.locator('.iq72')).toContainText('Weekly performance report');});
 
 test('76.1 actual Edit Activity modal matches compact proof at phone widths', async ({page}, info) => {
  await openApp(page,{signedIn:true});
@@ -795,7 +795,7 @@ test('77.2 dashboard widget preferences preserve order, persist and restore defa
  await page.evaluate(()=>window.mileV3Go('dashboard'));
  const dash=page.locator('.mile-ui-dashboard');
  await expect(dash).toBeVisible();
- const order=['training','load','distribution','sleep','hrv','battery','rhr','race','completion','vo2','insights','activity'];
+ const order=['training','load','distribution','hrv','rhr','race','completion','vo2','insights','activity'];
  await expect(dash.locator('[data-m772-widget]')).toHaveCount(order.length);
  expect(await dash.locator('[data-m772-widget]').evaluateAll(nodes=>nodes.map(n=>n.dataset.m772Widget))).toEqual(order);
  await page.evaluate(()=>window.mileV3Go('settings'));
@@ -1383,4 +1383,21 @@ test('86.5 connected devices distinguishes web availability from native permissi
  await panel.locator('[data-m86-health-access]').click();
  await expect(panel.locator('[data-m86-health-status]')).toHaveText('Permission request completed — import not enabled');
  await expect(panel).toContainText('No health data is uploaded by this preview');
+});
+
+test('86.8 recovery widgets adapt to recorded sleep and battery without inventing values',async({page})=>{
+ await openApp(page,{signedIn:true});
+ const sleep=page.locator('.mile-ui-dashboard [data-m772-widget="sleep"]'),battery=page.locator('.mile-ui-dashboard [data-m772-widget="battery"]');
+ await page.evaluate(()=>{state.recoveryDays=[];window.mileV3Go('dashboard')});
+ await expect(sleep).toHaveCount(0);await expect(battery).toHaveCount(0);
+ await page.evaluate(()=>{state.recoveryDays=[{date:new Date().toLocaleDateString('en-CA'),sleepHours:7.5,restingHR:48,hrvMs:60}];window.mileV3Go('dashboard')});
+ await expect(sleep).toContainText('Sleep Duration');await expect(sleep).toContainText('7.5 h');await expect(battery).toHaveCount(0);
+ await page.evaluate(()=>window.mileV3Go('recovery'));
+ await expect(page.locator('#recoveryTrends').getByRole('button',{name:'Sleep duration',exact:true})).toBeVisible();
+ await expect(page.locator('#recoveryTrends').getByRole('button',{name:'Body Battery',exact:true})).toHaveCount(0);
+ await page.evaluate(()=>{state.recoveryDays=[{date:new Date().toLocaleDateString('en-CA'),sleepScore:86,sleepHours:7.5,bodyBattery:72,restingHR:48,hrvMs:60}];window.mileV3Go('dashboard')});
+ await expect(sleep).toContainText('Sleep Score');await expect(sleep).toContainText('86/100');await expect(battery).toContainText('72/100');
+ await page.evaluate(()=>window.mileV3Go('recovery'));
+ await expect(page.locator('#recoveryTrends').getByRole('button',{name:'Sleep score',exact:true})).toBeVisible();
+ await expect(page.locator('#recoveryTrends').getByRole('button',{name:'Body Battery',exact:true})).toBeVisible();
 });
