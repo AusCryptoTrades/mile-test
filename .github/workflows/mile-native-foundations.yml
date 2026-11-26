@@ -1,7 +1,10 @@
 name: MILE native foundations
 on:
+  push:
+    branches: ['feature/batch86-infrastructure']
+    paths: ['native/**', '.github/workflows/mile-native-foundations.yml']
   pull_request:
-    branches: [main]
+    branches: [main, 'feature/batch85-beta-polish']
     paths: ['native/**', '.github/workflows/mile-native-foundations.yml', 'index.html', 'mile-*.html', 'mile-*.js', 'mile-*.css']
   workflow_dispatch:
 permissions:
@@ -82,3 +85,7 @@ jobs:
           test -d build-ios/Build/Products/Debug-iphonesimulator/App.app
           /usr/libexec/PlistBuddy -c 'Print :NSLocationWhenInUseUsageDescription' build-ios/Build/Products/Debug-iphonesimulator/App.app/Info.plist
           plutil -lint build-ios/Build/Products/Debug-iphonesimulator/App.app/Info.plist
+          /usr/libexec/PlistBuddy -c 'Print :NSHealthShareUsageDescription' build-ios/Build/Products/Debug-iphonesimulator/App.app/Info.plist
+          test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.healthkit' ios/App/App/MILEHealthKit.entitlements)" = true
+          grep -q 'registerPluginInstance(MILEHealthKitPlugin())' ios/App/App/AppDelegate.swift
+          grep -q 'customClass="MILEBridgeViewController"' ios/App/App/Base.lproj/Main.storyboard
