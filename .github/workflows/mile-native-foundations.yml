@@ -25,6 +25,21 @@ jobs:
           node-version: '22'
       - run: npm --prefix native test
       - run: python3 native/scripts/brand.py --test
+      - name: Resolve native dependency lockfile
+        working-directory: native
+        run: |
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          node -e 'const p=require("./package-lock.json"); if(p.lockfileVersion!==3 || !p.packages || !p.packages[""]) process.exit(1)'
+          if git ls-files --error-unmatch package-lock.json >/dev/null 2>&1; then
+            git diff --exit-code -- package-lock.json
+          fi
+      - name: Upload reproducible dependency lockfile
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mile-native-dependency-lock
+          path: native/package-lock.json
+          if-no-files-found: error
+          retention-days: 7
   android-debug:
     needs: bundle
     runs-on: ubuntu-24.04
