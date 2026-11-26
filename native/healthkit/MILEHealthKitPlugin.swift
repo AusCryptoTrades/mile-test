@@ -1,8 +1,9 @@
 import Foundation
+import Security
 import HealthKit
 import Capacitor
 
-// Read-only prototype. No persistence, networking or automatic authorization.
+// Read-only HealthKit prototype. Only opaque checkpoints use local Keychain persistence.
 @objc(MILEHealthKitPlugin)
 public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "MILEHealthKitPlugin"
@@ -11,7 +12,10 @@ public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "availability", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "requestReadAccess", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "readWorkouts", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "readWorkoutPage", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "readWorkoutPage", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "checkpointGet", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "checkpointSet", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "checkpointRemove", returnType: CAPPluginReturnPromise)
     ]
     private let store = HKHealthStore()
     private var requestedThisSession = false
@@ -145,6 +149,57 @@ public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
         let from: String
         let to: String
         let anchor: Data
+    }
+
+    // Dedicated Keychain namespace, device-only, never synchronized via iCloud.
+    private func checkpointQuery(_ call: CAPPluginCall) -> [String: Any]? {
+        guard let key = call.getString("key"), key.hasPrefix("mile.healthkit.v1:"), key.count <= 1024 else {
+            call.reject("Invalid checkpoint key"); return nil
+        }
+        return [kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: "au.com.milefitness.healthkit.checkpoints",
+                kSecAttrAccount as String: key,
+                kSecAttrSynchronizable as String: false]
+    }
+    @objc func checkpointGet(_ call: CAPPluginCall) {
+        guard var query = checkpointQuery(call) else { return }
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        if status == errSecItemNotFound { call.resolve(["value": NSNull()]); return }
+        guard status == errSecSuccess, let data = result as? Data,
+              let value = String(data: data, encoding: .utf8) else {
+            call.reject("Checkpoint read failed"); return
+        }
+        call.resolve(["value": value])
+    }
+    @objc func checkpointSet(_ call: CAPPluginCall) {
+        guard let query = checkpointQuery(call) else { return }
+        guard let value = call.getString("value"), !value.isEmpty, value.utf8.count <= 8192 else {
+            call.reject("Invalid checkpoint value"); return
+        }
+        let data = Data(value.utf8)
+        var status = SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
+        if status == errSecItemNotFound {
+            var item = query
+            item[kSecValueData as String] = data
+            item[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            status = SecItemAdd(item as CFDictionary, nil)
+            if status == errSecDuplicateItem {
+                status = SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
+            }
+        }
+        guard status == errSecSuccess else { call.reject("Checkpoint write failed"); return }
+        call.resolve()
+    }
+    @objc func checkpointRemove(_ call: CAPPluginCall) {
+        guard let query = checkpointQuery(call) else { return }
+        let status = SecItemDelete(query as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            call.reject("Checkpoint removal failed"); return
+        }
+        call.resolve()
     }
 
 }
