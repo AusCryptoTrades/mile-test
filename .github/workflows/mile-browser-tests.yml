@@ -11,7 +11,12 @@ concurrency:
 permissions:
   contents: read
 jobs:
-  browser-tests:
+  browser-matrix:
+    name: Browser (${{ matrix.project }})
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop-chromium, mobile-webkit, mobile-chromium]
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     container:
@@ -28,17 +33,18 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Verify preinstalled Chromium and WebKit
         run: npx playwright install --list
-      - name: Run desktop and mobile browser tests
+      - name: Run browser project
         id: browser
-        run: npm run test:e2e
+        run: npm run test:e2e -- --project=${{ matrix.project }}
       - name: Summarize test outcome
         if: always()
         shell: bash
         env:
+          BROWSER_PROJECT: ${{ matrix.project }}
           BROWSER_OUTCOME: ${{ steps.browser.outcome }}
         run: |
           {
-            echo '## MILE browser test report'
+            echo "## MILE browser test report — $BROWSER_PROJECT"
             echo ''
             printf -- '- Commit: `%s`\n' "$GITHUB_SHA"
             printf -- '- Branch/ref: `%s`\n' "$GITHUB_REF"
@@ -51,15 +57,29 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: mile-playwright-html-report
+          name: mile-playwright-html-report-${{ matrix.project }}
           path: playwright-report/
           retention-days: 7
       - name: Upload screenshots and traces if tests fail
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: mile-playwright-failure-report
+          name: mile-playwright-failure-report-${{ matrix.project }}
           path: |
             playwright-report/
             test-results/
           retention-days: 7
+
+  browser-tests:
+    name: browser-tests
+    needs: browser-matrix
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every browser project to pass
+        env:
+          MATRIX_RESULT: ${{ needs.browser-matrix.result }}
+        run: |
+          echo "Browser matrix result: $MATRIX_RESULT"
+          test "$MATRIX_RESULT" = success
