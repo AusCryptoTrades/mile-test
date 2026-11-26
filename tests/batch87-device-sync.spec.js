@@ -4,7 +4,7 @@ const id2='e87b0000-0000-4000-8000-000000000002';
 const id3='e87b0000-0000-4000-8000-000000000003';
 const detail='Warm-up: 2 min. Main: 6 min easy. Cooldown: 2 min.';
 async function fixture(page,mode='single',failure=false){
- const calls=[],submitted=new Set();
+ const calls=[],submitted=new Set();let allowRecovery=false;
  await page.goto('/mile-device-sync.js');
  await page.setContent('<!doctype html><html><head></head><body><div id="fixture"></div></body></html>');
  await page.evaluate(({id,id2,id3,detail})=>{
@@ -15,10 +15,10 @@ async function fixture(page,mode='single',failure=false){
  },{id,id2,id3,detail});
  await page.route('**/functions/v1/mile-garmin-device-sync',async route=>{
   const body=route.request().postDataJSON();calls.push(body);
-  if(body.action==='publish_session'&&failure){await route.fulfill({status:409,json:{error:'Publication outcome requires verification'}});return}
+  if(body.action==='publish_session'&&failure&&!allowRecovery){submitted.add(body.sessionId);await route.fulfill({status:409,json:{error:'Publication outcome requires verification'}});return}
   const date=body.sessionId===id?'2026-11-28':'2026-11-29';
   let json;
-  if(body.action==='status_session')json=submitted.has(body.sessionId)?{publicationState:'scheduled',calendarMatch:true}:{publicationState:'not_published'};
+  if(body.action==='status_session'){const n=calls.filter(c=>c.action==='status_session'&&c.sessionId===body.sessionId).length;if(failure&&submitted.has(body.sessionId)&&n>=3)allowRecovery=true;json=submitted.has(body.sessionId)?{publicationState:'scheduled',calendarMatch:!failure||allowRecovery}:{publicationState:'not_published'};}
   else if(body.action==='preview_session')json={date,payload:{workoutName:'Easy run',description:detail,segments:[{steps:[{type:'WorkoutStep',intensity:'ACTIVE',durationType:'TIME',durationValue:360,targetType:'OPEN'}]}]},fingerprint:'a'.repeat(64),publishingEnabled:true};
   else{submitted.add(body.sessionId);json={publicationState:'scheduled',calendarMatch:true}}
   await route.fulfill({json});
@@ -65,9 +65,13 @@ test('uncertain submission stops later writes and supports read-only status',asy
  await page.getByRole('button',{name:'Sync 2 workouts'}).click();
  await expect(page.getByRole('heading',{name:'Sync submitted.'})).toBeVisible();
  expect(calls.filter(c=>c.action==='publish_session').map(c=>c.sessionId)).toEqual([id]);
- await page.getByRole('button',{name:'Check status'}).click();
- await expect(page.getByRole('heading',{name:'No new workouts synced.'})).toBeVisible();
+ await page.getByRole('button',{name:'Check Garmin'}).click();
+ await expect(page.getByRole('button',{name:'Review remaining workouts'})).toBeVisible();
  expect(calls.filter(c=>c.action==='publish_session')).toHaveLength(1);
+ await page.getByRole('button',{name:'Review remaining workouts'}).click();
+ await page.getByRole('button',{name:'Sync remaining workouts'}).click();
+ await expect(page.getByRole('heading',{name:'Training synced.'})).toBeVisible();
+ expect(calls.filter(c=>c.action==='publish_session').map(c=>c.sessionId)).toEqual([id,id2]);
 });
 test('created plan shows success and optional device sync without publishing automatically',async({page})=>{
  const calls=await fixture(page,'created');
