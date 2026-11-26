@@ -24,6 +24,8 @@ async function openApp(page, { signedIn = false, laps = true, syncStore = null }
     let json;
     if (url.pathname === '/auth/v1/token' && signedIn) {
       json = { access_token: 'fixture-auth-token', refresh_token: 'fixture-refresh-token', user };
+    } else if (url.pathname === '/functions/v1/garmin-connection-status') {
+      json = { status: 'not_connected' };
     } else if (url.pathname === '/rest/v1/av_members') {
       json = [{ user_id: user.id }];
     } else if (url.pathname === '/rest/v1/av_training_data') {
@@ -54,7 +56,8 @@ async function openApp(page, { signedIn = false, laps = true, syncStore = null }
   await page.locator('#v4Email').fill('runner@example.test');
   await page.locator('#v4Password').fill('fixture-password');
   await page.locator('#v4Gate button[onclick*="v4Authenticate"]').click();
-  await page.getByRole('button', { name: 'Skip for now' }).click();
+  await page.locator('#v4Gate [onclick*="v4SkipGarmin"]').click({timeout: 8000});
+  await expect(page.locator('#v4Gate')).toBeHidden();
 }
 
 async function openActivity(page) {
