@@ -14,7 +14,15 @@
  // Pure helpers also exercised in the contract suite.
  const planSessions=(workouts,block,from,to)=>workouts.filter(w=>w.block===block&&eligible(w,from,to)).sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id));
  const resultKind=d=>d.calendarMatch===true?'confirmed':d.publicationState==='not_published'?'new':'pending';
- if(typeof module!=='undefined'&&module.exports)module.exports={eligible,describeStep,planSessions,resultKind};
+ const compareTargets=(steps,actual)=>{
+  if(!Array.isArray(actual)||!Array.isArray(steps))return 'unverified';
+  const flat=steps.flatMap(function walk(s){return Array.isArray(s.steps)?s.steps.flatMap(walk):[s]});
+  if(!flat.some(s=>['PACE','HEART_RATE'].includes(s.targetType)))return 'open';
+  if(flat.length!==actual.length)return 'mismatch';
+  const equal=(a,b)=>a==null?b==null:Number.isFinite(Number(b))&&b!=null&&Math.abs(Number(a)-Number(b))<.01;
+  return flat.every((s,i)=>s.targetType===actual[i]?.targetType&&equal(s.targetValueLow,actual[i]?.targetValueLow)&&equal(s.targetValueHigh,actual[i]?.targetValueHigh))?'verified':'mismatch';
+ };
+ if(typeof module!=='undefined'&&module.exports)module.exports={eligible,describeStep,planSessions,resultKind,compareTargets};
  if(typeof document==='undefined')return;
  const qid=id=>/^[a-zA-Z0-9_.:-]{1,128}$/.test(String(id));
  root.mileDeviceSyncButton=w=>eligible(w,today(),add(today(),14))?'<button type="button" class="btn alt sm" data-mile-device-sync="'+w.id+'">Sync to Device</button>':'';
@@ -122,8 +130,8 @@
     attempted.add(w.id);
     try{
      const result=await request(owner,'publish_session',w.id,{confirmed:true,approvedFingerprint:w.fingerprint});
-     let confirmed=resultKind(result)==='confirmed';if(!confirmed){try{const recheck=await request(owner,'status_session',w.id);confirmed=resultKind(recheck)==='confirmed'}catch{}}results.push({...w,kind:confirmed?'confirmed':'pending'});if(!confirmed)stopped=true;
-    }catch{let confirmed=false;try{confirmed=resultKind(await request(owner,'status_session',w.id))==='confirmed'}catch{}results.push({...w,kind:confirmed?'confirmed':'pending'});if(!confirmed)stopped=true}
+     let confirmed=resultKind(result)==='confirmed',readback=result.targetReadback;if(!confirmed){try{const recheck=await request(owner,'status_session',w.id);confirmed=resultKind(recheck)==='confirmed';readback=recheck.targetReadback??readback}catch{}}results.push({...w,kind:confirmed?'confirmed':'pending',targets:compareTargets(w.steps,readback)});if(!confirmed)stopped=true;
+    }catch{let confirmed=false,readback=null;try{const recheck=await request(owner,'status_session',w.id);confirmed=resultKind(recheck)==='confirmed';readback=recheck.targetReadback}catch{}results.push({...w,kind:confirmed?'confirmed':'pending',targets:compareTargets(w.steps,readback)});if(!confirmed)stopped=true}
     if(alive())update(i+1,(i+1)+' of '+ready.length+' processed');
    }
    if(!alive())return;busy(false);finish(results,previous,unavailable,total);
@@ -135,8 +143,8 @@
    const all=confirmed>0&&pending===0&&notSent===0;
    hero(d,all?(total===1?'Workout synced.':'Training synced.'):confirmed?'Sync partially complete.':pending?'Sync submitted.':'No new workouts synced.',all?'Your training is ready in Garmin Connect.':pending?'Some sessions are awaiting confirmation. Check Garmin before syncing again.':'Review your sessions and check the connection.',all?'success':'warning');
    if(total!==1||!all)stat(d,[[confirmed,'Confirmed'],[pending,'Pending'],[notSent,'Not sent']]);
-   for(const [kind,label] of [['confirmed','Synced'],['pending','Awaiting confirmation'],['not_sent','Not sent']]){const rows=[...results,...previous].filter(w=>w.kind===kind);if(!rows.length)continue;const group=el('details','mile-sync-list');group.append(el('summary','',label+' · '+rows.length));for(const w of rows)group.append(el('p','',w.name+(w.date?' · '+nice(w.date):'')));d.append(group)}
-   d.append(el('p','','Sync your compatible watch to receive your workouts.'));
+   for(const [kind,label] of [['confirmed','Synced'],['pending','Awaiting confirmation'],['not_sent','Not sent']]){const rows=[...results,...previous].filter(w=>w.kind===kind);if(!rows.length)continue;const group=el('details','mile-sync-list');group.append(el('summary','',label+' · '+rows.length));for(const w of rows){const label=w.targets==='verified'?' · Targets verified':w.targets==='mismatch'?' · Target mismatch':w.targets==='unverified'?' · Targets not verified':'';group.append(el('p','',w.name+(w.date?' · '+nice(w.date):'')+label));}d.append(group)}
+   if(results.some(w=>w.targets==='mismatch'))d.append(el('p','','Garmin returned different workout targets. Review the affected session before training.'));else if(results.some(w=>w.targets==='unverified'))d.append(el('p','','Garmin target readback is not yet confirmed. Check your watch before training.'));d.append(el('p','','Sync your compatible watch to receive your workouts.'));
    if(all&&typeof navigator.vibrate==='function')try{navigator.vibrate(25)}catch{}
    actions(d,[...(!all?[{label:'Check Garmin',primary:pending>0,run:()=>checkStatus(checkedIds)}]:[]),...(notSent>0&&pending===0&&block?[{label:'Review remaining workouts',primary:true,run:()=>{recovering=true;prepare()}}]:[]),{label:'Done',primary:all,run:()=>d.close()}]);
   }
