@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import core from '../mile-training-inputs.js';
+const base={sport:'Running',volume:20,weeks:8,sessions:3,available:[0,2,5],longDay:5,start:'2026-12-01',raceDate:'2027-01-24',level:'intermediate',goal:'Half marathon preparation'};
+test('different training baselines stay distinct',()=>{assert.equal(core.normalize(base).profile.volume,20);assert.equal(core.normalize({...base,volume:60}).profile.volume,60)});
+test('zero differs from missing',()=>{assert.equal(core.normalize({...base,volume:0}).ok,true);assert.equal(core.normalize({...base,volume:''}).ok,false)});
+test('race dates and programme end use calendar days',()=>{const r=core.normalize(base);assert.equal(r.profile.end,'2027-01-25');assert.equal(r.profile.raceOffset,54)});
+test('invalid date rejected',()=>assert.equal(core.normalize({...base,start:'2026-02-30'}).ok,false));
+test('race before start rejected',()=>assert.equal(core.normalize({...base,raceDate:'2026-11-30'}).ok,false));
+test('race outside block flagged',()=>assert.equal(core.normalize({...base,raceDate:'2027-02-01'}).warnings.length,1));
+test('available days deduplicated and session count enforced',()=>{assert.equal(core.normalize({...base,available:[0,0,5]}).ok,false);assert.deepEqual(core.normalize({...base,available:[5,0,2,2]}).profile.available,[0,2,5])});
+test('unavailable long day never silently selected',()=>{const r=core.normalize({...base,longDay:6});assert.equal(r.profile.preferredLongDay,null);assert.equal(r.warnings.length,1)});
+test('sport units preserved',()=>{for(const [sport,unit] of [['Running','km/week'],['HYROX','km/week'],['Swimming','m/week'],['Cycling','hours/week']])assert.equal(core.normalize({...base,sport}).profile.volumeUnit,unit)});
+test('normalization does not mutate input',()=>{const b={...base,available:[5,0,2]};core.normalize(b);assert.deepEqual(b.available,[5,0,2])});
