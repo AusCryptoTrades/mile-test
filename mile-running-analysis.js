@@ -125,5 +125,16 @@ function propose(event,ctx={}){
  if(evidence.outcome==='interval-incomplete')return hold('interval-review','Repeated incomplete comparable intervals warrant review of intensity or volume.',hard||next);
  return response('no-change','No applicable coaching rule.',{action:'none',requiresApproval:false});
 }
-const api={analyse,propose,expand,uniqueMatch,validatedDistribution,align};root.mileRunningAnalysis=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
+// Candidate selection is advisory; only an explicit verified provider delivery link can match automatically.
+function reconcile(activity,plans,deliveries){
+ if(!activity||activity.id==null||activity.sport!=='Running'||date(activity.date)===null)return {status:'invalid',candidates:[]};
+ const eligible=(Array.isArray(plans)?plans:[]).filter(p=>p?.sport==='Running'&&p.id!=null&&p.date===activity.date&&p.status==='planned'&&p.matchId==null);
+ const links=(Array.isArray(deliveries)?deliveries:[]).filter(d=>d?.verified===true&&same(d.providerWorkoutId,activity.providerWorkoutId)&&same(d.revision,activity.workoutRevision));
+ const linked=eligible.filter(p=>links.some(d=>same(d.sessionId,p.id)&&same(d.revision,p.revision)));
+ if(links.length===1&&linked.length===1)return {status:'verified-link',sessionId:linked[0].id,candidates:[linked[0].id]};
+ if(links.length)return {status:'review',candidates:linked.map(p=>p.id)};
+ const candidates=eligible.filter(p=>pos(p.km)&&pos(activity.distanceKm)&&Math.abs(p.km-activity.distanceKm)/p.km<=.25).map(p=>p.id);
+ return {status:candidates.length?'review':'unplanned',candidates};
+}
+const api={analyse,propose,expand,uniqueMatch,validatedDistribution,align,reconcile};root.mileRunningAnalysis=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(globalThis);
