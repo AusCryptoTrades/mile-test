@@ -83,13 +83,12 @@ async function drain(max=4){let processed=0;for(let i=0;i<max;i++){if(!await pro
 async function control(schedulerToken?:string){
  const sql=client();
  try{
-  const rows=await sql.unsafe("select c.enabled, s.decrypted_secret as drain_token from private.mile_fit_control c left join vault.decrypted_secrets s on s.id=c.drain_secret_id where c.id=1");
+  const rows=await sql.unsafe("select enabled from private.mile_fit_control where id=1");
   if(rows.length!==1)throw Error("FIT_CONTROL_UNAVAILABLE");
-  const expected=rows[0].drain_token;
   let authenticated=false;
-  if(schedulerToken&&typeof expected==="string"&&expected.length>=32&&schedulerToken.length<=256){
-   const a=new Uint8Array(await digest(schedulerToken)),b=new Uint8Array(await digest(expected));let diff=0;
-   for(let i=0;i<a.length;i++)diff|=a[i]^b[i];authenticated=diff===0;
+  if(typeof schedulerToken==="string"&&/^[a-f0-9]{64}$/.test(schedulerToken)){
+   const consumed=await sql.unsafe("delete from private.mile_fit_drain_tickets where token_hash=sha256(convert_to($1,'UTF8')) and expires_at>clock_timestamp() returning token_hash",[schedulerToken]);
+   authenticated=consumed.length===1;
   }
   return {enabled:rows[0].enabled===true,authenticated};
  }finally{await sql.end()}

@@ -25,4 +25,15 @@ begin
   raise exception 'duplicate accepted';
  exception when unique_violation then null;end;
 end $$;
+\ir ../proposals/batch875-fit-drain-tickets.sql
+do $ticket$
+declare used integer;
+begin
+ if has_table_privilege('anon','private.mile_fit_drain_tickets','select,insert,update,delete') or has_table_privilege('authenticated','private.mile_fit_drain_tickets','select,insert,update,delete') then raise exception 'Drain tickets exposed';end if;
+ insert into private.mile_fit_drain_tickets values(sha256(convert_to(repeat('a',64),'UTF8')),clock_timestamp()+interval '90 seconds'),(sha256(convert_to(repeat('b',64),'UTF8')),clock_timestamp()-interval '1 second');
+ delete from private.mile_fit_drain_tickets where token_hash=sha256(convert_to(repeat('c',64),'UTF8')) and expires_at>clock_timestamp(); get diagnostics used=row_count;if used<>0 then raise exception 'Invalid token accepted';end if;
+ delete from private.mile_fit_drain_tickets where token_hash=sha256(convert_to(repeat('b',64),'UTF8')) and expires_at>clock_timestamp(); get diagnostics used=row_count;if used<>0 then raise exception 'Expired token accepted';end if;
+ delete from private.mile_fit_drain_tickets where token_hash=sha256(convert_to(repeat('a',64),'UTF8')) and expires_at>clock_timestamp(); get diagnostics used=row_count;if used<>1 then raise exception 'Valid token rejected';end if;
+ delete from private.mile_fit_drain_tickets where token_hash=sha256(convert_to(repeat('a',64),'UTF8')) and expires_at>clock_timestamp(); get diagnostics used=row_count;if used<>0 then raise exception 'Replay accepted';end if;
+end $ticket$;
 rollback;
