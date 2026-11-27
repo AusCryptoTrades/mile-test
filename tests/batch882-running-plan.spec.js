@@ -1,4 +1,4 @@
-const {test}=require('@playwright/test');
+const { test, expect } = require('@playwright/test');
 const engine=require('../mile-running-plan.js');
 const scenarios=function scenarios(api){
  const assert=(condition,msg)=>{if(!condition)throw Error(msg)};
@@ -28,3 +28,76 @@ const scenarios=function scenarios(api){
  return {scenarios:1000,successful,exampleKm:e.weeks.map(x=>x.km),exampleFirstWeek:e.weeks[0].sessions.map(x=>[x.name,x.km,x.plannedMinutes])};
 };
 test('Batch 88.2 deterministic running engine: 1000 scenarios',()=>{scenarios(engine)});
+
+
+const completeAthlete = {
+  level: 'experienced', weeklyKm: [60, 50, 40, 30], longestKm: 30,
+  easyPace: 320, thresholdPace: 259, recovery: 'normal',
+};
+const planInput = {
+  goal: '10k', start: '2026-11-30', weeks: 8,
+  schedule: { available: [0, 1, 3, 5, 6], runs: 5, longDay: 5, weekdayMinutes: 100, longMinutes: 180 },
+};
+
+test('uses the weighted baseline and distinguishes unavailable and recorded zero-volume weeks', () => {
+  const complete = engine.generate({ ...planInput, athlete: completeAthlete });
+  expect(complete.baseline).toMatchObject({ source: 'four completed weeks', interrupted: false });
+  expect(complete.baseline.km).toBeCloseTo(50, 8);
+  expect(complete.weeks[0].meters).toBe(50000);
+
+  const partial = engine.generate({
+    ...planInput, athlete: { level: 'beginner', weeklyKm: [null, 35, null, 25], recovery: 'normal' },
+  });
+  expect(partial.baseline).toMatchObject({ source: 'partial completed weeks', interrupted: false });
+  expect(partial.baseline.km).toBeCloseTo(32.5, 8);
+  expect(partial.weeks.length).toBeGreaterThan(0);
+  for (const week of partial.weeks) {
+    expect(week.meters).toBeLessThanOrEqual(32500);
+    for (const session of week.sessions) {
+      expect(session.structuredSteps.every(step => step.target.kind === 'open')).toBe(true);
+    }
+  }
+
+  const missing = engine.generate({ ...planInput, athlete: { level: 'beginner' } });
+  expect(missing.ok).toBe(false);
+  expect(missing.baseline.km).toBeNull();
+  const interrupted = engine.generate({ ...planInput, athlete: { ...completeAthlete, weeklyKm: [0, 50, 50, 50] } });
+  expect(interrupted.ok).toBe(false);
+  expect(interrupted.baseline).toEqual({ km: 0, source: 'four completed weeks', interrupted: true });
+});
+
+for (const [level, ceiling] of Object.entries({ beginner: 0.05, intermediate: 0.07, experienced: 0.08, advanced: 0.10 })) {
+  test(`constrains ${level} loading and restores at most the pre-recovery volume`, () => {
+    const result = engine.generate({ ...planInput, athlete: { ...completeAthlete, level } });
+    expect(result.ok).toBe(true);
+    expect(result.weeks.filter(week => week.phase === 'Recovery').map(week => week.week)).toEqual([4, 8]);
+    expect(result.weeks[1].meters).toBeGreaterThan(result.weeks[0].meters);
+    for (let index = 1; index < result.weeks.length; index++) {
+      const week = result.weeks[index];
+      const previous = result.weeks[index - 1];
+      if (week.phase === 'Recovery') {
+        expect(week.meters).toBeLessThanOrEqual(previous.meters * 0.8);
+        expect(week.sessions.every(session => session.targetRpe < 6)).toBe(true);
+      } else if (previous.phase === 'Recovery') {
+        expect(week.meters).toBeLessThanOrEqual(result.weeks[index - 2].meters);
+      } else {
+        expect(week.meters - previous.meters).toBeLessThanOrEqual(Math.ceil(previous.meters * ceiling));
+      }
+    }
+  });
+}
+
+test('reduces load approaching a dated race and ends the schedule before race day', () => {
+  const raceDate = '2027-01-23';
+  const result = engine.generate({ ...planInput, weeks: 10, raceDate, athlete: completeAthlete });
+  expect(result.ok).toBe(true);
+  expect(result.weeks).toHaveLength(8);
+  const [beforeTaper, taper, raceWeek] = result.weeks.slice(-3);
+  expect([taper.phase, raceWeek.phase]).toEqual(['Taper', 'Taper']);
+  expect(taper.meters).toBeLessThanOrEqual(beforeTaper.meters * 0.8);
+  expect(raceWeek.meters).toBeLessThanOrEqual(taper.meters * 0.6);
+  for (const run of [...taper.sessions, ...raceWeek.sessions]) {
+    expect(run.date < raceDate).toBe(true);
+    expect(run.targetRpe).toBeLessThan(6);
+  }
+});
