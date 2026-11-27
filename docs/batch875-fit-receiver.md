@@ -6,3 +6,6 @@ Not deployed. Gates: SDK binary/CRC and SQL CI; commit dependency lockfile; inte
 
 
 Read integration staged from deployed garmin-data-read v4 and mile-shared-activity-detail v1; retains existing authentication, social visibility and GPS redaction. Verified FIT laps replace lap markers only in the authorized response, not stored original activity details. SQL helper fails back to original details if no verified file. Before deployment, confirm live versions still match baseline, test owner/non-owner and route-hidden sharing, and verify the scheduled drain. Production pg_cron and pg_net are not currently installed; scheduling remains outstanding. Do not enable Garmin Activity Files yet.
+
+
+Activation gate: private mile_fit_control defaults disabled. Dedicated server-generated Vault drain token is passed in a header (never a URL). The scheduled job runs only when enabled. Authenticated disabled-mode drain verifies configuration without claiming jobs. Bounded JSON streaming rejects oversized notifications before processing. Apply tested additive queue migration, control migration, deploy isolated receiver, verify anonymous denial and authenticated drain, verify scheduler and only then enable Garmin portal. No production reader replacements until real FIT data and access checks validated.

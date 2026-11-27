@@ -79,7 +79,29 @@ async function processOne(){
   }return true;
  }finally{await sql.end()}
 }
-async function drain(max=4){try{for(let i=0;i<max;i++)if(!await processOne())break}catch{console.error("FIT queue processing unavailable")}}
+async function drain(max=4){let processed=0;for(let i=0;i<max;i++){if(!await processOne())break;processed++}return processed}
+async function control(schedulerToken?:string){
+ const sql=client();
+ try{
+  const rows=await sql.unsafe("select c.enabled, s.decrypted_secret as drain_token from private.mile_fit_control c left join vault.decrypted_secrets s on s.id=c.drain_secret_id where c.id=1");
+  if(rows.length!==1)throw Error("FIT_CONTROL_UNAVAILABLE");
+  const expected=rows[0].drain_token;
+  let authenticated=false;
+  if(schedulerToken&&typeof expected==="string"&&expected.length>=32&&schedulerToken.length<=256){
+   const a=new Uint8Array(await digest(schedulerToken)),b=new Uint8Array(await digest(expected));let diff=0;
+   for(let i=0;i<a.length;i++)diff|=a[i]^b[i];authenticated=diff===0;
+  }
+  return {enabled:rows[0].enabled===true,authenticated};
+ }finally{await sql.end()}
+}
+async function boundedJson(req:Request){
+ const max=262144,len=req.headers.get("content-length");
+ if(len!==null&&(!/^\d+$/.test(len)||Number(len)>max))throw Error("FIT_BODY_LIMIT");
+ if(!req.body)throw Error("FIT_BAD_JSON");
+ const reader=req.body.getReader();let size=0;const chunks:Uint8Array[]=[];
+ try{while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>max){await reader.cancel();throw Error("FIT_BODY_LIMIT")}chunks.push(value)}}finally{reader.releaseLock()}
+ try{return JSON.parse(dec.decode(Buffer.concat(chunks)))}catch{throw Error("FIT_BAD_JSON")}
+}
 async function ownerRead(req:Request){
  if(!BASE||!ANON)return response({error:"Not configured"},503);
  const auth=req.headers.get("Authorization")||"";if(!/^Bearer\s+\S+$/i.test(auth))return response({error:"Authentication required"},401);
@@ -99,14 +121,18 @@ Deno.serve(async(req:Request)=>{
  try{
   if(req.method==="GET")return await ownerRead(req);
   if(req.method!=="POST")return response({error:"Method not allowed"},405);
+  if(path==="/functions/v1/garmin-fit-files/drain"||path==="/garmin-fit-files/drain"){
+   const status=await control(req.headers.get("x-mile-fit-drain")||"");
+   if(!status.authenticated)return response({error:"Unauthorized"},401);
+   const processed=status.enabled?await drain(4):0;
+   return response({success:true,enabled:status.enabled,processed});
+  }
   if(!await authorized(path))return response({error:"Unauthorized"},401);
-  if(path.endsWith("/drain")){await drain(4);return response({success:true})}
+  if(!(await control()).enabled)return response({error:"FIT delivery not activated"},503);
   if(!(req.headers.get("content-type")||"").includes("application/json"))return response({error:"Expected JSON"},415);
-  const length=Number(req.headers.get("content-length")||0);if(length>262144)return response({error:"Too large"},413);
-  const body=await req.text();if(body.length>262144)return response({error:"Too large"},413);
-  let data;try{data=JSON.parse(body)}catch{return response({error:"Invalid JSON"},400)}
+  let data;try{data=await boundedJson(req)}catch(e){return response({error:e instanceof Error&&e.message==="FIT_BODY_LIMIT"?"Too large":"Invalid JSON"},e instanceof Error&&e.message==="FIT_BODY_LIMIT"?413:400)}
   if(!Array.isArray(data?.activityFiles)||data.activityFiles.length>50)return response({error:"Invalid notification"},400);
   const accepted=await enqueue(data.activityFiles);
-  EdgeRuntime.waitUntil(drain(4));return response({success:true,accepted});
+  EdgeRuntime.waitUntil(drain(4).catch(()=>console.error("FIT queue processing unavailable")));return response({success:true,accepted});
  }catch{return response({error:"FIT service unavailable"},503)}
 });
