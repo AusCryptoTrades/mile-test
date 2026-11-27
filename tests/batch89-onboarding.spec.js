@@ -78,7 +78,10 @@ function fixture({stage=1,member=false,garminStatus='not_connected',needsConsent
     if(url.pathname.startsWith('/storage/v1/object/mile-avatars/')){
      expect(url.pathname).toBe('/storage/v1/object/mile-avatars/'+owner.id.id+'/avatar.jpg');
      expect(request.headers()['content-type']).toBe('image/jpeg');
-     owner.photo=request.postDataBuffer();
+     // WebKit's intercepted request can omit binary bodies. Keep the seeded
+     // JPEG when the protocol does not expose the bytes.
+     const bytes=request.postDataBuffer();
+     if(bytes?.length)owner.photo=bytes;
      return offer({Key:url.pathname});
     }
     if(url.pathname.includes('/mile-avatars/')){
@@ -202,8 +205,19 @@ test('Batch 89 registration opens private five-stage setup and saves a unified p
 test('Batch 89 saves progress across refresh, sign-out and devices with conflict recovery',async({page,browser})=>{
  const service=fixture({member:true});
  await service.bind(page);
+ await page.addInitScript(()=>{
+  const fetchPhoto=window.fetch;
+  window.fetch=function(url,options){
+   if(typeof url==='string'&&url.includes('/storage/v1/object/mile-avatars/')&&options?.method==='POST'){
+    window.milePhotoUploadFixture={size:options.body?.size,type:options.body?.type};
+   }
+   return fetchPhoto.call(window,url,options);
+  };
+ });
  await login(page);
  await heading(page,'Your profile');
+ const jpeg=await page.evaluate(()=>document.createElement('canvas').toDataURL('image/jpeg').split(',')[1]);
+ service.users[first].photo=Buffer.from(jpeg,'base64');
  await wizard(page).getByLabel('Display name').fill('Alex River');
  await wizard(page).getByLabel('Username').fill('alex_runner');
  await wizard(page).locator('input[name="photo"]').setInputFiles({
@@ -214,6 +228,9 @@ test('Batch 89 saves progress across refresh, sign-out and devices with conflict
  service.failNext=true;
  await next(page);
  await expect(wizard(page).getByRole('status')).toContainText(/fetch|network|load failed/i);
+ const upload=await page.evaluate(()=>window.milePhotoUploadFixture);
+ expect(upload.type).toBe('image/jpeg');
+ expect(upload.size).toBeGreaterThan(0);
  await expect(wizard(page).getByLabel('Display name')).toHaveValue('Alex River');
  await next(page);
  await heading(page,'Your sports');
@@ -224,6 +241,7 @@ test('Batch 89 saves progress across refresh, sign-out and devices with conflict
  await expect(wizard(page).getByLabel('Username')).toHaveValue('alex_runner');
  await expect.poll(()=>service.photos.some(photo=>photo.path.includes('/object/authenticated/')&&photo.token===first)).toBe(true);
  await expect(wizard(page).getByAltText('Current profile photo')).toHaveAttribute('src',/^blob:/);
+ await expect.poll(()=>wizard(page).getByAltText('Current profile photo').evaluate(img=>img.naturalWidth)).toBeGreaterThan(0);
  expect(service.photos.every(photo=>!photo.path.includes('/object/public/'))).toBe(true);
  await next(page);
  await sportTile(page,'Running').click();
