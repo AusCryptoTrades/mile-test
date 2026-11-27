@@ -1716,7 +1716,11 @@ test('877 Social navigation has one Back beside Notifications on main pages and 
   const toolbar=page.locator('.m877-social-toolbar'),back=toolbar.locator('.m877-social-back'),bell=toolbar.locator('[data-m379-bell]');
   await expect(back).toHaveCount(1);await expect(bell).toBeVisible();
   await expect(page.locator('.m362-menu')).toHaveCount(0);
-  expect(Math.abs((await back.boundingBox()).y-(await bell.boundingBox()).y)).toBeLessThanOrEqual(2);
+  // Controls with different visual heights belong on the same centreline.
+  const backRect=await back.boundingBox(),bellRect=await bell.boundingBox();
+  expect(backRect.height).toBeGreaterThanOrEqual(44);
+  expect(bellRect.height).toBeGreaterThanOrEqual(44);
+  expect(Math.abs((backRect.y+backRect.height/2)-(bellRect.y+bellRect.height/2))).toBeLessThanOrEqual(2);
   await densityCapture(page,testInfo,'social-toolbar-'+tab);
   await back.click();await expect(page.locator('#m36-drawer')).toBeVisible();
   await page.evaluate(()=>window.m36CloseDrawer());
