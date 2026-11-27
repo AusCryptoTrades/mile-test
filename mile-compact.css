@@ -320,3 +320,13 @@ html[data-mile-buttons="sim"] body #setup .m877-banner .page-eyebrow{display:blo
 html.mile-in-shell[data-mile-buttons="sim"] body main{max-width:none!important;width:100%!important}
 html.mile-in-shell[data-mile-buttons="tracker"] body,
 html.mile-in-shell[data-mile-buttons="challenges"] body{max-width:none!important;width:100%!important;box-sizing:border-box!important}
+
+/* 87.7.1 visual review: explicit neutral icon buttons in all challenge themes. */
+html[data-mile-buttons="challenges"] body #root .m877-challenge-tools button{
+ color:var(--c-text)!important;background:var(--c-panel)!important;border:1px solid var(--c-line)!important;
+ box-shadow:none!important;font-weight:650!important;display:inline-flex!important;justify-content:center;align-items:center;white-space:nowrap!important;
+}
+html[data-mile-buttons="main"] body #app .m877-follow-row .m877-athlete-actions[open]>button[data-m36-follow]{
+ width:max-content!important;min-width:92px!important;max-width:none!important;padding:8px 12px!important;white-space:nowrap!important;overflow-wrap:normal!important;word-break:normal!important;
+}
+html[data-mile-buttons="sim"][data-embedded] body main{max-width:none!important;padding-inline:0!important;padding-top:0!important}
