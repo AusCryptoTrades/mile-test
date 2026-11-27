@@ -105,6 +105,8 @@ function generate(input={}){
  const available=dayList(s.available),hard=dayList(s.demandingDays),n=s.runs;
  if(!Number.isInteger(n)||n<1||n>available.length)errors.push('Runs must fit available days');
  if(!positive(s.weekdayMinutes)||!positive(s.longMinutes))errors.push('Enter session duration limits');
+ const dayMinutes=s.dayMinutes??{};
+ if(typeof dayMinutes!=='object'||Array.isArray(dayMinutes)||Object.entries(dayMinutes).some(([day,minutes])=>!/^[0-6]$/.test(day)||!Number.isInteger(minutes)||minutes<1))errors.push('Enter day-specific limits in whole minutes');
  if(base.km===null||base.km<=0)errors.push('Confirm a positive sustainable starting volume before generating; zero or interrupted history requires a separately reviewed return plan');
  if(!Object.hasOwn(caps,a.level))errors.push('Choose experience level');
  if(base.interrupted)errors.push('Recent interruption requires a separately reviewed return plan before mileage progression');
@@ -151,7 +153,8 @@ function generate(input={}){
   const longSlot=slots.find(o=>o.day===long&&!hard.includes(o.day))||null;
   const qualityAllowed=primary&&base.source==='four completed weeks'&&a.level!=='beginner'&&goal!=='return'&&a.recovery==='normal'&&base.km>=20&&n>=3&&!taper&&phase!=='Recovery'&&phase!=='Base';
   const q=qualityAllowed?slots.find(o=>o!==longSlot&&!hard.some(d=>diff(o.day,d)<=1)&&(!longSlot||diff(o.day,longSlot.day)>=2)):null;
-  const capacity=slots.map(o=>{let max=round((o===longSlot?s.longMinutes:s.weekdayMinutes)*60/slow*1000);
+  const durationLimits=slots.map(o=>dayMinutes[o.day]??(o===longSlot?s.longMinutes:s.weekdayMinutes));
+  const capacity=slots.map((o,j)=>{let max=round(durationLimits[j]*60/slow*1000);
    if(o===longSlot)max=Math.min(max,round(previousLong*(i===0?1:1+Math.min(ceiling,.05))),round(target*(n<=2?.55:.40)));
    if(hard.includes(o.day))max=Math.min(max,round(target*.12));
    return Math.max(0,max)});
@@ -169,7 +172,7 @@ function generate(input={}){
    let kind=taper?'taper':goal==='return'?'return':hard.includes(o.day)||a.recovery==='poor'?'recovery':o===longSlot?(goal==='ultra'?'ultra':'long'):'easy';
    if(o===q){kind=phase==='Specific'?({'5k':'race5','10k':'race10','half-marathon':'half',marathon:'marathon',ultra:'steady'}[goal]||'cruise'):(i%3===0?'fartlek':i%3===1?'cruise':'threshold');}
    const date=new Date(st+(i*7+o.offset)*86400000).toISOString().slice(0,10);
-   return [{...makeSession(kind,m,a,phase,i),date,day:o.day,planWeek:i+1,durationLimitMinutes:o===longSlot?s.longMinutes:s.weekdayMinutes}];
+   return [{...makeSession(kind,m,a,phase,i),date,day:o.day,planWeek:i+1,durationLimitMinutes:durationLimits[j]}];
   });
   const meters=sessions.reduce((x,y)=>x+y.meters,0);
   if(sessions.length<slots.length&&!warnings.includes('Some selected days could not fit a minimum 500 m session.'))warnings.push('Some selected days could not fit a minimum 500 m session.');

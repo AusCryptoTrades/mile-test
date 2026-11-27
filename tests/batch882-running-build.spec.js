@@ -13,8 +13,7 @@ const samples = Array.from({ length: 11 }, (_, i) => ({
   movingDurationInSeconds: i * 62,
 }));
 
-async function openApp(page, { signedIn = false, laps = true, syncStore = null, intervalFixture = null } = {}) {
-  const origin = 'http://127.0.0.1:4173';
+async function openApp(page, { origin, signedIn = false, laps = true, syncStore = null, intervalFixture = null }) {
   const backend = 'https://mgixvokjlytjuypzcfzz.supabase.co';
   await page.route('**/*', async route => {
     const url = new URL(route.request().url());
@@ -63,9 +62,9 @@ async function openApp(page, { signedIn = false, laps = true, syncStore = null, 
 }
 
 
-test('88.2 Build saves the reviewed plan and Calendar starts the same structured Tracker workout',async({page})=>{
+test('88.2 Build saves the reviewed plan and Calendar starts the same structured Tracker workout',async({page,baseURL})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
- const syncStore={};await openApp(page,{signedIn:true,syncStore});
+ const syncStore={};await openApp(page,{origin:new URL(baseURL).origin,signedIn:true,syncStore});
  await page.evaluate(()=>{state.workouts=[{id:'fixture-completed-run',block:state.activeBlock,date:'2026-11-10',sport:'Running',name:'Historical run',detail:'Recorded workout',km:6,status:'done',matchId:'123456789',note:'Do not change'}];window.mileV3Go('builder');v42PickSport('Running')});
  const original=await page.evaluate(()=>JSON.stringify(state.workouts.find(w=>w.id==='fixture-completed-run')));
  const build=page.locator('.m882-build');
@@ -92,6 +91,14 @@ test('88.2 Build saves the reviewed plan and Calendar starts the same structured
  for(const d of ['2','4'])await build.locator('[data-m882-day="available"][value="'+d+'"]').uncheck();
  await build.locator('#m882-weekday').fill('60');
  await build.locator('#m882-longMinutes').fill('180');
+ await build.getByText('Day-specific limits',{exact:true}).click();
+ const tuesday=build.getByLabel('Tuesday maximum (min)',{exact:true});
+ await tuesday.fill('0');
+ await next();
+ await expect(build.getByRole('status')).toHaveText('Enter day-specific limits in whole minutes.');
+ await tuesday.fill('35');
+ await build.getByLabel('Saturday maximum (min)',{exact:true}).fill('170');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
  await build.locator('[data-m882-day="demanding"][value="6"]').check();
  await next();await expect(build).toContainText('STEP 4 OF 5');
  await expect(build.locator('#m882-mode')).toHaveValue('automatic');
@@ -101,17 +108,34 @@ test('88.2 Build saves the reviewed plan and Calendar starts the same structured
  await next();await expect(build).toContainText('STEP 5 OF 5');
  await expect(build.locator('.m882-week').first()).toContainText('50.0 km');
  await build.locator('.m882-week').first().locator('summary').first().click();
+ await expect(build.locator('.m882-week').first().locator('.m882-session').nth(1).locator('summary')).toContainText('~35 min');
  await build.locator('.m882-session').first().locator('summary').click();
  await expect(build.locator('.m882-session').first()).toContainText('Session Focus');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
  page.once('dialog',d=>d.accept());
  await build.locator('[data-m882-action="save"]').click();
  await expect.poll(()=>page.evaluate(()=>state.blocks.some(b=>b.runningPlan?.version===1))).toBe(true);
- const saved=await page.evaluate(()=>{const b=state.blocks.find(x=>x.runningPlan?.version===1);const w=state.workouts.filter(x=>x.block===b.id&&x.planWeek===1);return {total:w.reduce((sum,x)=>sum+x.meters,0),steps:w.every(x=>x.structuredSteps.reduce((sum,s)=>sum+s.duration.meters,0)===x.meters&&x.structuredDetail===x.detail),focus:w.every(x=>!!x.focus),dates:w.map(x=>x.date),id:w[0].id,first:w[0]}});
+ const saved=await page.evaluate(()=>{
+  const block=state.blocks.find(x=>x.runningPlan?.version===1);
+  const all=state.workouts.filter(x=>x.block===block.id);
+  const week=all.filter(x=>x.planWeek===1);
+  return {
+   total:week.reduce((sum,x)=>sum+x.meters,0),
+   steps:week.every(x=>x.structuredSteps.reduce((sum,s)=>sum+s.duration.meters,0)===x.meters&&x.structuredDetail===x.detail),
+   focus:week.every(x=>!!x.focus),dates:week.map(x=>x.date),id:week[0].id,first:week[0],
+   overrides:block.runningPlan.config.schedule.dayMinutes,
+   dayLimits:week.map(x=>x.durationLimitMinutes),
+   allSessionsFit:all.every(x=>x.plannedMinutes<=x.durationLimitMinutes),
+  };
+ });
  expect(await page.evaluate(()=>JSON.stringify(state.workouts.find(w=>w.id==='fixture-completed-run')))).toBe(original);
  expect(saved.total).toBe(50000);expect(saved.steps).toBe(true);expect(saved.focus).toBe(true);
  expect(saved.dates).toEqual(['2026-11-30','2026-12-01','2026-12-03','2026-12-05','2026-12-06']);
+ expect(saved.overrides).toEqual({1:35,5:170});
+ expect(saved.dayLimits).toEqual([60,35,60,170,60]);
+ expect(saved.allSessionsFit).toBe(true);
  await expect.poll(()=>syncStore.data?.workouts?.some(w=>w.id===saved.id)).toBe(true);
+ expect(syncStore.data.blocks.find(block=>block.runningPlan?.version===1).runningPlan.config.schedule.dayMinutes).toEqual(saved.overrides);
  await expect(page.getByRole('heading',{name:'You’re ready to train.'})).toBeVisible();
  await page.getByRole('button',{name:'View Calendar',exact:true}).click();
  const startDate=page.locator('#app .daygrid .day').filter({has:page.getByText('30',{exact:true})});

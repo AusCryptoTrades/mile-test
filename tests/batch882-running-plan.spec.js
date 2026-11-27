@@ -101,3 +101,21 @@ test('reduces load approaching a dated race and ends the schedule before race da
     expect(run.targetRpe).toBeLessThan(6);
   }
 });
+
+
+test('per-day caps override both regular and long-run defaults', () => {
+  const schedule = { ...planInput.schedule, dayMinutes: { 1: 35, 5: 75 } };
+  const result = engine.generate({ ...planInput, schedule, athlete: completeAthlete });
+  expect(result.ok).toBe(true);
+  const expected = { 0: 100, 1: 35, 3: 100, 5: 75, 6: 100 };
+  for (const week of result.weeks) {
+    expect(week.sessions.map(run => run.day)).toEqual([0, 1, 3, 5, 6]);
+    for (const run of week.sessions) {
+      expect(run.durationLimitMinutes).toBe(expected[run.day]);
+      expect(run.plannedMinutes).toBeLessThanOrEqual(expected[run.day]);
+    }
+  }
+  const invalid = engine.generate({ ...planInput, schedule: { ...schedule, dayMinutes: { 1: 0 } }, athlete: completeAthlete });
+  expect(invalid.ok).toBe(false);
+  expect(invalid.errors).toContain('Enter day-specific limits in whole minutes');
+});
