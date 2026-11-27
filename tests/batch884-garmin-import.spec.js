@@ -202,12 +202,13 @@ test('private Analysis presents ambiguous Garmin candidates for confirmation and
     return detail.locator('section').filter({ has: page.getByRole('heading', { name: 'Possible scheduled matches', exact: true }) });
   }
   const ambiguous = await openReview('Ambiguous Garmin run');
-  await expect(ambiguous).toContainText('Several scheduled runs are similar. Athlete confirmation is required');
+  await expect(ambiguous).toContainText('Choose the session you completed.');
   await expect(ambiguous.locator('.mile35-datarow')).toHaveText([
-    'Morning aerobic run5.00 km planned · ~31 min planned',
-    'Steady run5.40 km planned · ~29 min planned',
+    'Morning aerobic run5.00 km · ~31 min',
+    'Steady run5.40 km · ~29 min',
   ]);
-  await expect(ambiguous.getByRole('button')).toHaveText(['Link to Morning aerobic run','Link to Steady run']);
+  await expect(ambiguous.getByRole('button',{name:'Link to Morning aerobic run',exact:true})).toHaveText('Link');
+  await expect(ambiguous.getByRole('button',{name:'Link to Steady run',exact:true})).toHaveText('Link');
   const detail = page.locator('#mile35-detail');
   await expect(detail.getByRole('heading', { name: 'Scheduled match unresolved' })).toBeVisible();
   await expect(detail).toContainText('Running distance recorded this week14.0 km');

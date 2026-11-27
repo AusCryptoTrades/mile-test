@@ -216,17 +216,18 @@ function render(host,result,{confirmMatch}={}){
  if(result.matchReview){
   p=section('Possible scheduled matches');
   if(result.matchReview.length){
-   p.append(el('p',result.matchReview.length>1?'Several scheduled runs are similar. Athlete confirmation is required to link one.':'A scheduled run is similar. Athlete confirmation is required to link it.','muted small'));
+   p.append(el('p','Choose the session you completed.','muted small'));
    for(const candidate of result.matchReview){
     const comparison=[
-     candidate.distance!==null?candidate.distance.toFixed(2)+' km planned':null,
-     candidate.duration!==null?(candidate.durationEstimated?'~':'')+Math.round(candidate.duration)+' min planned':null,
+     candidate.distance!==null?candidate.distance.toFixed(2)+' km':null,
+     candidate.duration!==null?(candidate.durationEstimated?'~':'')+Math.round(candidate.duration)+' min':null,
     ].filter(Boolean);
     const card=el('div',undefined,'m881-match-card');
     row(card,candidate.name,comparison.join(' · '));
     p.append(card);
     if(confirmMatch){
-     const button=el('button','Link to '+candidate.name,'btn alt sm');
+     const button=el('button','Link','btn alt sm');
+     button.setAttribute('aria-label','Link to '+candidate.name);
      button.type='button';
      button.classList.add('m881-match-link');
      button.addEventListener('click',async ()=>{

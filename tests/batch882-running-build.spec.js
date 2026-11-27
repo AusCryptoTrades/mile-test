@@ -75,8 +75,15 @@ async function stubTrackerGPS(tracker){
 test('88.2 Build saves the reviewed plan and Calendar starts the same structured Tracker workout',async({page,baseURL},info)=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const syncStore={};await openApp(page,{origin:new URL(baseURL).origin,signedIn:true,syncStore});
- await page.evaluate(()=>{state.workouts=[{id:'fixture-completed-run',block:state.activeBlock,date:'2026-11-10',sport:'Running',name:'Historical run',detail:'Recorded workout. RPE 5/10.',km:6,status:'done',matchId:'123456789',rpe:5,note:'Do not change'}];window.mileV3Go('builder');v42PickSport('Running')});
+ await page.evaluate(()=>{state.workouts=[{id:'fixture-completed-run',block:state.activeBlock,date:'2026-11-10',sport:'Running',name:'Historical run',detail:'Recorded workout. RPE 5/10.',km:6,status:'done',matchId:'123456789',rpe:5,note:'Do not change'}]});
  const original=await page.evaluate(()=>JSON.stringify(state.workouts.find(w=>w.id==='fixture-completed-run')));
+ await page.evaluate(()=>editWorkout('fixture-completed-run'));
+ await expect(page.locator('#wDetail')).toHaveValue('Recorded workout.');
+ if(info.project.name.startsWith('mobile'))await expect(page.locator('#mile-fixed-mobile-nav')).toBeHidden();
+ await page.getByRole('button',{name:'Save workout',exact:true}).click();
+ if(info.project.name.startsWith('mobile'))await expect(page.locator('#mile-fixed-mobile-nav')).toBeVisible();
+ expect(await page.evaluate(()=>JSON.stringify(state.workouts.find(w=>w.id==='fixture-completed-run')))).toBe(original);
+ await page.evaluate(()=>{window.mileV3Go('builder');v42PickSport('Running')});
  const build=page.locator('.m882-build');
  await expect(build).toContainText('STEP 1 OF 5');
  await build.locator('#m882-goal').selectOption('10k');
