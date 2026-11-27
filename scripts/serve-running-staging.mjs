@@ -19,7 +19,8 @@ if (!Number.isInteger(port) || port < 1024 || port > 65535) {
 }
 
 const origin = 'http://127.0.0.1:' + port;
-const build = execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
+const build = process.env.GITHUB_SHA || execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
+if (!/^[a-f0-9]{40}$/.test(build)) throw new Error('Expected a Git commit SHA for the beta build.');
 const types = { html: 'text/html', js: 'text/javascript', css: 'text/css' };
 const index = await readFile(new URL('index.html', root), 'utf8');
 const productionKey = index.match(/supabaseAnon:'(sb_publishable_[A-Za-z0-9_-]+)'/)?.[1];

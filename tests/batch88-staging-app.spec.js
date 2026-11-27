@@ -16,10 +16,12 @@ async function withStagingApp(info, exercise) {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
+  let stderr='';
+  server.stderr.on('data', chunk=>{stderr+=String(chunk)});
   try {
     const outcome = await Promise.race([
       once(server.stdout, 'data').then(([chunk]) => String(chunk)),
-      once(server, 'exit').then(([code]) => 'Staging server exited with ' + code),
+      once(server, 'close').then(([code]) => 'Staging server exited with ' + code + '\n' + stderr),
     ]);
     expect(outcome).toContain(origin);
     await exercise(origin);
@@ -139,10 +141,12 @@ test('portable beta export contains only the staging app and keeps reset redirec
  try{
   const target=path.join(temp,'preview');
   const task=spawn(process.execPath,[path.resolve(__dirname,'../scripts/serve-running-staging.mjs'),'--output',target],{
-   env:{...process.env,MILE_STAGING_PUBLISHABLE_KEY:'sb_publishable_fixture_key'},stdio:'ignore',
+   env:{...process.env,MILE_STAGING_PUBLISHABLE_KEY:'sb_publishable_fixture_key'},stdio:['ignore','ignore','pipe'],
   });
-  const [code]=await once(task,'exit');
-  expect(code).toBe(0);
+  let stderr='';
+  task.stderr.on('data', chunk=>{stderr+=String(chunk)});
+  const [code]=await once(task,'close');
+  expect(code,stderr).toBe(0);
   const files=await readdir(target);
   expect(files).toContain('_headers');
   expect(files).toContain('mile-running-beta.js');

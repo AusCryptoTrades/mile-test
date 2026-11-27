@@ -13,4 +13,20 @@ test('completed account setup prevents a second Garmin prompt',async()=>{expect(
 test('841 callback flag cannot falsely verify connection',async()=>{expect((await check('not_connected',{outcome:'connected'})).shown).toEqual(['connect'])});
 test('841 offline or expired status does not force reconnect',async()=>{for(const s of ['offline','expired'])expect((await check(s)).shown).toEqual([])});
 test('841 stale response cannot modify another session',async()=>{const r=await check('authorised',{changeUser:true});expect(r.values.size).toBe(0)});
-test('841 backend state binds only approved destinations and preserves legacy',()=>{const a=fs.readFileSync('supabase/functions/garmin-oauth-start/index.ts','utf8'),b=fs.readFileSync('supabase/functions/garmin-oauth-callback/index.ts','utf8');expect(a).toContain('"https://app.milefitness.com.au"');expect(a).toContain('sha256(state)');expect(a).toContain('"app." : "legacy."');expect(b).toContain('delete from private.mile_garmin_oauth_states');expect(b.indexOf('target = state.startsWith')).toBeGreaterThan(b.indexOf('rows.length !== 1'));expect(b).toContain('target === "https://app.milefitness.com.au/" ? target : TEST_APP');expect(b).toContain('return redirect("connected", target)')});
+test('841 backend state binds only approved destinations and preserves legacy',async()=>{
+ const {garminRouting}=await import('../supabase/functions/_shared/garmin-routing.mjs');
+ const app='https://app.milefitness.com.au',legacy='https://auscryptotrades.github.io';
+ const routes=garminRouting('https://mgixvokjlytjuypzcfzz.supabase.co');
+ expect([...routes.origins]).toEqual([app,legacy]);
+ expect(routes.prefix(app)).toBe('app.');
+ expect(routes.prefix(legacy)).toBe('legacy.');
+ expect(routes.returnTo('app.fixture')).toBe(app+'/');
+ expect(routes.returnTo('legacy.fixture')).toBe(legacy+'/mile-test/');
+ const a=fs.readFileSync('supabase/functions/garmin-oauth-start/index.ts','utf8');
+ const b=fs.readFileSync('supabase/functions/garmin-oauth-callback/index.ts','utf8');
+ expect(a).toContain('sha256(state)');
+ expect(a).toContain('routing.prefix(origin)');
+ expect(b).toContain('delete from private.mile_garmin_oauth_states');
+ expect(b.indexOf('target = routing.returnTo(state)')).toBeGreaterThan(b.indexOf('rows.length !== 1'));
+ expect(b).toContain('return redirect("connected", target)');
+});
