@@ -1,7 +1,7 @@
 const {test,expect}=require('@playwright/test');
 test('HYROX SIM no-Roxzone advances and saves splits',async({page})=>{
  await page.goto('/mile-sim.html');
- await expect(page.getByText('Train like race day.')).toBeVisible();
+ await expect(page.getByRole('heading',{name:'MILE SIM',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'START SIM'}).click();
  await expect(page.locator('#stage')).toHaveText('Run 1 · 1000 m');
  await page.locator('#tap').click();
