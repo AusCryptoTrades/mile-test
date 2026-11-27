@@ -1336,6 +1336,7 @@ async function v4AfterLogin(){
    if(started||!current())return;
    completedSetup=true;
  }
+ const profileReady=mileLoadProfileIdentity(current,owner,endpoint);
  let stored=localStorage.getItem(v4LocalKey(userId));
  let local=null;try{local=stored?JSON.parse(stored):null}catch(e){}
  // Keep credentials from the running app: cloud snapshots intentionally strip them.
@@ -1359,10 +1360,11 @@ async function v4AfterLogin(){
  for(let k of Object.keys(defaults))if(state[k]===undefined)state[k]=defaults[k];
  window.mile776?.hydrate(!!local);
  localStorage.setItem(v4LocalKey(userId),JSON.stringify(state));
+ await profileReady;
+ if(!current())return;
  v4Ready=true;document.getElementById('v4Gate').classList.add('hidden');render();
  if(restoreLocal||!records.length)await cloudSave();
  if(remote&&!restoreLocal&&remoteEdited)localStorage.setItem('av-cloud-confirmed-'+userId,remoteEdited);
- void mileLoadProfileIdentity(current,owner,endpoint);
  await mileGarminCheckAfterLogin(!completedSetup);if(current())window.mile777?.checkAdmin();
  }catch(e){if(current()){v4Show('login');v4SetError(e.message)}}
 }
@@ -1393,7 +1395,7 @@ function mileRememberProfile(profile){
 }
 async function mileLoadProfileIdentity(current,owner,endpoint){
  try{
-  const r=await fetch(endpoint+'/rest/v1/mile_profiles?select=user_id,username,display_name,avatar_url,disciplines,primary_sport&user_id=eq.'+encodeURIComponent(owner)+'&limit=1',{headers:sbHeaders(),cache:'no-store'});
+  const r=await fetch(endpoint+'/rest/v1/mile_profiles?select=user_id,username,display_name,avatar_url,disciplines,primary_sport&user_id=eq.'+encodeURIComponent(owner)+'&limit=1',{headers:sbHeaders(),cache:'no-store',signal:AbortSignal.timeout(3500)});
   if(!r.ok)return;
   const rows=await r.json();
   if(!current())return;

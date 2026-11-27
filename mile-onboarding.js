@@ -9,8 +9,8 @@
  const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
  const options = (values, selected) => values.map(([value,label]) =>
   '<option value="'+escape(value)+'"'+(value===selected?' selected':'')+'>'+escape(label)+'</option>').join('');
- const number = (value, factor) => value==null||value===''?null:Math.round(Number(value)*factor*100)/100;
- const metricDisplay = (value, factor) => typeof value==='number'?number(value,1/factor):'';
+ const number = (value, factor, precision=100) => value==null||value===''?null:Math.round(Number(value)*factor*precision)/precision;
+ const metricDisplay = (value, factor) => typeof value==='number'?number(value,1/factor,factor===1?100:10000):'';
  const status = form => form.querySelector('[data-m89-status]');
 
  function baselineFields(data={}, units='metric', allowUnits=false) {
@@ -25,8 +25,8 @@
  function readBaseline(form, units) {
   const fields=new FormData(form), imperial=units==='imperial';
   const heightCm=number(fields.get('height'),imperial?2.54:1),weightKg=number(fields.get('weight'),imperial?.45359237:1);
-  if(heightCm!==null&&!(heightCm>=90&&heightCm<=250))throw Error('Enter a height between '+(imperial?'35.5 and 98.4 in':'90 and 250 cm')+'.');
-  if(weightKg!==null&&!(weightKg>=30&&weightKg<=350))throw Error('Enter a weight between '+(imperial?'66.2 and 771.6 lb':'30 and 350 kg')+'.');
+  if(heightCm!==null&&!(heightCm>=90&&heightCm<=250))throw Error('Enter a height within 90–250 cm'+(imperial?' (about 35.4–98.4 in)':'')+'.');
+  if(weightKg!==null&&!(weightKg>=30&&weightKg<=350))throw Error('Enter a weight within 30–350 kg'+(imperial?' (about 66.1–771.6 lb)':'')+'.');
   return {ageBand:fields.get('ageBand')||null,experience:fields.get('experience')||null,heightCm,weightKg};
  }
 
@@ -112,7 +112,7 @@
     form.elements.units.onchange=()=>{
      const next=form.elements.units.value,oldMetric=last==='metric',newMetric=next==='metric';
      for(const [name,factor] of [['height',2.54],['weight',.45359237]]){
-      const element=form.elements[name];if(element.value)element.value=number(element.value,oldMetric?1/factor:factor);
+      const element=form.elements[name];if(element.value)element.value=oldMetric?metricDisplay(Number(element.value),factor):number(element.value,factor);
      }
      form.querySelector('[data-m89-height]').textContent='Height ('+(newMetric?'cm':'in')+')';
      form.querySelector('[data-m89-weight]').textContent='Weight ('+(newMetric?'kg':'lb')+')';

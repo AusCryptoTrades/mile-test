@@ -129,7 +129,10 @@ test('Batch 89 registration opens private five-stage setup and saves a unified p
  await shot(page,info,'02-sports','#v4Gate .m89');
  await next(page);
  await heading(page,'Your athlete profile');
+ await wizard(page).getByLabel('Height (cm)',{exact:false}).fill('90');
  await wizard(page).getByLabel('Measurement units').selectOption('imperial');
+ await expect(wizard(page).getByLabel('Height (in)',{exact:false})).toHaveValue('35.4331');
+ expect(await wizard(page).locator('form').evaluate(form=>window.mileOnboarding.readBaseline(form,'imperial').heightCm)).toBe(90);
  await wizard(page).getByLabel('Height (in)',{exact:false}).fill('69');
  await wizard(page).getByLabel('Training experience').selectOption('regular');
  await shot(page,info,'03-athlete','#v4Gate .m89');
@@ -147,6 +150,7 @@ test('Batch 89 registration opens private five-stage setup and saves a unified p
  expect(service.users[first].document).toMatchObject({workouts:[],blocks:[],settings:{athleteProfile:{heightCm:175.26,experience:'regular'}}});
  await next(page,'Enter MILE');
  await expect(page.locator('#v4Gate')).toBeHidden();
+ await expect(page.locator('.mile-ui-hero h1')).toContainText('Morgan');
  await expect.poll(()=>page.evaluate(()=>window.mileAthleteProfile.read()?.primarySport)).toBe('Triathlon');
  await page.evaluate(()=>window.mileV3Go('settings'));
  await page.locator('[data-m771-open="profile"]').click();
