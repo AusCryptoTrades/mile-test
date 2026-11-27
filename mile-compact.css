@@ -130,8 +130,8 @@ html[data-mile-buttons="main"] body #m3927-detail .m3927-tabs {gap:8px!important
 html[data-mile-buttons="main"] body #m3932-detail .m3932-panel {padding:12px!important;margin-block:10px!important}
 html[data-mile-buttons="main"] body #m3932-detail .m3932-actions {margin-top:12px!important;gap:8px!important}
 html[data-mile-buttons="main"] body #m3932-detail .m3933-heading-label {margin-top:16px!important}
-html[data-mile-buttons="main"] body #m390-dialog .m390-panel {padding-block:12px!important}
-html[data-mile-buttons="main"] body #mile-beta-feedback-overlay .beta5-panel {padding:14px!important}
+html[data-mile-buttons="main"] body #m390-dialog .m390-panel {padding-top:12px!important;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))!important}
+html[data-mile-buttons="main"] body #mile-beta-feedback-overlay .beta5-panel {padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px))!important}
 html[data-mile-buttons="main"] body #mile-admin-centre .ma-card {padding:8px!important}
 /* Standalone/embedded routes. Setup and results only, never live tracking or SIM.
    Winner canvas and share images deliberately excluded. */
@@ -162,7 +162,6 @@ html[data-mile-buttons="challenges"] body #root .card h2 {font-size:18px!importa
 html[data-mile-buttons="challenges"] body #challengeForm {padding:12px!important}
 /* Readable input sizes and live controls are intentionally retained. */
 @media(pointer:coarse){
- html[data-mile-buttons="main"] body #app :is(.mile35-activity,.v3-activity,.m771-row,.m777-link),
- html[data-mile-buttons="main"] body #app :is(.mile-cal-session>summary,.iq72 summary),
+ html[data-mile-buttons="main"] body #app .iq72 summary,
  html[data-mile-buttons="main"] body #mile-admin-centre button {min-height:44px!important}
 }
