@@ -3671,6 +3671,7 @@ window.addEventListener('load',()=>setTimeout(postRender,400));
 (function(){
  function polish(){
    const app=document.getElementById('app');if(!app)return;
+   if(app.querySelector(':scope > #mile-native-view')){app.classList.remove('mile-sc-calendar');app.querySelectorAll(':scope > .mile-sc-intro').forEach(el=>el.remove());return}
    const pageName=typeof page==='string'?page:'';
    app.classList.toggle('mile-sc-calendar',pageName==='calendar');
    if(pageName==='calendar'){
@@ -5412,4 +5413,4 @@ document.addEventListener('input',e=>{if(e.target.id!=='m79-message-search')retu
 document.addEventListener('change',e=>{if(e.target.id!=='m36-activity'&&e.target.name!=='m383-mode')return;const el=document.getElementById('m79-activity-preview');if(!el)return;const select=document.getElementById('m36-activity');const id=select?.value;const a=(state.activities||[]).find(x=>String(x.id)===id);el.hidden=!a||document.querySelector('input[name="m383-mode"]:checked')?.value==='manual';if(el.hidden)return;const payload=window.m79ActivityPayload?.(a,'private')||null;el.replaceChildren();const title=document.createElement('strong');title.textContent=a.name||a.activityName||a.type||'Workout';el.append(title);const grid=document.createElement('div');grid.className='m79-preview-metrics';for(const [label,val] of [['Distance',payload?.distance_m!=null?(payload.distance_m/1000).toFixed(2)+' km':'Not recorded'],['Duration',payload?.duration_s!=null?Math.round(payload.duration_s/60)+' min':'Not recorded']]){const cell=document.createElement('div'),l=document.createElement('small'),v=document.createElement('strong');l.textContent=label;v.textContent=val;cell.append(l,v);grid.append(cell)}el.append(grid)});
 })();
 </script><script src="./mile-admin-centre.js?v=85"></script>
-<link rel="stylesheet" href="./mile-85-auth.css?v=85"><link rel="stylesheet" href="./mile-873.css?v=87.3"><script src="./mile-device-sync.js?v=87.4"></script><script src="./mile-split-share.js?v=1"></script><link rel="stylesheet" href="./mile-86.css?v=86"><script src="./mile-86-health-preview.js?v=86"></script><link rel="stylesheet" href="./mile-intervals.css?v=87.5"><script src="./mile-intervals.js?v=87.5"></script></body></html>
+<link rel="stylesheet" href="./mile-85-auth.css?v=85"><link rel="stylesheet" href="./mile-873.css?v=87.3"><script src="./mile-device-sync.js?v=87.4"></script><script src="./mile-split-share.js?v=1"></script><link rel="stylesheet" href="./mile-86.css?v=86"><script src="./mile-86-health-preview.js?v=86"></script><link rel="stylesheet" href="./mile-intervals.css?v=87.5"><script src="./mile-intervals.js?v=87.5"></script><link rel="stylesheet" href="./mile-compact.css?v=87.5.2"></body></html>

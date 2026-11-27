@@ -1449,3 +1449,34 @@ test('875 overview summary uses normal rows only; own and shared tabs have no re
  await shared.getByRole('button',{name:'Overview',exact:true}).click();
  await expect(shared.locator('.m3927-panel').first().locator('.m3927-row span')).toHaveText(['Distance','Time','Avg pace','Avg HR','Calories']);
 });
+
+test('8752 tracker opened from Calendar never carries Calendar heading, including remount',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.getByRole('button',{name:'Calendar',exact:true}).first().click();
+ await expect(page.locator('#app')).toContainText('Calendar');
+ await page.evaluate(()=>{window.mileTrackerPlanned={name:'Planned fixture',detail:'2 km easy; 4 × 1 km @ 4:20–4:25/km; 90 sec easy recovery'};window.mileShellOpen('tracker')});
+ await expect(page.locator('#mile-native-view')).toBeVisible();
+ await expect(page.locator('#app > .mile-sc-intro')).toHaveCount(0);
+ await expect(page.locator('#app > .mile-universal-header')).toHaveCount(0);
+ await page.evaluate(()=>document.getElementById('mile-native-view').remove());
+ await expect(page.locator('#mile-native-view')).toBeVisible();
+ await expect(page.locator('#app > .mile-sc-intro')).toHaveCount(0);
+ await expect(page.frameLocator('#mile-native-view').locator('#workout')).toHaveValue('planned');
+ await page.evaluate(()=>window.mileShellNavigate('calendar'));
+ await expect(page.locator('#mile-native-view')).toHaveCount(0);
+ await expect(page.locator('#app')).toContainText('Calendar');
+});
+test('8752 compact activity back button and interval metrics retain usable touch targets',async({page,isMobile})=>{
+ const intervalFixture={laps:[{intensity:'interval',distanceInMeters:600,durationInSeconds:180,averageHeartRateInBeatsPerMinute:150},{intensity:'recovery',distanceInMeters:0,durationInSeconds:60,averageHeartRateInBeatsPerMinute:130}]};
+ await openApp(page,{signedIn:true,intervalFixture});const detail=await openActivity(page);
+ const back=detail.locator('.mile35-back');
+ await expect(back).toHaveCSS('font-size','12px');
+ if(isMobile)expect((await back.boundingBox()).height).toBeGreaterThanOrEqual(44);
+ await detail.getByRole('button',{name:'Splits',exact:true}).click();
+ const tile=detail.locator('.m875-summary>div').first();
+ await expect(tile).toBeVisible();await expect(tile).toHaveCSS('padding-top','6px');
+ expect((await tile.boundingBox()).height).toBeLessThan(75);
+ await detail.getByRole('button',{name:'Recovery',exact:true}).click();
+ await expect(detail.locator('.m875-table tbody tr')).toHaveCount(1);
+ await back.click();await expect(detail).toHaveCount(0);
+});
