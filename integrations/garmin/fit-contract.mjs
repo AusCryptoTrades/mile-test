@@ -31,7 +31,7 @@ export function normalizedLaps(messages,expectedStart){
  let last=start;
  const rows=laps.map(l=>{
   const a=epoch(l.startTime),recordedEnd=epoch(l.timestamp);
-  const b=a!==null&&recordedEnd===a&&finite(l.totalElapsedTime,.01,86400)?a+l.totalElapsedTime:recordedEnd;
+  const b=a!==null&&(recordedEnd===a||recordedEnd===start)&&finite(l.totalElapsedTime,.01,86400)?a+l.totalElapsedTime:recordedEnd;
   if(a===null||b===null||a<last-1||a<start-1||b<=a||b>finish+1||!finite(l.totalTimerTime,.01,86400)||l.totalTimerTime>b-a+2||!finite(l.totalDistance,0,500000))throw Error('FIT_INVALID_LAP');
   last=b;
   const index=Number.isInteger(l.wktStepIndex)&&l.wktStepIndex>=0&&l.wktStepIndex<=1000?l.wktStepIndex:null;
