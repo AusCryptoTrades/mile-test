@@ -1229,7 +1229,29 @@ function cloudSave(){
 async function cloudLoad(retry=true){let r=await fetch(state.settings.supabaseUrl+'/rest/v1/av_training_data?user_id=eq.'+encodeURIComponent(userId)+'&select=training_data',{headers:sbHeaders()});if(r.status===401&&retry&&await refreshSession())return cloudLoad(false);if(!r.ok)throw Error('Cloud read HTTP '+r.status);let rows=await r.json();if(rows.length&&rows[0].training_data){let settings=state.settings,localRecoverySnapshot=recoveryRecords();state=rows[0].training_data;if(!Array.isArray(state.recoveryDays)||!state.recoveryDays.length)state.recoveryDays=localRecoverySnapshot;state.settings={...state.settings,supabaseUrl:settings.supabaseUrl,supabaseAnon:settings.supabaseAnon,garminKey:settings.garminKey};window.mile776?.hydrate(false);for(let k of Object.keys(defaults))if(state[k]===undefined)state[k]=defaults[k];localStorage.setItem('av-training-v2',JSON.stringify(state));render()}else await cloudSave();await mileRefreshOwnRuns()}
 function sbConfig(){return state.settings.supabaseUrl&&state.settings.supabaseAnon}
 let authRefreshBusy=null;
-async function refreshSession(){let rt=(localStorage.getItem('av-refresh')||sessionStorage.getItem('av-refresh'));if(!rt||!sbConfig())return false;if(authRefreshBusy)return authRefreshBusy;authRefreshBusy=(async()=>{try{let r=await fetch(state.settings.supabaseUrl+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:state.settings.supabaseAnon,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:rt})});if(!r.ok)throw Error('Session expired');let d=await r.json();token=d.access_token;userId=d.user?.id||userId;sessionStorage.setItem('av-token',token);localStorage.setItem('av-token',token);sessionStorage.setItem('av-user',userId);localStorage.setItem('av-user',userId);if(d.refresh_token)sessionStorage.setItem('av-refresh',d.refresh_token);localStorage.setItem('av-refresh',d.refresh_token);render();return true}catch(e){token='';userId='';sessionStorage.removeItem('av-token');localStorage.removeItem('av-token');sessionStorage.removeItem('av-user');localStorage.removeItem('av-user');sessionStorage.removeItem('av-refresh');localStorage.removeItem('av-refresh');render();notice('Session expired. Please sign in again.');return false}finally{authRefreshBusy=null}})();return authRefreshBusy}
+async function refreshSession(){
+ const owner=userId, accessToken=token, endpoint=state.settings.supabaseUrl;
+ const rt=localStorage.getItem('av-refresh')||sessionStorage.getItem('av-refresh');
+ if(!rt||!sbConfig())return false;
+ if(authRefreshBusy)return authRefreshBusy;
+ const current=()=>userId===owner&&token===accessToken&&state.settings.supabaseUrl===endpoint;
+ authRefreshBusy=(async()=>{
+  try{
+   const response=await fetch(endpoint+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:state.settings.supabaseAnon,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:rt})});
+   if(!response.ok)throw Error('Session expired');
+   const session=await response.json();
+   if(!current())return false;
+   if(!session.access_token||!session.user?.id||(owner&&session.user.id!==owner))throw Error('Session expired');
+   v4SetSession(session);render();return true;
+  }catch(error){
+   if(!current())return false;
+   token='';userId='';v4Ready=false;v4Member=false;mileResetProfileIdentity();
+   for(const key of ['av-token','av-user','av-refresh']){sessionStorage.removeItem(key);localStorage.removeItem(key)}
+   render();v4Show('login');v4SetError('Session expired. Please sign in again.');return false;
+  }finally{authRefreshBusy=null}
+ })();
+ return authRefreshBusy;
+}
 async function auth(action){const emailInput=document.getElementById('sbEmail')?.value.trim(),passwordInput=document.getElementById('sbPass')?.value;const cloudUrl=document.getElementById('sbUrl')?.value.trim().replace(/\/$/,''),cloudAnon=document.getElementById('sbAnon')?.value.trim();state.settings.supabaseUrl=cloudUrl;state.settings.supabaseAnon=cloudAnon;localStorage.setItem('av-training-v2',JSON.stringify(state));if(!sbConfig())return notice('Configure Supabase URL and publishable key first');if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(cloudUrl))return notice('Invalid Supabase URL. Check project hostname.');let email=emailInput,password=passwordInput;if(!email||!password)return notice('Enter email and password');try{let r=await fetch(state.settings.supabaseUrl+'/auth/v1/'+action,{method:'POST',headers:{'apikey':state.settings.supabaseAnon,'Content-Type':'application/json'},body:JSON.stringify({email,password})}),d=await r.json();if(!r.ok)throw Error(d.msg||d.error_description||d.message||'Authentication failed');if(!d.access_token){notice('Account created. Confirm email, then sign in.');return}token=d.access_token;userId=d.user.id;sessionStorage.setItem('av-token',token);localStorage.setItem('av-token',token);sessionStorage.setItem('av-user',userId);localStorage.setItem('av-user',userId);if(d.refresh_token)sessionStorage.setItem('av-refresh',d.refresh_token);localStorage.setItem('av-refresh',d.refresh_token);await cloudLoad();render();notice('Signed in; cloud data ready')}catch(e){notice(e.message)}}
 function signIn(){auth('v1/token?grant_type=password'.replace('v1/',''))}function signUp(){auth('v1/signup'.replace('v1/',''))}function signOut(){token='';userId='';sessionStorage.removeItem('av-token');localStorage.removeItem('av-token');sessionStorage.removeItem('av-user');localStorage.removeItem('av-user');sessionStorage.removeItem('av-refresh');localStorage.removeItem('av-refresh');render();notice('Signed out')}
 // Preserve access to current Garmin activities while opening the app, if key is already saved.
@@ -1344,7 +1366,7 @@ async function v4AfterLogin(){
  await mileGarminCheckAfterLogin(!completedSetup);if(current())window.mile777?.checkAdmin();
  }catch(e){if(current()){v4Show('login');v4SetError(e.message)}}
 }
-const MILE_GARMIN_FUNCTIONS='https://mgixvokjlytjuypzcfzz.supabase.co/functions/v1/';
+const mileGarminFunctions=()=>state.settings.supabaseUrl+'/functions/v1/';
 async function mileOnboardingRequest(name,body,current,endpoint,retry=true){
  if(!current())throw Error('Your session changed. Sign in again.');
  const response=await fetch(endpoint+'/rest/v1/rpc/'+name,{
@@ -1389,7 +1411,7 @@ window.mileAthleteProfile={
 async function mileReadGarminStatus(current){
  if(!current())return 'unavailable';
  try{
-  const r=await fetch(MILE_GARMIN_FUNCTIONS+'garmin-connection-status',{headers:sbHeaders(),cache:'no-store',signal:AbortSignal.timeout(10000)});
+  const r=await fetch(mileGarminFunctions()+'garmin-connection-status',{headers:sbHeaders(),cache:'no-store',signal:AbortSignal.timeout(10000)});
   if(!r.ok)return 'unavailable';
   const data=await r.json();
   return current()&&['authorised','expired','not_connected'].includes(data.status)?data.status:'unavailable';
@@ -1421,7 +1443,7 @@ async function mileGarminCheckAfterLogin(offer=true){
 }
 async function mileOpenGarminAuthorization(current){
  if(!current())throw Error('Please sign in to MILE first.');
- const response=await fetch(MILE_GARMIN_FUNCTIONS+'garmin-oauth-start',{
+ const response=await fetch(mileGarminFunctions()+'garmin-oauth-start',{
   method:'POST',headers:sbHeaders(),body:'{}'
  });
  const data=await response.json().catch(()=>({}));
@@ -2579,7 +2601,7 @@ async function mileLoadDetail(id){
  if(!token){mileDetailCache.set(String(id),{error:'Please sign in again to load recorded Garmin details.'});drawDetail();return;}
  mileDetailLoading=true;drawDetail();
  try{
-  const response=await fetch(MILE_GARMIN_FUNCTIONS+'garmin-data-read?activityId='+encodeURIComponent(garminId),{
+  const response=await fetch(mileGarminFunctions()+'garmin-data-read?activityId='+encodeURIComponent(garminId),{
    method:'GET',headers:{Authorization:'Bearer '+token,apikey:state.settings.supabaseAnon,Accept:'application/json'}
   });
   const data=await response.json();
@@ -3503,7 +3525,7 @@ document.addEventListener('click',ev=>{const b=ev.target.closest('[data-m388-up]
    if(!force&&Date.now()-lastRead<300000)return;
    loading=true;
    try{
-     const res=await fetch(MILE_GARMIN_FUNCTIONS+'garmin-data-read',{method:'GET',headers:{'Authorization':'Bearer '+token,'apikey':state.settings.supabaseAnon,'Accept':'application/json'}});
+     const res=await fetch(mileGarminFunctions()+'garmin-data-read',{method:'GET',headers:{'Authorization':'Bearer '+token,'apikey':state.settings.supabaseAnon,'Accept':'application/json'}});
      const data=await res.json().catch(()=>({}));
      if(!res.ok||data.error)throw Error(data.error||'Garmin data read HTTP '+res.status);
      const days=new Map((state.recoveryDays||[]).map(x=>[String(x.date||x.day||'').slice(0,10),x]));
@@ -5374,7 +5396,7 @@ html[data-m772-one-quick="true"] .mile-ui-dashboard .mile-home-quick{grid-templa
  for(const id of ['FiveK','Threshold','Swim'])if(field(id)&&!(v42PaceSeconds(field(id))>0))return notice('Use a positive mm:ss time for '+id);
  let ranges=v451Ranges();if(max!==oldMax){if(!confirm('Changing maximum HR will recalculate all five heart-rate zones. Continue?'))return;const b=v45DefaultZones(max);ranges=full.slice(0,5).map(i=>({min:b[i],max:i===4?b[i+1]:b[i+1]-1}))}
  state.settings.athleteProfile={...v45Profile(),maxHR:max,lthr,fiveK:field('FiveK'),threshold:field('Threshold'),swim:field('Swim'),ftp,zoneRanges:ranges,zoneBounds:[ranges[0].min,...ranges.map(r=>r.max)]};state.settings.trainingMaxHR=max;save();notice('Performance metrics saved')}
- function applyDefaults(){const p=get()[v42Sport];if(!sports.includes(v42Sport))return;if(v42Step===1){const general={beginner:'beginner',regular:'intermediate',experienced:'advanced',competitive:'advanced'}[v45Profile().experience];if(v42Form.Level===undefined&&(p?.level||general))v42Form.Level=p?.level||general;if(v42Form.Volume===undefined&&p?.volume)v42Form.Volume=p.volume}if(v42Step===2&&p){for(const [k,v] of Object.entries({Days:p.sessions,LongDay:p.longDay,Available:p.available.slice(),...(v42Sport==='HYROX'?{RunFocus:p.runFocus}:{})}))if(v42Form[k]===undefined)v42Form[k]=v}}
+ function applyDefaults(){const p=get()[v42Sport];if(!sports.includes(v42Sport))return;if(v42Step===1){const general={beginner:'beginner',regular:'intermediate',experienced:'advanced',competitive:'advanced'}[v45Profile().experience];if(v42Form.Level===undefined&&(p?.level||general))v42Form.Level=p?.level||general;if(v42Form.Volume===undefined&&p&&p.volume!=='')v42Form.Volume=p.volume}if(v42Step===2&&p){for(const [k,v] of Object.entries({Days:p.sessions,LongDay:p.longDay,Available:p.available.slice(),...(v42Sport==='HYROX'?{RunFocus:p.runFocus}:{})}))if(v42Form[k]===undefined)v42Form[k]=v}}
  const build=v41Builder;v41Builder=function(){applyDefaults();return build.apply(this,arguments)};
  document.addEventListener('click',e=>{if(e.target.closest('[data-m773-save]')){const p=readPanel();if(!p)return;state.settings.trainingPreferences773=p;save();notice('Training preferences saved')}if(e.target.closest('[data-m773-reset]')){if(!confirm('Restore all sport training preferences to their defaults?'))return;delete state.settings.trainingPreferences773;save();notice('Default training preferences restored')}});
  window.mile773={panel,profile,saveProfile};
@@ -5459,7 +5481,7 @@ function zones(html){const p=v45Profile(),ranges=v451Ranges(),colors=['#a5adb5',
 function account(html){const remembered=localStorage.getItem('av-remember-email-enabled')==='1';return html+panel('Personal information','Manage your profile and sign-in preferences.',link('Edit personal information','Name, profile and athlete identity','user','data-m771-action="profile"')+'<label class="m774-row"><span><strong>Remember my email</strong><small>On this device only; does not store your password</small></span><input type="checkbox" data-m777-remember '+(remembered?'checked':'')+'></label>')+'<section class="m777-panel m777-security"><div class="m777-intro"><h3>Security</h3><p>Change your password using your current signed-in account.</p></div><details><summary>Change password</summary><form data-m777-password><label>Current password<input name="current" type="password" autocomplete="current-password" required></label><label>New password<input name="next" type="password" autocomplete="new-password" minlength="8" required></label><label>Confirm new password<input name="confirm" type="password" autocomplete="new-password" minlength="8" required></label><button class="btn" type="submit">Update password</button><div role="status"></div></form></details></section>'}
 function adminRow(){return window.mileBetaIsAdmin?.()?'<div class="m771-panel">'+link('Admin Centre','Review beta reports and feedback','shield','data-m771-action="admin"')+'</div>':''}
 async function checkAdmin(){if(!token||!userId||window.mileBetaIsAdmin?.())return;const id=userId;try{const r=await fetch(state.settings.supabaseUrl+'/auth/v1/user',{headers:sbHeaders()});const u=await r.json();if(r.ok&&u.id===id&&u.app_metadata?.mile_role==='admin'&&id===userId)await refreshSession()}catch(_){}}
-async function connectionStatus(){const el=document.querySelector('[data-m777-garmin-status]'),id=userId;if(!el||!id||!token)return;try{const r=await fetch(MILE_GARMIN_FUNCTIONS+'garmin-connection-status',{headers:sbHeaders()});const d=await r.json();if(!r.ok||!['authorised','expired','not_connected'].includes(d.status))throw Error('unavailable');if(el.isConnected&&id===userId){el.dataset.state=d.status;el.textContent=({authorised:'Authorisation stored',expired:'Authorisation expired — reconnect',not_connected:'Not connected'})[d.status]}}catch(_){if(el.isConnected&&id===userId){el.dataset.state='unknown';el.textContent='Connection status unavailable'}}}
+async function connectionStatus(){const el=document.querySelector('[data-m777-garmin-status]'),id=userId;if(!el||!id||!token)return;try{const r=await fetch(mileGarminFunctions()+'garmin-connection-status',{headers:sbHeaders()});const d=await r.json();if(!r.ok||!['authorised','expired','not_connected'].includes(d.status))throw Error('unavailable');if(el.isConnected&&id===userId){el.dataset.state=d.status;el.textContent=({authorised:'Authorisation stored',expired:'Authorisation expired — reconnect',not_connected:'Not connected'})[d.status]}}catch(_){if(el.isConnected&&id===userId){el.dataset.state='unknown';el.textContent='Connection status unavailable'}}}
 const api=window.mile777={zones,account,help,about,adminRow,checkAdmin,connectionStatus,fromSettings:false};
 document.addEventListener('click',e=>{const b=e.target.closest('[data-m777-action]');if(!b)return;const a=b.dataset.m777Action;if(a==='feature')window.mileBetaReport?.('feedback');if(a==='faq')alert('Connect Garmin in Settings → Connected devices. Build creates training programmes. Calendar displays planned and imported sessions. Dashboard widgets can be personalised in Settings.');if(a==='history')window.mileShowWhatsNewFromCurrent?.()});
 document.addEventListener('change',e=>{if(!e.target.matches('[data-m777-remember]'))return;const email=document.querySelector('[data-m775-value="email"]')?.textContent;if(e.target.checked&&email?.includes('@')){localStorage.setItem('av-remember-email-enabled','1');localStorage.setItem('av-remember-email-value',email)}else{e.target.checked=false;localStorage.removeItem('av-remember-email-enabled');localStorage.removeItem('av-remember-email-value')}});

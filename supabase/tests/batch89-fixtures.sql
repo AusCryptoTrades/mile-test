@@ -26,6 +26,7 @@ create policy own_training on public.av_training_data to authenticated
   using (user_id=(select auth.uid()) and exists(select from public.av_members where user_id=(select auth.uid())))
   with check (user_id=(select auth.uid()) and exists(select from public.av_members where user_id=(select auth.uid())));
 grant select,insert,update on public.av_training_data to authenticated;
+grant select,insert,update on public.av_training_data to service_role;
 
 create table public.mile_profiles(
  user_id uuid primary key references auth.users(id) on delete cascade,

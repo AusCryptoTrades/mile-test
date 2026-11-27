@@ -1,8 +1,12 @@
+begin;
+
 -- Existing members retain NULL. Membership inserts after rollout start onboarding.
 alter table public.av_members
-  add column onboarding_stage smallint check (onboarding_stage between 1 and 6),
-  add column onboarding_revision integer not null default 0 check (onboarding_revision >= 0),
-  add column onboarded_at timestamptz,
+  add column if not exists onboarding_stage smallint check (onboarding_stage between 1 and 6),
+  add column if not exists onboarding_revision integer not null default 0 check (onboarding_revision >= 0),
+  add column if not exists onboarded_at timestamptz;
+alter table public.av_members
+  drop constraint if exists av_members_onboarding_completion,
   add constraint av_members_onboarding_completion
     check ((onboarded_at is not null) = coalesce(onboarding_stage = 6, false));
 alter table public.av_members alter column onboarding_stage set default 1;
@@ -10,30 +14,34 @@ alter table public.mile_profiles alter column auto_share_activities set default 
 
 -- Profile and avatar writes require membership in addition to the established
 -- ownership policies. Other storage buckets keep their existing access rules.
+drop policy if exists "MILE members create profiles" on public.mile_profiles;
 create policy "MILE members create profiles" on public.mile_profiles as restrictive
   for insert to authenticated with check (
     exists (select from public.av_members where user_id=(select auth.uid()))
   );
+drop policy if exists "MILE members edit profiles" on public.mile_profiles;
 create policy "MILE members edit profiles" on public.mile_profiles as restrictive
   for update to authenticated using (
     exists (select from public.av_members where user_id=(select auth.uid()))
   ) with check (
     exists (select from public.av_members where user_id=(select auth.uid()))
   );
+drop policy if exists "MILE members upload avatars" on storage.objects;
 create policy "MILE members upload avatars" on storage.objects as restrictive
   for insert to authenticated with check (bucket_id <> 'mile-avatars' or
     exists (select from public.av_members where user_id=(select auth.uid())));
+drop policy if exists "MILE members replace avatars" on storage.objects;
 create policy "MILE members replace avatars" on storage.objects as restrictive
   for update to authenticated using (bucket_id <> 'mile-avatars' or
     exists (select from public.av_members where user_id=(select auth.uid())))
   with check (bucket_id <> 'mile-avatars' or
     exists (select from public.av_members where user_id=(select auth.uid())));
 
-create schema mile_onboarding_private;
+create schema if not exists mile_onboarding_private;
 revoke all on schema mile_onboarding_private from public, anon, authenticated, service_role;
-grant usage on schema mile_onboarding_private to authenticated;
+grant usage on schema mile_onboarding_private to authenticated, service_role;
 
-create function mile_onboarding_private.valid_username(handle text) returns boolean
+create or replace function mile_onboarding_private.valid_username(handle text) returns boolean
 language sql immutable set search_path = ''
 as $$
   select coalesce(handle ~ '^[a-z0-9_]{3,24}$'
@@ -41,7 +49,7 @@ as $$
     and handle not in ('miletraining','milefitness','mileofficial','milesupport','mileadmin'), false)
 $$;
 
-create function mile_onboarding_private.validate_profile_username() returns trigger
+create or replace function mile_onboarding_private.validate_profile_username() returns trigger
 language plpgsql set search_path = ''
 as $$
 begin
@@ -55,10 +63,10 @@ begin
   return new;
 end;
 $$;
-create trigger mile_profile_validate_username before insert or update of username on public.mile_profiles
+create or replace trigger mile_profile_validate_username before insert or update of username on public.mile_profiles
   for each row execute function mile_onboarding_private.validate_profile_username();
 
-create function mile_onboarding_private.valid_baseline(data jsonb) returns boolean
+create or replace function mile_onboarding_private.valid_baseline(data jsonb) returns boolean
 language plpgsql immutable set search_path = ''
 as $$
 declare field text; value jsonb;
@@ -84,7 +92,7 @@ begin
 end;
 $$;
 
-create function mile_onboarding_private.validate_training_baseline() returns trigger
+create or replace function mile_onboarding_private.validate_training_baseline() returns trigger
 language plpgsql set search_path = ''
 as $$
 declare baseline jsonb:=new.training_data#>'{settings,athleteProfile}';
@@ -97,10 +105,10 @@ begin
   return new;
 end;
 $$;
-create trigger mile_training_validate_baseline before insert or update of training_data on public.av_training_data
+create or replace trigger mile_training_validate_baseline before insert or update of training_data on public.av_training_data
   for each row execute function mile_onboarding_private.validate_training_baseline();
 
-create function mile_onboarding_private.member_id() returns uuid
+create or replace function mile_onboarding_private.member_id() returns uuid
 language plpgsql set search_path = ''
 as $$
 declare athlete uuid:=auth.uid();
@@ -113,7 +121,7 @@ begin
 end;
 $$;
 
-create function mile_onboarding_private.snapshot(athlete uuid) returns jsonb
+create or replace function mile_onboarding_private.snapshot(athlete uuid) returns jsonb
 language sql set search_path = ''
 as $$
   select jsonb_build_object(
@@ -131,11 +139,11 @@ as $$
   where m.user_id=athlete
 $$;
 
-create function mile_onboarding_private.read_setup() returns jsonb
+create or replace function mile_onboarding_private.read_setup() returns jsonb
 language sql security definer set search_path = ''
 as $$ select mile_onboarding_private.snapshot(mile_onboarding_private.member_id()) $$;
 
-create function mile_onboarding_private.available_username(p_username text) returns boolean
+create or replace function mile_onboarding_private.available_username(p_username text) returns boolean
 language plpgsql security definer set search_path = ''
 as $$
 declare athlete uuid:=mile_onboarding_private.member_id();
@@ -147,7 +155,7 @@ begin
 end;
 $$;
 
-create function mile_onboarding_private.save_stage(p_stage integer,p_revision integer,p_fields jsonb) returns jsonb
+create or replace function mile_onboarding_private.save_stage(p_stage integer,p_revision integer,p_fields jsonb) returns jsonb
 language plpgsql security definer set search_path = ''
 as $$
 declare
@@ -275,18 +283,20 @@ $$;
 revoke all on all functions in schema mile_onboarding_private from public, anon, authenticated, service_role;
 -- Triggers on existing tables run as the caller and need the pure validators.
 grant execute on function mile_onboarding_private.valid_username(text),
-  mile_onboarding_private.valid_baseline(jsonb) to authenticated;
+  mile_onboarding_private.valid_baseline(jsonb) to authenticated, service_role;
 grant execute on function mile_onboarding_private.read_setup(),
   mile_onboarding_private.available_username(text),mile_onboarding_private.save_stage(integer,integer,jsonb) to authenticated;
 
-create function public.mile_onboarding_state() returns jsonb language sql security invoker set search_path = ''
+create or replace function public.mile_onboarding_state() returns jsonb language sql security invoker set search_path = ''
 as $$ select mile_onboarding_private.read_setup() $$;
-create function public.mile_onboarding_username(p_username text) returns boolean language sql security invoker set search_path = ''
+create or replace function public.mile_onboarding_username(p_username text) returns boolean language sql security invoker set search_path = ''
 as $$ select mile_onboarding_private.available_username(p_username) $$;
-create function public.mile_onboarding_save(p_stage integer,p_revision integer,p_fields jsonb) returns jsonb
+create or replace function public.mile_onboarding_save(p_stage integer,p_revision integer,p_fields jsonb) returns jsonb
 language sql security invoker set search_path = ''
 as $$ select mile_onboarding_private.save_stage(p_stage,p_revision,p_fields) $$;
 revoke all on function public.mile_onboarding_state(),public.mile_onboarding_username(text),
   public.mile_onboarding_save(integer,integer,jsonb) from public,anon,authenticated,service_role;
 grant execute on function public.mile_onboarding_state(),public.mile_onboarding_username(text),
   public.mile_onboarding_save(integer,integer,jsonb) to authenticated;
+
+commit;

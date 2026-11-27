@@ -12,7 +12,7 @@ The migration leaves all preexisting memberships at a null setup stage. New memb
 ## Review and rollout sequence
 
 1. Review the draft against the current main branch. Batch 88 also changes the app entry point and native asset allowlist. Keep both sets of assets and the separate workout-revision and profile triggers when resolving those branches.
-2. Run the onboarding migration and tests on an isolated production-shaped fixture. The targeted Running staging project lacks the social profile schema. A hosted onboarding exercise requires a separate approved environment with the social, invitation, Storage and Garmin dependencies.
+2. Run the onboarding migration and tests on an isolated production-shaped fixture. The targeted Running staging project lacks the social profile schema. A hosted onboarding exercise requires a separate approved environment with the social, invitation, Storage and Garmin dependencies. Point the preview build at that project's API URL and publishable key. Garmin also requires a registered OAuth callback and an approved return origin for the preview.
 3. Verify registration, account switching, privacy enforcement and actual Garmin OAuth with synthetic hosted accounts. Review the existing registration Terms and Privacy Policy links and confirm any separate Disclaimer acceptance gate with the owner. This batch preserves the existing registration acceptance copy.
 4. After explicit release and merge approval, apply the migration before serving the updated app. The login membership query requires the new onboarding column. Verify a new member and an existing member after rollout and confirm auto-sharing remains off for newly onboarded accounts.
 

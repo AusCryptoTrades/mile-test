@@ -13,7 +13,7 @@ function fixture({stage=1,member=false,garminStatus='not_connected'}={}){
   [second]:{id:fixtureUser(second,2),member:true,stage:null,revision:0,profile:{...profile},athlete:{ftp:260},units:'metric',garminStatus:'authorised',
    document:{blocks:[{id:'cycling-plan',name:'Existing cycling plan',sport:'Cycling'}],activeBlock:'cycling-plan',workouts:[{id:'legacy-workout',block:'cycling-plan',sport:'Cycling',date:'2026-12-12',name:'Existing ride',status:'planned'}],settings:{athleteProfile:{ftp:260}}}}
  };
- return {users,posts:[],failNext:false,conflictNext:false,
+ return {users,posts:[],failNext:false,conflictNext:false,expireNext:false,holdRefresh:null,
   async bind(target){
    await target.route('**/*',async route=>{
     const request=route.request(),url=new URL(request.url());
@@ -29,6 +29,7 @@ function fixture({stage=1,member=false,garminStatus='not_connected'}={}){
     if(url.pathname==='/auth/v1/verify'||url.pathname==='/auth/v1/token'){
      const email=body().email||body().refresh_token?.replace('fixture-refresh:','');
      if(!users[email])return offer({msg:'Unknown fixture user'},400);
+     if(body().refresh_token&&this.holdRefresh)await this.holdRefresh;
      return offer({access_token:'fixture:'+email,refresh_token:'fixture-refresh:'+email,user:users[email].id});
     }
     if(url.pathname==='/auth/v1/user')return owner?offer(owner.id):offer({},401);
@@ -43,6 +44,7 @@ function fixture({stage=1,member=false,garminStatus='not_connected'}={}){
     if(url.pathname==='/rest/v1/rpc/mile_onboarding_save'){
      const {p_stage,p_revision,p_fields}=body();
      this.posts.push({email:token,stage:p_stage,revision:p_revision,fields:p_fields});
+     if(this.expireNext){this.expireNext=false;return offer({message:'Session expired'},401);}
      if(this.failNext){this.failNext=false;return route.abort('failed');}
      if(this.conflictNext){this.conflictNext=false;owner.revision++;return offer({message:'Profile setup has changed. Reload your progress'},409);}
      if(p_revision!==owner.revision || p_stage>owner.stage || owner.stage===6)return offer({message:'Profile setup has changed'},409);
@@ -231,4 +233,35 @@ test('Batch 89 resumes Garmin authorisation and reports the verified connection 
  await next(page);
  await heading(page,'Your privacy');
  expect(service.posts.at(-1).stage).toBe(4);
+});
+
+test('Batch 89 discards an in-flight token refresh when the athlete switches accounts',async({page})=>{
+ const service=fixture({member:true});
+ await service.bind(page);
+ await login(page);
+ await heading(page,'Your profile');
+ await wizard(page).getByLabel('Display name').fill('Leaving athlete');
+ await wizard(page).getByLabel('Username').fill('leaving_athlete');
+ service.expireNext=true;
+ let release;
+ service.holdRefresh=new Promise(resolve=>{release=resolve;});
+ const isRefresh=request=>request.url().includes('grant_type=refresh_token');
+ try{
+  const refreshing=page.waitForRequest(isRefresh);
+  await next(page);
+  await refreshing;
+  await next(page,'Sign out');
+  await expect(page.locator('#v4Email')).toBeVisible();
+  await page.locator('#v4Email').fill(second);
+  await page.locator('#v4Password').fill('Synthetic password 89');
+  await page.locator('#v4Gate button[onclick*="v4Authenticate"]').click();
+  await expect(page.locator('#v4Gate')).toBeHidden();
+  const finished=page.waitForEvent('requestfinished',isRefresh);
+  release();
+  await finished;
+  await expect.poll(()=>page.evaluate(()=>typeof authRefreshBusy==='undefined'||authRefreshBusy===null)).toBe(true);
+  expect(await page.evaluate(()=>localStorage.getItem('av-user'))).toBe(service.users[second].id.id);
+  expect(service.posts).toHaveLength(1);
+  expect(service.users[first].profile).toBeNull();
+ }finally{release();}
 });

@@ -96,6 +96,13 @@ end;
 $$;
 reset role;
 
+set role service_role;
+update public.av_training_data
+set training_data=jsonb_set(training_data,'{settings,athleteProfile,heightCm}','171')
+where user_id='89000000-0000-4000-8000-000000000001';
+select pg_temp.expect_state('select public.mile_onboarding_state()','42501');
+reset role;
+
 -- Two independent sessions submit the same onboarding revision.
 create extension dblink;
 select dblink_connect('other_device',format('host=127.0.0.1 port=%s dbname=%s user=postgres application_name=mile_onboarding_test',
@@ -131,3 +138,15 @@ begin
 end;
 $$;
 select dblink_disconnect('other_device');
+
+\ir ../migrations/20261127084450_athlete_onboarding.sql
+do $$
+begin
+ if not exists(select from public.av_members where user_id='89000000-0000-4000-8000-000000000002'
+     and onboarding_stage=6 and onboarding_revision=5 and onboarded_at is not null) then
+   raise exception 'Reapplying migration changed completed setup';
+ end if;
+ if not exists(select from public.av_members where user_id='89000000-0000-4000-8000-000000000001'
+     and onboarding_stage is null) then raise exception 'Reapplying migration enrolled an existing athlete'; end if;
+end;
+$$;
