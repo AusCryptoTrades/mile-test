@@ -2820,7 +2820,7 @@ function milePlot(points,key,label,unit,color='#86efb5',summary=null){
  const timeStart=raw.find(p=>Number.isFinite(p[timeField]))?.[timeField];
  const timeEnd=[...raw].reverse().find(p=>Number.isFinite(p[timeField]))?.[timeField];
  const hasTime=Number.isFinite(timeStart)&&Number.isFinite(timeEnd)&&timeEnd>timeStart;
- const timeScale=timeField==='t'?1000:((timeEnd-timeStart)>100000?1000:1);
+ const timeScale=timeField==='t'?(timeStart>1e11?1000:1):((timeEnd-timeStart)>100000?1000:1);
  const firstDist=raw.find(p=>Number.isFinite(p.dist))?.dist||0;
  const lastDist=[...raw].reverse().find(p=>Number.isFinite(p.dist))?.dist||0;
  const series=raw.map((p,i)=>({x:hasTime&&Number.isFinite(p[timeField])?(p[timeField]-timeStart)/timeScale:(Number.isFinite(p.dist)?(p.dist-firstDist)/1000:i),y:pace?(()=>{const nearby=raw.slice(Math.max(0,i-3),Math.min(raw.length,i+4)).map(v=>v[key]).sort((a,b)=>a-b);return nearby[Math.floor(nearby.length/2)]})():p[key]}));
@@ -2874,7 +2874,7 @@ function milePaceSeries(points,summary){
  const usable=paceFromSpeed.filter(p=>Number.isFinite(p.pace)&&p.pace>=2&&p.pace<=12);
  if(usable.length>=Math.max(10,points.length*.3))return paceFromSpeed.map(p=>({...p,pace:p.pace>=2&&p.pace<=12?p.pace:null}));
  // Fallback: calculate speed across a ~150 m rolling distance window to avoid per-sample jitter.
- return points.map((p,i)=>{if(!Number.isFinite(p.dist)||!Number.isFinite(p.t))return {...p,pace:null};let j=i-1;while(j>0&&p.dist-points[j].dist<150)j--;const q=points[j],dt=(p.t-q.t)/1000,dd=p.dist-q.dist,v=dt>0&&dd>30?dt/dd*1000/60:null;return {...p,pace:v>=2&&v<=12?v:null}});
+ return points.map((p,i)=>{if(i===0||!Number.isFinite(p.dist)||!Number.isFinite(p.t))return {...p,pace:null};let j=i-1;while(j>0&&p.dist-points[j].dist<150)j--;const q=points[j];if(!Number.isFinite(q.t)||!Number.isFinite(q.dist))return {...p,pace:null};const dt=(p.t-q.t)/(p.t>1e11?1000:1),dd=p.dist-q.dist,v=dt>0&&dd>30?dt/dd*1000/60:null;return {...p,pace:v>=2&&v<=12?v:null}});
 }
 function mileRoute(d){let points=milePoints(d).filter(p=>p.lat!==null&&p.lon!==null&&Math.abs(p.lat)<=90&&Math.abs(p.lon)<=180);let poly=d?.geoPolyline||d?.geoPolylineDTO;
  if(points.length<2&&Array.isArray(poly?.polyline))points=poly.polyline.map(p=>({lat:mileNum(p.lat??p.latitude),lon:mileNum(p.lon??p.longitude)})).filter(p=>p.lat!==null&&p.lon!==null);
@@ -2926,18 +2926,26 @@ async function mileMountMap(d){
 }
 const mileDataRow=(label,value,unit='')=>value===null||value===undefined||value===''?'':row(label,String(value)+unit);
 const mileDetailOriginal=drawDetail;
-drawDetail=function(){mileDetailOriginal();let overlay=document.getElementById('mile35-detail');if(!overlay)return;let a=findActivity(openActivityId),d=mileDetail(openActivityId),summary=mileSummary(d),points=milePoints(d),content=overlay.querySelectorAll('.mile35-panel'),tab=activeDetailTab;
+drawDetail=function(){
+ const previousAnalysis=document.querySelector('#mile35-detail .m881-analysis-host');
+ const restoreAnalysis=previousAnalysis?.dataset.activityId===String(openActivityId)&&previousAnalysis.querySelector('.m881-detailed')?.open;
+ const analysisScroll=restoreAnalysis?document.getElementById('mile35-detail')?.scrollTop:0;
+ mileDetailOriginal();let overlay=document.getElementById('mile35-detail');if(!overlay)return;let a=findActivity(openActivityId),d=mileDetail(openActivityId),summary=mileSummary(d),points=milePoints(d),content=overlay.querySelectorAll('.mile35-panel'),tab=activeDetailTab;
  const top=overlay.querySelector('.mile35-top');if(top&&!top.querySelector('[data-mile352-share]')){const share=document.createElement('button');share.className='mile352-share-btn';share.textContent='Create Card';share.setAttribute('aria-label','Create a shareable activity image');share.setAttribute('data-mile352-share','1');top.replaceChild(share,top.lastElementChild)}
  if(sport(a)==='Running')overlay.setAttribute('data-running-analysis','');
  if(tab==='Analysis'&&sport(a)==='Running'&&window.mileRunningIQ){
   window.mileRunningBeta?.mark('analysis-opened');
-  const host=document.createElement('div');host.className='m881-analysis-host';
+  const host=document.createElement('div');host.className='m881-analysis-host';host.dataset.activityId=String(a.id);
   overlay.querySelector('.mile35-footer').before(host);
   const day=today(),runDay=activityDate(a),[start,end]=weekRange();
+  const recentRuns=v4Ready&&userId?allActivities().filter(x=>sport(x)==='Running').map(x=>({
+   id:x.id,date:activityDate(x),type:x.type,activityType:x.activityType,subSport:x.subSport,source:x.source,averageHR:x.averageHR,
+   sensorError:x.sensorError,totalElevationGainInMeters:x.totalElevationGainInMeters??x.elevationGain,distanceKm:x.distanceKm,durationMin:activityDuration(x),
+  })):[];
   const review=v4Ready&&userId?{
    today:day,earliest:add(day,-2),weekStart:start,weekEnd:end,
    blocks:state.blocks||[],activeBlock:state.activeBlock,fatigue:state.checkins?.[day]?.fatigue,
-   currentRuns:allActivities().filter(x=>sport(x)==='Running').map(x=>({date:activityDate(x),distanceKm:x.distanceKm})),
+   currentRuns:recentRuns,
   }:null;
   const plans=state.workouts||[];
   const ownGarminRun=v4Ready&&userId&&token&&a.source==='garmin-developer-api'&&state.activities.includes(a);
@@ -2946,17 +2954,25 @@ drawDetail=function(){mileDetailOriginal();let overlay=document.getElementById('
    w.completed_at==null&&
    (w.matchId!=null||v456Visible(w.block))
   ):null;
-  const result=window.mileRunningIQ.analyse({...a,date:runDay,durationMin:activityDuration(a)},{
-   workouts:plans,points,bounds:state.settings?.athleteProfile?.zoneBounds,review,matchSessions,
+  const result=window.mileRunningIQ.analyse({...a,date:runDay,durationMin:activityDuration(a),
+   averageHR:a.averageHR??mileField(summary,'averageHeartRateInBeatsPerMinute','averageHeartRate','averageHR'),
+   totalElevationGainInMeters:a.totalElevationGainInMeters??mileField(summary,'totalElevationGainInMeters','elevationGain')}, {
+   workouts:plans,points,bounds:state.settings?.athleteProfile?.zoneBounds,review,matchSessions,history:recentRuns,
   });
   const matchOwner=userId,matchState=state;
-  window.mileRunningIQ.render(host,result,{confirmMatch:ownGarminRun?async sessionId=>{
+  window.mileRunningIQ.render(host,result,{detailsOpen:!!restoreAnalysis,renderCharts:points.length?node=>{
+   if(points.some(point=>point.hr!==null))node.innerHTML='<h3>Recorded heart rate</h3>'+milePlot(points,'hr','Heart rate','bpm','#ff626b',summary);
+   const pacePoints=milePaceSeries(points,summary);
+   if(pacePoints.some(point=>point.pace!==null))node.insertAdjacentHTML('beforeend',
+    '<h3>Recorded pace</h3>'+milePlot(pacePoints,'pace','Pace','min/km','#86efb5',summary));
+  }:null,confirmMatch:ownGarminRun?async sessionId=>{
    if(userId!==matchOwner||state!==matchState||!host.isConnected||String(openActivityId)!==String(a.id))return;
    const candidates=state.workouts.filter(w=>canConfirmMatch(w,a));
    const latest=window.mileRunningAnalysis.reconcile({...a,date:activityDate(a),sport:'Running',durationMin:activityDuration(a)},candidates,[]);
    if(!latest.candidates.some(id=>String(id)===String(sessionId))){notice('This match is no longer available. Review the current schedule.');return}
    if(await confirmMatch(sessionId,a.id)&&userId===matchOwner&&state===matchState&&String(openActivityId)===String(a.id))drawDetail();
   }:null});
+  if(restoreAnalysis)overlay.scrollTop=analysisScroll;
   if(document.documentElement.dataset.mileStaging==='true'&&v4Ready&&userId&&token&&
     state.settings.supabaseUrl==='https://fnyfeelynaozxtftrrga.supabase.co'&&window.mileTrainingRevisions){
    const owner=userId,trainingState=state;
@@ -5761,4 +5777,4 @@ document.addEventListener('input',e=>{if(e.target.id!=='m79-message-search')retu
 document.addEventListener('change',e=>{if(e.target.id!=='m36-activity'&&e.target.name!=='m383-mode')return;const el=document.getElementById('m79-activity-preview');if(!el)return;const select=document.getElementById('m36-activity');const id=select?.value;const a=(state.activities||[]).find(x=>String(x.id)===id);el.hidden=!a||document.querySelector('input[name="m383-mode"]:checked')?.value==='manual';if(el.hidden)return;const payload=window.m79ActivityPayload?.(a,'private')||null;el.replaceChildren();const title=document.createElement('strong');title.textContent=a.name||a.activityName||a.type||'Workout';el.append(title);const grid=document.createElement('div');grid.className='m79-preview-metrics';for(const [label,val] of [['Distance',payload?.distance_m!=null?(payload.distance_m/1000).toFixed(2)+' km':'Not recorded'],['Duration',payload?.duration_s!=null?Math.round(payload.duration_s/60)+' min':'Not recorded']]){const cell=document.createElement('div'),l=document.createElement('small'),v=document.createElement('strong');l.textContent=label;v.textContent=val;cell.append(l,v);grid.append(cell)}el.append(grid)});
 })();
 </script><script src="./mile-admin-centre.js?v=85"></script>
-<link rel="stylesheet" href="./mile-85-auth.css?v=85"><link rel="stylesheet" href="./mile-873.css?v=87.3"><script src="./mile-device-sync.js?v=87.5"></script><script src="./mile-split-share.js?v=1"></script><link rel="stylesheet" href="./mile-86.css?v=86"><script src="./mile-86-health-preview.js?v=86"></script><link rel="stylesheet" href="./mile-intervals.css?v=87.5"><script src="./mile-intervals.js?v=87.5"></script><script src="./mile-running-workout.js?v=2"></script><script src="./mile-running-analysis.js?v=88.4.2"></script><script src="./mile-running-iq.js?v=88.6.5"></script><script src="./mile-training-revisions.js?v=88.5.1"></script><link rel="stylesheet" href="./mile-compact.css?v=87.7.4"><script>(function(){const p=new URLSearchParams(location.search),a=p.get('mileSocial');if(!['back','notifications'].includes(a))return;let tries=0;const timer=setInterval(()=>{if(++tries>1800){clearInterval(timer);return}if(typeof v4Ready==='undefined'||!v4Ready||!window.m36Open)return;clearInterval(timer);p.delete('mileSocial');history.replaceState(null,'',location.pathname+(p.size?'?'+p.toString():'')+location.hash);if(a==='notifications')window.m36Open('notifications');else if(!document.getElementById('m36-drawer'))window.m36Drawer?.()},250)})();</script><link rel="stylesheet" href="./mile-running-build.css?v=88.4"><script src="./mile-running-plan.js?v=88.4"></script><script src="./mile-running-build.js?v=88.4"></script></body></html>
+<link rel="stylesheet" href="./mile-85-auth.css?v=85"><link rel="stylesheet" href="./mile-873.css?v=87.3"><script src="./mile-device-sync.js?v=87.5"></script><script src="./mile-split-share.js?v=1"></script><link rel="stylesheet" href="./mile-86.css?v=86"><script src="./mile-86-health-preview.js?v=86"></script><link rel="stylesheet" href="./mile-intervals.css?v=87.5"><script src="./mile-intervals.js?v=87.5"></script><script src="./mile-running-workout.js?v=2"></script><script src="./mile-running-analysis.js?v=88.4.2"></script><script src="./mile-running-iq.js?v=88.7"></script><script src="./mile-training-revisions.js?v=88.5.1"></script><link rel="stylesheet" href="./mile-compact.css?v=87.7.4"><script>(function(){const p=new URLSearchParams(location.search),a=p.get('mileSocial');if(!['back','notifications'].includes(a))return;let tries=0;const timer=setInterval(()=>{if(++tries>1800){clearInterval(timer);return}if(typeof v4Ready==='undefined'||!v4Ready||!window.m36Open)return;clearInterval(timer);p.delete('mileSocial');history.replaceState(null,'',location.pathname+(p.size?'?'+p.toString():'')+location.hash);if(a==='notifications')window.m36Open('notifications');else if(!document.getElementById('m36-drawer'))window.m36Drawer?.()},250)})();</script><link rel="stylesheet" href="./mile-running-build.css?v=88.5"><script src="./mile-running-plan.js?v=88.5"></script><script src="./mile-running-build.js?v=88.4"></script></body></html>

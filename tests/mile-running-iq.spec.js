@@ -38,7 +38,7 @@ test('88.1 analysis is read-only and UI does not invent adherence',async({page})
  });
  expect(result.text).toContain('Linked session: Easy run');
  expect(result.text).toContain('Verified step alignment required');
- expect(result.text).toContain('No workout targets or future sessions have been changed');
+ expect(result.text).toContain('Keep the current plan.');
  expect(JSON.parse(result.plan).km).toBe(8);
 });
 
@@ -53,7 +53,7 @@ test('88.3 planned and unplanned analysis render distinct evidence-gated section
  return {planned:render([p]),unplanned:render([]),ambiguous:render([p,p])};
  });
  expect(result.planned).toContain('Session execution');expect(result.planned).toContain('100%');expect(result.planned).toContain('Verified step alignment required');
- expect(result.unplanned).toContain('Training contribution');expect(result.unplanned).not.toContain('Distance completed');expect(result.ambiguous).toContain('Training contribution');
+ expect(result.unplanned).toContain('No scheduled session linked.');expect(result.unplanned).not.toContain('Distance completed');expect(result.ambiguous).toContain('No scheduled session linked.');
 });
 
 test('88.3 verified repetitions show planned and recorded pace and recorded recovery',async({page})=>{
@@ -90,18 +90,26 @@ test('88.3 verified repetitions show planned and recorded pace and recorded reco
   }
  });
  const verified=page.locator('#verified'),unverified=page.locator('#unverified');
- const execution=verified.locator('section').filter({has:page.getByRole('heading',{name:'Session execution',exact:true})});
- await expect(execution).toContainText('Planned duration estimate32 min');
- await expect(execution).toContainText('Recorded duration30 min 45 s');
- await expect(execution).toContainText('Pace spread between repetitions9 s/km');
- await expect(unverified).toContainText('Verified step alignment required');
- await expect(unverified.locator('details')).toHaveCount(0);
- await expect(unverified).not.toContainText('Pace spread between repetitions');
- const disclosure=execution.getByText('Verified work and recovery steps',{exact:true});
+ const quick=verified.locator('.m881-quick');
+ await expect(quick.locator('h4')).toHaveText(['Session execution','Performance trend','Next session focus','Programme adjustment']);
+ await expect(quick.locator('dl>div')).toHaveCount(3);
+ await expect(quick).toContainText('The recorded work matched');
+ await expect(quick).toContainText('within 9 s/km');
+ expect((await quick.innerText()).split(/\s+/).length).toBeLessThanOrEqual(105);
+ const detail=verified.locator('details');
+ const evidence=detail.getByRole('heading',{name:'Session evidence'});
+ await expect(evidence).toBeHidden();
+ const disclosure=detail.locator('summary');
  expect((await disclosure.boundingBox()).height).toBeGreaterThanOrEqual(44);
- await disclosure.click();
- const steps=execution.locator('details');
- await expect(steps.getByRole('heading')).toHaveText(['Repetition 1','Recovery 1','Repetition 2']);
+ await disclosure.press('Enter');
+ await expect(evidence).toBeVisible();
+ await expect(detail).toContainText('Planned duration estimate32 min');
+ await expect(quick).toContainText('30 min 45 s');
+ await expect(detail).toContainText('Pace spread between repetitions9 s/km');
+ await expect(unverified.locator('.m881-quick')).toContainText('Verified step data are needed');
+ await expect(unverified).not.toContainText('Pace spread between repetitions');
+ const steps=detail.locator('section').filter({has:page.getByRole('heading',{name:'Verified work and recovery steps',exact:true})});
+ await expect(steps.getByRole('heading',{level:4})).toHaveText(['Repetition 1','Recovery 1','Repetition 2']);
  await expect(steps.locator('.mile35-datarow')).toHaveText([
   'Planned step1000 m','Recorded step1000 m · 4 min 11 s','Planned pace4:05/km–4:25/km','Recorded pace4:11/km',
   'Planned step1 min','Recorded step140 m · 1 min 7 s','Recorded average HR141 bpm',
@@ -121,4 +129,35 @@ test('steady heart-rate comparison uses recorded time and speed and never drives
  expect(iq.analyse(run,{points:samples.filter((_,i)=>i<300||i>390),workouts:[workout]}).heartRateChange).toBeNull();
  const faster=samples.map((p,i)=>({...p,dist:i<=300?p.dist:4500+(i-300)*23}));
  expect(iq.analyse(run,{points:faster,workouts:[workout]}).heartRateChange).toBeNull();
+});
+
+
+test('an aerobic brief compares only same-source, comparable runs on separate days',()=>{
+ const run={id:'current',date:'2026-11-24',source:'garmin-developer-api',distanceKm:8,durationMin:44,averageHR:147};
+ const history=[{id:'one',date:'2026-11-03',averageHR:138},{id:'two',date:'2026-11-09',averageHR:142},
+  {id:'three',date:'2026-11-18',averageHR:140},{id:'duplicate',date:'2026-11-18',averageHR:205},
+  {id:'faster',date:'2026-11-20',durationMin:31,averageHR:200},{id:'other-source',date:'2026-11-21',source:'MILE',averageHR:220},
+  {id:'indoors',date:'2026-11-22',type:'TREADMILL_RUNNING',averageHR:210},
+ ].map(entry=>({...run,...entry}));
+ const workouts=[run,...history].map(entry=>({id:'plan-'+entry.id,sport:'Running',kind:'easy',matchId:entry.id}));
+ const result=iq.analyse(run,{workouts,history});
+ expect(result.historicalHR).toEqual({count:3,medianBpm:140,currentBpm:147,differenceBpm:7});
+ expect(iq.brief(result).trend).toContain('7 bpm higher than your recent median');
+ expect(iq.brief(result).adjustment).toBe('Keep the current plan.');
+ expect(iq.analyse({...run,type:'treadmill_running'},{workouts,history}).historicalHR).toBeNull();
+ expect(iq.analyse(run,{workouts,history:history.slice(0,2)}).historicalHR).toBeNull();
+});
+
+test('continuous HR execution needs a reliable full-session trace and a single prescribed range',()=>{
+ const run={id:'easy',distanceKm:8,durationMin:40};
+ const workout={sport:'Running',matchId:'easy',kind:'easy',detail:'same',structuredDetail:'same',
+  structuredSteps:[{kind:'step',intensity:'active',duration:{kind:'distance',meters:8000},
+   target:{kind:'heart_rate',lowBpm:115,highBpm:140}}]};
+ const samples=Array.from({length:481},(_,i)=>({t:i*5,hr:i<160?145:125,dist:i*16.67}));
+ const result=iq.analyse(run,{workouts:[workout],points:samples});
+ expect(result.aerobicRange.percent).toBe(67);
+ expect(iq.brief(result).metrics).toContainEqual(['In HR range','67%']);
+ expect(iq.brief(result).execution).toContain('outside the prescribed range');
+ expect(iq.analyse(run,{workouts:[workout],points:samples.slice(0,30)}).aerobicRange).toBeNull();
+ expect(iq.analyse({...run,sensorError:true},{workouts:[workout],points:samples}).aerobicRange).toBeNull();
 });

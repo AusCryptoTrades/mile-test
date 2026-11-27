@@ -221,3 +221,27 @@ test('tight session limits produce a timed aerobic run without rounding up',()=>
   expect(session.plannedMinutes).toBeLessThanOrEqual(7);
  }
 });
+
+test('quality sessions use bounded preparation and recovery rather than padding weekly distance',()=>{
+ const lib=require('../mile-running-workout.js');
+ const athlete={...completeAthlete,level:'advanced',weeklyKm:[95,95,95,95],longestKm:31,
+  easyZone:{lowBpm:120,highBpm:145},recoveryZone:{lowBpm:105,highBpm:121}};
+ const mixed=engine.generate({...planInput,weeks:24,athlete,adaptation:{intervalRecovery:'heart_rate'}});
+ const sessions=mixed.weeks.flatMap(w=>w.sessions);
+ const quality=sessions.filter(s=>s.structuredSteps.some(step=>step.intensity==='interval'));
+ expect(quality.some(s=>s.kind==='ladder')).toBe(true);
+ expect(quality.some(s=>s.kind==='progressive')).toBe(true);
+ for(const session of quality){
+  const steps=lib.expand(session.structuredSteps);
+  const atEasyPace=d=>d.meters!==undefined?d.meters*session.estimatedPaceSeconds/1000:d.seconds??d.fallbackSeconds;
+  expect(atEasyPace(steps[0].duration)).toBeLessThanOrEqual(900);
+  expect(atEasyPace(steps.at(-1).duration)).toBeLessThanOrEqual(540);
+  for(const step of steps.filter(s=>s.intensity==='recovery')){
+   expect(atEasyPace(step.duration)).toBeGreaterThanOrEqual(60);
+   expect(atEasyPace(step.duration)).toBeLessThanOrEqual(120);
+  }
+  const budget=steps.reduce((sum,step)=>sum+atEasyPace(step.duration),0);
+  expect(session.estimatedSeconds).toBeCloseTo(Math.ceil(budget),0);
+ }
+ expect(sessions.find(s=>s.kind==='progressive').structuredSteps.some(s=>s.intensity==='active')).toBe(true);
+});

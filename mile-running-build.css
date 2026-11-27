@@ -26,3 +26,18 @@
 .m882-build .m882-week>summary,.m882-session>summary{line-height:1.4;overflow-wrap:anywhere}
 .m882-workout-steps>div{grid-template-columns:minmax(82px,24%) minmax(0,1fr)}
 .m3933-workout .m882-workout-steps{white-space:normal}
+.m881-quick-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:10px 0 4px}
+.m881-quick-metrics>div{padding:7px 9px;border:1px solid var(--line);border-radius:9px;min-width:0}
+.m881-quick-metrics dt{font-size:11px;color:var(--muted)}
+.m881-quick-metrics dd{margin:2px 0 0;font-size:15px;font-weight:750;overflow-wrap:anywhere}
+.m881-quick-notes>section{border-bottom:1px solid var(--line);padding:6px 0}
+.m881-quick-notes>section:last-child{border-bottom:0;padding-bottom:1px}
+.m881-quick-notes h4{margin:0;font-size:13px}
+.m881-quick-notes p{margin:2px 0 0;font-size:13px}
+#mile35-detail .m881-detailed{padding-block:0;overflow:hidden}
+.m881-detailed>summary{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:750;cursor:pointer}
+.m881-detailed>summary::after{content:'+';font-size:18px;color:var(--muted)}
+.m881-detailed[open]>summary::after{content:'−'}
+.m881-detailed>summary:focus-visible{outline:2px solid var(--accent,var(--orange));outline-offset:-2px}
+.m881-detailed>.m881-analysis,.m881-detailed-charts{margin:0 0 10px;padding:9px 0;border:0;border-top:1px solid var(--line);border-radius:0}
+.m881-detailed-charts:empty{display:none}

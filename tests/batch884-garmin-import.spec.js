@@ -210,17 +210,16 @@ test('private Analysis presents ambiguous Garmin candidates for confirmation and
   await expect(ambiguous.getByRole('button',{name:'Link to Morning aerobic run',exact:true})).toHaveText('Link');
   await expect(ambiguous.getByRole('button',{name:'Link to Steady run',exact:true})).toHaveText('Link');
   const detail = page.locator('#mile35-detail');
-  await expect(detail.getByRole('heading', { name: 'Scheduled match unresolved' })).toBeVisible();
+  await expect(detail.locator('.m881-quick')).toContainText('Confirm the scheduled match before changing the plan.');
   await expect(detail).toContainText('Running distance recorded this week14.0 km');
-  await expect(detail.getByRole('heading', { name: 'Additional demanding run' })).toHaveCount(0);
+  await expect(detail.locator('.m881-quick')).not.toContainText('additional demanding run');
   await reviewImage(info,'03-running-match-review',ambiguous);
   await detail.getByRole('button', { name: /Back/ }).click();
 
   const unmatched = await openReview('Unmatched Garmin run');
   await expect(unmatched).toContainText('No comparable scheduled runs on this date.');
   await expect(unmatched.locator('.mile35-datarow')).toHaveCount(0);
-  await expect(detail.getByRole('heading', { name: 'Additional demanding run' })).toBeVisible();
-  await expect(detail).toContainText('Upcoming intervals · 2026-11-28');
+  await expect(detail.locator('.m881-quick')).toContainText('Review Upcoming intervals for enough recovery after this additional demanding run.');
   expect(await page.evaluate(()=>confirmMatch('done','783649251'))).toBe(false);
   expect(await page.evaluate(()=>confirmMatch('foreign-run','783649251'))).toBe(false);
   expect(writes).toEqual([]);

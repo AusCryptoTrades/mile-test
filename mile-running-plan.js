@@ -119,33 +119,47 @@ function makeSession(kind,m,a,phase,week=0,recoveryMode='distance'){
  const distance=meters=>({kind:'distance',meters}), time=seconds=>({kind:'time',seconds});
  const step=(intensity,description,duration,target)=>({kind:'step',intensity,description,duration,target});
  const timeBudget=meters=>Math.floor(meters*slow/1000);
- const recover=(meters,allowTrigger=true)=>{
-  const limit=Math.min(120,timeBudget(meters));
-  if(!['time','heart_rate'].includes(recoveryMode)||limit<30)return step('recovery','Easy jog between repetitions',distance(meters),recovery);
+ const recoveryStep=(work,allowTrigger=true)=>{
+  const workSeconds=work.seconds??timeBudget(work.meters);
+  const steadyQuality=['cruise','threshold','tempo','half','marathon'].includes(kind);
+  const seconds=kind==='strides'?60:steadyQuality?Math.max(60,Math.min(90,Math.ceil(workSeconds/3/15)*15)):
+   Math.max(60,Math.min(120,Math.ceil(workSeconds*.5/15)*15));
+  if(recoveryMode==='distance'){
+   const meters=Math.min(300,Math.max(100,Math.floor(seconds/slow*1000/50)*50));
+   return step('recovery','Easy jog between repetitions',distance(meters),recovery);
+  }
   const trigger=recoveryTarget?.highBpm??easyTarget?.lowBpm;
-  const suitable=allowTrigger&&a.recovery==='normal'&&t.demanding&&bpm(trigger)&&limit>=60&&
+  const suitable=allowTrigger&&a.recovery==='normal'&&t.demanding&&bpm(trigger)&&
    (!bpm(a.restingHR)||trigger>=a.restingHR+15)&&(!easyTarget||trigger<=easyTarget.highBpm);
-  const duration=recoveryMode==='heart_rate'&&suitable?{kind:'heart_rate',direction:'below',bpm:trigger,fallbackSeconds:limit}:time(limit);
+  const duration=recoveryMode==='heart_rate'&&suitable?{kind:'heart_rate',direction:'below',bpm:trigger,fallbackSeconds:seconds}:time(seconds);
   return step('recovery','Walk or jog easily',duration,recovery);
  };
+ const distanceBudget=d=>d.meters??Math.ceil((d.seconds??d.fallbackSeconds)*1000/slow);
  const steps=[];
  if(continuous.has(kind)){
   const target=kind==='recovery'?recovery:kind==='steady'?steadyTarget||aerobic:aerobic;
   const duration=m>=1000?distance(m):time(timeBudget(m));
   steps.push(step('active',t.focus,duration,target));
- }else if(kind==='strides'&&m>=4000){
-  steps.push(step('warmup','Easy running before strides',distance(m-1400),aerobic));
-  for(let i=0;i<4;i++){
-   steps.push(step('interval','Relaxed stride',distance(100),open));
-   if(i<3)steps.push(recover(200,false));
-  }
-  steps.push(step('cooldown','Easy running',distance(400),recovery));
  }else if(m>=4000){
-  const work=intervalWork(kind,t,m,week,slow);
-  const rest=work.length>1?Math.min(300,round(m*.13/(work.length-1))):0;
-  const reserved=work.reduce((sum,d)=>sum+(d.meters??Math.ceil(d.seconds*1000/slow)),0);
-  const remaining=m-reserved-rest*Math.max(0,work.length-1);
-  if(work.length&&remaining>=600&&(work.length===1||rest>=100)){
+  const work=kind==='strides'?Array.from({length:4},()=>distance(100)):intervalWork(kind,t,m,week,slow);
+  const timedWarmup=['hills','fartlek','tempo'].includes(kind);
+  // Set the preparation and easy finish independently of the weekly mileage.
+  // Cap both by time even when they are expressed in metres.
+  const warmLimit=Math.min(2400,round(15*60/slow*1000));
+  const coolLimit=Math.min(1400,round(9*60/slow*1000));
+  const required=work.map((duration,i)=>({
+   duration,rest:i<work.length-1?recoveryStep(duration,kind!=='strides'):null,
+  }));
+  let workAndRecovery=required.reduce((sum,rep)=>sum+distanceBudget(rep.duration)+(rep.rest?distanceBudget(rep.rest.duration):0),0);
+  while(!intervalPatterns[kind]&&kind!=='strides'&&required.length>2&&m-workAndRecovery<1500){
+   const last=required.pop();
+   workAndRecovery-=distanceBudget(last.duration);
+   const prior=required.at(-1);
+   workAndRecovery-=distanceBudget(prior.rest.duration);
+   prior.rest=null;
+  }
+  const room=m-workAndRecovery;
+  if(required.length&&room>=1500){
    const five=positive(a.fiveKSeconds)&&a.fiveKSeconds>=750&&a.fiveKSeconds<=6000?a.fiveKSeconds/5:null;
    const offsets={cruise:[0,15],threshold:[0,15],tempo:[5,20],race10:[-5,10],half:[10,30],marathon:[25,50],fartlek:[-5,15],ladder:[-5,10],pyramid:[-5,10],mixed:[-5,10],vo2:[-18,-4],race5:[-18,-4]};
    const benchmarkOffsets={cruise:[15,30],threshold:[15,30],tempo:[20,35],race10:[8,23],half:[25,45],marathon:[45,70],fartlek:[8,25],ladder:[5,20],pyramid:[5,20],mixed:[5,20],vo2:[0,15],race5:[0,10]};
@@ -154,22 +168,27 @@ function makeSession(kind,m,a,phase,week=0,recoveryMode='distance'){
    if(five!==null&&['vo2','race5'].includes(kind))quality=paceRange(five,benchmarkOffsets[kind]);
    else if(threshold!==null&&offsets[kind])quality=paceRange(threshold,offsets[kind]);
    else if(five!==null&&benchmarkOffsets[kind])quality=paceRange(five,benchmarkOffsets[kind]);
-   const warm=round(remaining*(kind==='progressive'?.88:.55));
-   const timedWarmup=kind==='hills'||kind==='fartlek'||kind==='tempo';
+   const warm=Math.min(warmLimit,round(room*.64));
+   const cool=Math.min(coolLimit,round(room-warm));
    steps.push(step('warmup','Easy running',timedWarmup?time(timeBudget(warm)):distance(warm),aerobic));
-   work.forEach((duration,i)=>{
-    steps.push(step('interval',t.name,duration,quality));
-    if(i<work.length-1)steps.push(recover(rest));
-   });
-   const cool=remaining-warm;
+   if(kind==='progressive'&&room-warm-cool>0){
+    steps.push(step('active','Aerobic endurance before the steady finish',distance(room-warm-cool),aerobic));
+   }
+   for(const {duration,rest} of required){
+    steps.push(step('interval',kind==='strides'?'Relaxed stride':t.name,duration,quality));
+    if(rest)steps.push(rest);
+   }
    steps.push(step('cooldown','Easy running',timedWarmup&&kind!=='fartlek'?time(timeBudget(cool)):distance(cool),recovery));
   }
  }
  if(!steps.length)return null;
  const fixedMeters=steps.reduce((sum,item)=>sum+(item.duration.meters??0),0);
  const fixedSeconds=steps.reduce((sum,item)=>sum+(item.duration.seconds??0),0);
- const seconds=Math.ceil(fixedMeters*slow/1000+fixedSeconds+steps.reduce((sum,item)=>sum+(item.duration.fallbackSeconds??0),0));
- return {name:t.name,kind,phase,meters:m,km:m/1000,...(fixedMeters!==m?{fixedMeters}:{}),plannedMinutes:Math.ceil(seconds/60),estimatedSeconds:seconds,
+ const fallbackSeconds=steps.reduce((sum,item)=>sum+(item.duration.fallbackSeconds??0),0);
+ const seconds=Math.ceil(fixedMeters*slow/1000+fixedSeconds+fallbackSeconds);
+ const timed=steps.some(item=>item.duration.kind!=='distance');
+ const meters=timed?Math.min(m,fixedMeters+Math.ceil((fixedSeconds+fallbackSeconds)*1000/slow)):fixedMeters;
+ return {name:t.name,kind,phase,meters,km:meters/1000,...(timed?{fixedMeters}:{}),plannedMinutes:Math.ceil(seconds/60),estimatedSeconds:seconds,
   estimatedPaceSeconds:slow,paceEstimateOnly:easy===null,demanding:!!t.demanding,purpose:t.purpose,focus:t.focus,structuredSteps:steps};
 }
 function buildReturnPlan(input,base,start,available,hard,dayMinutes){
@@ -324,18 +343,27 @@ function generate(input={}){
    if(!candidates.length)break;
    const {j,increment}=candidates[0];allocations[j]+=increment;remaining-=increment;
   }
+  const daily=slots.map((_,j)=>allocations[j]?makeSession(priority[j].kind,allocations[j],a,phase,i,input.adaptation?.intervalRecovery):null);
+  let availableMeters=target-daily.reduce((sum,session)=>sum+(session?.meters??0),0);
+  const aerobicSlots=priority.filter(slot=>daily[slot.j]&&continuous.has(slot.kind)&&slot.increment===1000);
+  while(availableMeters>=1000){
+   const slot=aerobicSlots.filter(({j})=>allocations[j]+1000<=capacity[j])
+    .sort((x,y)=>allocations[x.j]/x.weight-allocations[y.j]/y.weight||x.j-y.j)[0];
+   if(!slot)break;
+   allocations[slot.j]+=1000;
+   availableMeters-=1000;
+  }
   const sessions=slots.flatMap((o,j)=>{
-   const m=allocations[j];
-   if(!m)return [];
-   const kind=priority[j].kind;
-   const session=makeSession(kind,m,a,phase,i,input.adaptation?.intervalRecovery);
-   if(!session)return [];
+   const original=daily[j];
+   if(!original)return [];
+   const session=continuous.has(original.kind)&&allocations[j]!==original.meters&&allocations[j]>=1000?
+    makeSession(original.kind,allocations[j],a,phase,i,input.adaptation?.intervalRecovery):original;
    const date=new Date(st+(i*7+o.offset)*86400000).toISOString().slice(0,10);
    return [{...session,date,day:o.day,planWeek:i+1,durationLimitMinutes:durationLimits[j]}];
   });
   const meters=sessions.reduce((x,y)=>x+y.meters,0);
   if(sessions.length<slots.length&&!warnings.includes('Some selected days could not fit within the duration and weekly limits.'))warnings.push('Some selected days could not fit within the duration and weekly limits.');
-  if(meters<target&&!warnings.includes('Whole-kilometre steps, session limits or other sports reduced planned mileage.'))warnings.push('Whole-kilometre steps, session limits or other sports reduced planned mileage.');
+  if(meters<target&&!warnings.includes('Whole-kilometre steps, workout structure or session limits reduced planned mileage.'))warnings.push('Whole-kilometre steps, workout structure or session limits reduced planned mileage.');
   if(!meters)break;
   plan.push({week:i+1,phase,meters,km:meters/1000,plannedMinutes:sessions.reduce((x,y)=>x+y.plannedMinutes,0),sessions});
   if(phase!=='Recovery')preRecovery=meters;previousPhase=phase;

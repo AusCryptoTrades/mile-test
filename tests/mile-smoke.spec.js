@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const reviewImage = require('./overnight-review-image');
 
 const activity = {
   id: '123456789', name: 'Fixture morning run', sport: 'Running',
@@ -70,7 +71,7 @@ async function openActivity(page) {
 }
 
 function runningReviewFixture({ matched = false, recordedDuration = 1800, sampleCount = 361 } = {}) {
-  const run = { ...activity, distanceKm: 6, durationSeconds: recordedDuration };
+  const run = { ...activity, distanceKm: 6, durationSeconds: recordedDuration, averageHR: 175 };
   const future = { id: 'next-quality', block: 'running-review', name: 'Threshold Intervals', sport: 'Running', date: '2026-11-22', status: 'planned', targetRpe: 7, km: 10 };
   const completed = { ...future, id: 'completed', name: 'Completed session', date: '2026-11-21', status: 'done' };
   const foreignPlan = { ...future, id: 'other-programme', block: 'other-block', name: 'Other programme session', date: '2026-11-21' };
@@ -84,11 +85,13 @@ function runningReviewFixture({ matched = false, recordedDuration = 1800, sample
       activities: [run], workouts: [future, completed, foreignPlan, ...(matched ? [linked] : [])], blocks: [block], activeBlock: block.id,
       settings: { athleteProfile: { zoneBounds: [100, 120, 140, 155, 170, 190] } },
     } },
-    intervalFixture: { samples: Array.from({ length: sampleCount }, (_, i) => ({ timestamp: 1794985200000 + i * 5000, heartRate: 175 })) },
+    intervalFixture: { samples: Array.from({ length: sampleCount }, (_, i) => ({
+      timestamp: 1794985200 + i * 5, heartRate: 175, distanceInMeters: i * 6000 / (sampleCount - 1),
+    })) },
   };
 }
 
-test('88.3 private Analysis reviews an upcoming session after a demanding unplanned run', async ({ page }) => {
+test('88.3 private Analysis reviews an upcoming session after a demanding unplanned run', async ({ page }, info) => {
   await openApp(page, runningReviewFixture());
   const persistedRequests = [];
   page.on('request', request => {
@@ -96,14 +99,21 @@ test('88.3 private Analysis reviews an upcoming session after a demanding unplan
   });
   const detail = await openActivity(page);
   await detail.getByRole('button', { name: 'Analysis', exact: true }).click();
-  const review = detail.locator('section').filter({ has: page.getByRole('heading', { name: 'Adaptation review', exact: true }) });
-  await expect(review).toContainText('Additional demanding run');
-  await expect(review).toContainText('100% of covered recorded heart-rate time was in Zones 4 and 5.');
-  await expect(review).toContainText('Threshold Intervals · 2026-11-22');
-  await expect(review).toContainText('Review can start now');
+  const quick = detail.locator('.m881-quick');
+  const review = quick.locator('section').filter({ has: page.getByRole('heading', { name: 'Programme adjustment', exact: true }) });
+  await expect(review).toContainText('Review Threshold Intervals for enough recovery after this additional demanding run.');
   await expect(review.getByRole('button')).toHaveCount(0);
-  await expect(detail).toContainText('Running distance recorded this week6.0 km');
-  await expect(detail).toContainText('Recorded duration30 min');
+  await expect(quick).toContainText('Time30 min');
+  const advanced=detail.locator('.m881-detailed');
+  await expect(advanced.getByRole('heading',{name:'Recorded heart rate distribution'})).toBeHidden();
+  await expect(advanced.locator('svg')).toHaveCount(0);
+  await reviewImage(info,'06-running-analysis-brief',quick);
+  await advanced.locator('summary').click();
+  await expect(advanced.getByRole('heading',{name:'Recorded heart rate',exact:true})).toBeVisible();
+  await expect(advanced.getByRole('img',{name:/Heart rate with time/})).toContainText('30:00');
+  await expect(advanced.getByRole('img',{name:/Pace with time/})).toContainText('29:50');
+  await expect(advanced).toContainText('Running distance recorded this week6.0 km');
+  await reviewImage(info,'07-running-analysis-detail-chart',advanced.locator('.mile352-plot').first());
   await expect(detail).not.toContainText('Distance completed');
   await expect(detail.locator('.mile35-footer')).toContainText('private');
   expect(await review.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
@@ -116,14 +126,16 @@ test('88.3 private Analysis preserves targets for a linked run without verified 
   await detail.getByRole('button', { name: 'Analysis', exact: true }).click();
   await expect(detail).toContainText('Linked session: Planned aerobic run');
   await expect(detail).toContainText('Build aerobic endurance.');
-  const execution = detail.locator('section').filter({ has: page.getByRole('heading', { name: 'Session execution', exact: true }) });
-  await expect(execution).toContainText('Planned duration estimate34 min');
-  await expect(execution).toContainText('Recorded duration30 min');
-  await expect(execution).toContainText('Verified step alignment required');
-  await expect(execution.locator('details')).toHaveCount(0);
-  await expect(detail).toContainText('Comparable trend unavailable');
-  await expect(detail).toContainText('Additional evidenceRequired');
-  await expect(detail).not.toContainText('Upcoming session to review');
+  const quick=detail.locator('.m881-quick');
+  await expect(quick).toContainText('Time30 min');
+  await expect(quick).toContainText('Verified step data are needed');
+  await expect(quick).toContainText('Keep the current plan.');
+  const advanced=detail.locator('.m881-detailed');
+  await expect(advanced.getByRole('heading',{name:'Session evidence'})).toBeHidden();
+  await advanced.locator('summary').click();
+  await expect(advanced).toContainText('Planned duration estimate34 min');
+  await expect(advanced).toContainText('Verified step alignment required');
+  await expect(advanced.getByRole('heading',{name:'Verified work and recovery steps'})).toHaveCount(0);
 });
 
 test.beforeEach(async ({ page }) => {

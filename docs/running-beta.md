@@ -16,10 +16,10 @@ The repository runner could inspect MILE Staging via its management connector. I
 | Stage | Owner | Tester |
 | --- | --- | --- |
 | Access | Verify disclaimer version and invitation isolation, and sign out and back in. | Verify the invitation works only on your staging account and onboarding resumes. |
-| Build | Generate a modest plan from entered preferences and check an easy, long and structured session. | Review the plan against your own safe availability and save only if appropriate. Review alone counts. |
+| Build | Generate a modest plan from entered preferences and check an easy, long and structured session. Confirm warm-up, work, recovery and cool-down each have a purpose. | Review the plan against your own safe availability and save only if appropriate. Review alone counts. |
 | Calendar and Tracker | Check one-step whole-kilometre runs, hours and minutes, zone labels and structured mixed steps. | Open a suitable session from Calendar in Tracker. Stop after inspecting it if the workout is unsuitable. |
 | Garmin | With an approved sandbox, choose one appropriate scheduled workout, preview it and publish once. Compare the watch with Calendar. | Verify the distance countdown, timed transitions and lap press with the short [controlled watch check](garmin-step-check.md). Use gentle movement for HR crossing or record that the condition was unresolved. |
-| Import and Analysis | In the sandbox, import the completed activity, confirm its scheduled match and check MILE IQ. Check a second device retains the link. | Review a match and the activity summary. Review a recovery proposal only if an eligible check-in produces one. |
+| Import and Analysis | In the sandbox, import the completed activity, confirm its scheduled match and check MILE IQ. Check a second device retains the link. | Read the MILE IQ brief and open **Detailed Analysis** to see available charts and comparisons. Report any claim that goes beyond the data. Review a recovery proposal only if an eligible check-in produces one. |
 
 When finished, use **Settings → Connected devices → Download beta report**. The file contains only the build identifier and completed checkpoints. Add the watch model, firmware, browser and a short description of any unexpected transition separately. Crop screenshots to the workout step and omit names, emails, account/device IDs, route maps and exact timestamps. Use the runbook's sanitisation rules before supplying a publication/completion pair.
 
