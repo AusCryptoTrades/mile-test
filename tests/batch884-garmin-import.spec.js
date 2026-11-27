@@ -14,13 +14,17 @@ async function signIn(page, athlete) {
   await expect(gate).toBeHidden();
 }
 
-test('a pending Garmin import stays with its signed-in athlete and repeat imports stay unique', async ({ page }) => {
+async function signOut(page) {
+  await page.evaluate(() => window.mileV3Go('settings'));
+  await page.locator('[data-m771-open="account"]').first().click();
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('[data-m771-action="logout"]').click();
+  await expect(page.locator('#v4Gate')).toBeVisible();
+}
+
+async function routeGarmin(page, { activities = () => [], read = () => ({ activities: [], health: [] }) } = {}) {
   const origin = new URL(test.info().project.use.baseURL).origin;
   const backend = 'https://mgixvokjlytjuypzcfzz.supabase.co';
-  const calls = [];
-  let releaseFirst;
-  const pendingFirst = new Promise(resolve => { releaseFirst = resolve; });
-
   await page.route('**/*', async route => {
     const request = route.request();
     const url = new URL(request.url());
@@ -37,10 +41,27 @@ test('a pending Garmin import stays with its signed-in athlete and repeat import
     } else if (url.pathname === '/rest/v1/av_members') {
       json = [{ user_id: athlete.id }];
     } else if (url.pathname === '/rest/v1/av_training_data') {
-      json = [{ training_data: { activities: [], workouts: [] } }];
+      json = [{ training_data: { activities: activities(athlete), workouts: [] } }];
     } else if (url.pathname === '/functions/v1/garmin-connection-status') {
       json = { status: 'authorised' };
     } else if (url.pathname === '/functions/v1/garmin-data-read') {
+      json = await read(athlete, url.searchParams.get('activityId'));
+    } else if (url.pathname.startsWith('/rest/v1/')) {
+      json = [];
+    } else {
+      return route.abort();
+    }
+    await route.fulfill({ json, headers: { 'access-control-allow-origin': origin } });
+  });
+}
+
+test('a pending Garmin import stays with its signed-in athlete and repeat imports stay unique', async ({ page }) => {
+  const calls = [];
+  let releaseFirst;
+  const pendingFirst = new Promise(resolve => { releaseFirst = resolve; });
+
+  await routeGarmin(page, {
+    async read(athlete) {
       calls.push(athlete.id);
       if (athlete === athletes[0]) await pendingFirst;
       const row = {
@@ -48,13 +69,8 @@ test('a pending Garmin import stays with its signed-in athlete and repeat import
         activity_type: 'RUNNING', started_at: '2026-11-26T07:00:00Z',
         duration_seconds: 1800, distance_metres: 5000,
       };
-      json = { activities: [row, row], health: [], latest_import: '2026-11-26T07:35:00Z' };
-    } else if (url.pathname.startsWith('/rest/v1/')) {
-      json = [];
-    } else {
-      return route.abort();
-    }
-    await route.fulfill({ json, headers: { 'access-control-allow-origin': origin } });
+      return { activities: [row, row], health: [], latest_import: '2026-11-26T07:35:00Z' };
+    },
   });
 
   try {
@@ -71,11 +87,7 @@ test('a pending Garmin import stays with its signed-in athlete and repeat import
     }, athletes[0].id);
     await signIn(page, athletes[0]);
     await expect.poll(() => calls).toContain(athletes[0].id);
-    await page.evaluate(() => window.mileV3Go('settings'));
-    await page.locator('[data-m771-open="account"]').first().click();
-    page.once("dialog", dialog => dialog.accept());
-    await page.locator('[data-m771-action="logout"]').click();
-    await expect(page.locator('#v4Gate')).toBeVisible();
+    await signOut(page);
     await signIn(page, athletes[1]);
     await page.evaluate(() => window.mileLoadGarminData(true));
     await expect.poll(() => calls).toContain(athletes[1].id);
@@ -92,4 +104,39 @@ test('a pending Garmin import stays with its signed-in athlete and repeat import
   } finally {
     releaseFirst();
   }
+});
+
+test('private Garmin details are fetched again after switching athletes', async ({ page }) => {
+  const id = '24681357';
+  const detailReaders = [];
+  await routeGarmin(page, {
+    activities: athlete => [{
+      id, name: athlete.email + ' private run', type: 'RUNNING',
+      date: '2026-11-26T07:00:00Z', distanceKm: 2, durationMin: 10,
+    }],
+    read(athlete, activityId) {
+      if (activityId !== id) return { activities: [], health: [] };
+      detailReaders.push(athlete.id);
+      return { details: { raw_data: { lapDTOs: [{
+        lapIndex: 1, distanceInMeters: 1000,
+        durationInSeconds: athlete === athletes[0] ? 181 : 362,
+      }] } } };
+    },
+  });
+  await page.clock.setFixedTime(new Date('2026-11-26T12:00:00Z'));
+  await page.goto('/');
+  await expect(page.locator('#mileSplash')).toHaveCount(0);
+
+  for (const [index, athlete] of athletes.entries()) {
+    await signIn(page, athlete);
+    await page.evaluate(() => window.mileV3Go('dashboard'));
+    await page.getByRole('button', { name: new RegExp(athlete.email + ' private run') }).click();
+    const detail = page.locator('#mile35-detail');
+    await detail.getByRole('button', { name: 'Splits', exact: true }).click();
+    await expect(detail.locator('.m875-table tbody tr').first().getByRole('cell').nth(1))
+      .toHaveText(index === 0 ? '3:01' : '6:02');
+    await detail.getByRole('button', { name: /Back/ }).click();
+    if (index === 0) await signOut(page);
+  }
+  expect(detailReaders).toEqual(athletes.map(athlete => athlete.id));
 });
