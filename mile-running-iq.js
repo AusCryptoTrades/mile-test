@@ -39,7 +39,7 @@ function analyse(activity,{workouts=[],points=[],bounds=null}={}){
  const match=linkedWorkout(activity,workouts),zones=zoneDistribution(points,bounds);
  return {kind:match?'linked':'unlinked',name:match?String(match.name||'Scheduled run'):null,
   plannedKm:match?positive(match.km):null,distanceKm:distance,durationMin:duration,
-  pace:distance&&duration?duration*60/distance:null,averageHR:validHR(hr)?hr:null,zones};
+  pace:distance&&duration?duration*60/distance:null,averageHR:validHR(hr)?hr:null,zones,advanced:root.mileRunningAnalysis?.analyse({...activity,distanceKm:distance,durationMin:duration},{plans:workouts,zoneDistribution:zones})||null};
 }
 const fmtPace=n=>{if(n===null||!Number.isFinite(n))return 'Unavailable';const s=Math.round(n);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')+'/km'};
 function render(host,result){
@@ -65,6 +65,21 @@ function render(host,result){
   z.percent.forEach((v,i)=>row(p,'Zone '+(i+1),v.toFixed(1)+'%'));
   row(p,'Outside configured zones',z.outsidePercent.toFixed(1)+'%');
   row(p,'Sample-span coverage',(100*z.coverage/z.span).toFixed(1)+'%');
+ }
+ if(result.advanced){
+  const a=result.advanced;
+  p=section(a.kind==='planned'?'Session execution':'Training contribution');
+  if(a.kind==='planned'){
+   row(p,'Planned distance',a.plannedDistance===null?'Unavailable':a.plannedDistance.toFixed(2)+' km');
+   row(p,'Distance completed',a.totalDistanceRatio===null?'Unavailable':Math.round(a.totalDistanceRatio*100)+'%');
+   row(p,'Main-set execution',a.execution==='insufficient-evidence'?'Not assessed — verified step alignment required':a.execution);
+  }else{
+   row(p,'Recorded stimulus',a.classification.replaceAll('-',' '));
+   p.append(el('p',a.recovery,'muted small'));
+  }
+  p.append(el('p',a.stimulus,'muted small'));
+  for(const note of [...(a.good||[]),...(a.improve||[]),...(a.cautions||[])])p.append(el('p',note,'muted small'));
+  p.append(el('p',a.programmeImpact,'muted small'));
  }
  p=section('Training context');p.append(el('p','This is a descriptive analysis. No workout targets or future sessions have been changed.','muted small'));
 }
