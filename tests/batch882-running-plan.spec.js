@@ -18,7 +18,7 @@ const scenarios=function scenarios(api){
     assert(days.includes(s.day),'availability');
     assert(s.meters===s.structuredSteps.reduce((x,y)=>x+y.duration.meters,0),'step reconciliation');
     assert(s.structuredSteps.every(x=>x.duration.meters>0),'positive steps');
-    assert(s.plannedMinutes<=((s.day===input.schedule.longDay||s.day===result.chosenDays.find(d=>d===s.day&&s.kind==='long')||s.kind==='ultra')?input.schedule.longMinutes:input.schedule.weekdayMinutes)||s.plannedMinutes<=Math.max(input.schedule.longMinutes,input.schedule.weekdayMinutes),'duration envelope');
+    assert(s.plannedMinutes<=s.durationLimitMinutes,'actual slot duration envelope');
     if(s.targetRpe>=6)assert(!hard.some(d=>Math.min((d-s.day+7)%7,(s.day-d+7)%7)<=1),'hard conflict');
    }
   }
