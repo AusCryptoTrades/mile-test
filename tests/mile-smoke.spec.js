@@ -1418,3 +1418,34 @@ test('875 actual activity detail filters typed laps across all MILE themes',asyn
  await detail.getByRole('button',{name:'Recovery',exact:true}).click();await expect(detail.locator('.m875-table tbody tr')).toHaveCount(1);await expect(detail.locator('.m875-summary').first()).toContainText('0.00 km');
  for(const theme of ['forest','graphite','midnight','mono','light','sand','ice']){await page.evaluate(t=>document.documentElement.dataset.m395Theme=t,theme);await expect(detail.locator('.m875-intervals')).toBeVisible();expect(await detail.locator('.m875-intervals').evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true)}
 });
+
+test('875 overview summary uses normal rows only; own and shared tabs have no repeated headline metrics',async({page})=>{
+ await openApp(page,{signedIn:true});
+ const detail=await openActivity(page);
+ await expect(detail.locator('.mile35-metrics')).toHaveCount(0);
+ await expect(detail.locator('.mile35-panel').first().locator('.mile35-datarow span').first()).toHaveText('Distance');
+ await expect(detail.locator('.mile35-panel').first().locator('.mile35-datarow span').nth(1)).toHaveText('Time');
+ for(const tab of ['Charts','Splits','Map']){
+  await detail.getByRole('button',{name:tab,exact:true}).click();
+  await expect(detail.locator('.mile35-metrics')).toHaveCount(0);
+  await expect(detail.locator('.mile35-datarow span').filter({hasText:/^Avg HR$/})).toHaveCount(0);
+ }
+ await detail.getByRole('button',{name:'Overview',exact:true}).click();
+ await expect(detail.locator('.mile35-panel').first().locator('.mile35-datarow span').first()).toHaveText('Distance');
+ await detail.getByRole('button',{name:/back/i}).click();
+ const post={id:'00000000-0000-4000-8000-000000000009',title:'Fixture shared intervals',activity_type:'running',distance_m:2750,duration_s:850,average_pace_s_km:309,average_hr:150,calories:200};
+ await page.route('**/functions/v1/mile-shared-activity-detail?*',route=>route.fulfill({json:{success:true,post,details:{samples:[],summary:{maxHeartRateInBeatsPerMinute:180,activeKilocalories:200}},can_share_route:false},headers:{'access-control-allow-origin':'http://127.0.0.1:4173'}}));
+ await page.evaluate(p=>{window.m36State.posts=[p];return window.m3927OpenSharedActivity(p.id)},post);
+ const shared=page.locator('#m3927-detail');
+ await expect(shared.getByRole('heading',{name:post.title})).toBeVisible();
+ await expect(shared.locator('.m3927-stats')).toHaveCount(0);
+ await expect(shared.locator('.m3927-panel').first().locator('.m3927-row span')).toHaveText(['Distance','Time','Avg pace','Avg HR','Calories']);
+ await expect(shared.locator('.m3927-row span').filter({hasText:/^Calories$/})).toHaveCount(1);
+ for(const tab of ['Charts','Splits','Map']){
+  await shared.getByRole('button',{name:tab,exact:true}).click();
+  await expect(shared.locator('.m3927-stats')).toHaveCount(0);
+  await expect(shared.locator('.m3927-row span').filter({hasText:/^Avg HR$/})).toHaveCount(0);
+ }
+ await shared.getByRole('button',{name:'Overview',exact:true}).click();
+ await expect(shared.locator('.m3927-panel').first().locator('.m3927-row span')).toHaveText(['Distance','Time','Avg pace','Avg HR','Calories']);
+});
