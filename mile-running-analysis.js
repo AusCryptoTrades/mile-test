@@ -136,5 +136,26 @@ function reconcile(activity,plans,deliveries){
  const candidates=eligible.filter(p=>pos(p.km)&&pos(activity.distanceKm)&&Math.abs(p.km-activity.distanceKm)/p.km<=.25).map(p=>p.id);
  return {status:candidates.length?'review':'unplanned',candidates};
 }
-const api={analyse,propose,expand,uniqueMatch,validatedDistribution,align,reconcile};root.mileRunningAnalysis=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
+// Pure revision preparation. Persistence must use an authenticated owner-scoped atomic compare-and-swap.
+function prepareRevision(session,request,ctx={}){
+ const reject=reason=>({ok:false,reason});
+ if(!ctx.ownerId||!session||!same(session.ownerId,ctx.ownerId)||!same(request?.ownerId,ctx.ownerId))return reject('owner-mismatch');
+ if(session.sport!=='Running'||session.status!=='planned'||session.matchId!=null||date(session.date)===null||date(ctx.today)===null||date(session.date)<=date(ctx.today))return reject('protected-session');
+ if(!Number.isInteger(session.revision)||session.revision<1||session.revision!==request.expectedRevision||!same(session.id,request.sessionId))return reject('stale-revision');
+ if(!request.eventId||!request.approvedByAthlete||request.operation!=='reduce-distance')return reject('approval-required');
+ if((ctx.processedIds||[]).map(String).includes(String(request.eventId)))return reject('duplicate-event');
+ if(!['easy','recovery','long','taper','return','ultra'].includes(session.kind))return reject('quality-review-required');
+ const steps=session.structuredDetail===session.detail?expand(session.structuredSteps):null;
+ if(!steps||!steps.every(s=>s.duration.kind==='distance'&&['warmup','active','cooldown'].includes(s.intensity)))return reject('unsupported-structure');
+ const oldMeters=steps.reduce((n,s)=>n+s.duration.meters,0),factor=request.factor;
+ if(!pos(factor)||factor<.8||factor>=1||!pos(session.estimatedSeconds)||!pos(session.plannedMinutes)||session.meters!==oldMeters||Math.abs(session.km*1000-oldMeters)>1)return reject('invalid-reduction');
+ const revised=steps.map(s=>({...s,duration:{kind:'distance',meters:Math.floor(s.duration.meters*factor/100)*100}}));
+ if(revised.some(s=>s.duration.meters<100))return reject('minimum-step');
+ const meters=revised.reduce((n,s)=>n+s.duration.meters,0);
+ if(meters<oldMeters*.8||meters>=oldMeters)return reject('reduction-limit');
+ const detail=revised.map(s=>s.intensity+': '+(s.duration.meters/1000).toFixed(1)+' km').join(' · ');
+ const next={...session,revision:session.revision+1,meters,km:meters/1000,estimatedSeconds:Math.ceil(session.estimatedSeconds*meters/oldMeters),plannedMinutes:Math.ceil(session.estimatedSeconds*meters/oldMeters/60),structuredSteps:revised,detail,structuredDetail:detail};
+ return {ok:true,next,history:{ownerId:ctx.ownerId,sessionId:session.id,eventId:String(request.eventId),fromRevision:session.revision,toRevision:next.revision,before:JSON.parse(JSON.stringify(session)),after:JSON.parse(JSON.stringify(next)),reason:'Athlete-approved aerobic distance reduction'},requiresAtomicPersistence:true,garminAction:'review-republish'};
+}
+const api={analyse,propose,expand,uniqueMatch,validatedDistribution,align,reconcile,prepareRevision};root.mileRunningAnalysis=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(globalThis);
