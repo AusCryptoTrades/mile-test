@@ -1617,3 +1617,29 @@ test('876 auth screen maintains labels and fits the viewport',async({page},testI
  await expect(page.getByLabel('Password',{exact:true})).toBeVisible();
  await densityCapture(page,testInfo,'login');
 });
+
+test('8762 Tracker workout selector is readable and retains native selection across themes',async({page},testInfo)=>{
+ test.setTimeout(90000);
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileShellOpen('tracker'));
+ const frame=page.frameLocator('#mile-native-view'),select=frame.locator('#workout');
+ await expect(select).toBeVisible();
+ for(const theme of ['forest','graphite','midnight','mono','light','sand','ice']){
+  await page.evaluate(t=>window.m395ThemeSet(t),theme);
+  await expect(frame.locator('html')).toHaveAttribute('data-mile-theme',theme);
+  await expect(select).toHaveCSS('appearance','none');
+  const style=await select.evaluate(el=>{
+   const c=getComputedStyle(el),rgb=v=>v.match(/[\d.]+/g).slice(0,3).map(Number);
+   const luminance=v=>rgb(v).map(n=>n/255).map(n=>n<=.04045?n/12.92:((n+.055)/1.055)**2.4).reduce((s,n,i)=>s+n*[.2126,.7152,.0722][i],0);
+   const fg=luminance(c.color),bg=luminance(c.backgroundColor);
+   return {contrast:(Math.max(fg,bg)+.05)/(Math.min(fg,bg)+.05),height:el.getBoundingClientRect().height};
+  });
+  expect(style.contrast).toBeGreaterThanOrEqual(4.5);
+  expect(style.height).toBeGreaterThanOrEqual(44);
+  await densityCapture(page,testInfo,'tracker-selector-'+theme);
+ }
+ await select.selectOption('threshold');await expect(select).toHaveValue('threshold');
+ await expect(frame.locator('#structuredTargets')).toBeVisible();
+ await select.selectOption('free');await expect(select).toHaveValue('free');
+ await expect(frame.locator('#start')).toBeVisible();
+});
