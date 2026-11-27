@@ -1,7 +1,7 @@
 const {test,expect}=require('@playwright/test');
 test('Challenges V2 loads without authentication and shows clear backend status',async({page})=>{
  await page.goto('/mile-challenges.html');
- await expect(page.getByRole('heading',{name:/CHALLENGES/})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Challenges',exact:true})).toBeVisible();
  await expect(page.getByText(/Sign in to MILE/)).toBeVisible();
  await page.getByRole('button',{name:'Create',exact:true}).click();
  await expect(page.getByRole('heading',{name:/CREATE A CHALLENGE/})).toBeVisible();
