@@ -47,3 +47,11 @@ test('Garmin revision matching never guesses or overwrites completed sessions',(
  const cases=[[[p],[],'review'],[[p],[d],'verified-link'],[[p],[d,d],'review'],[[{...p,status:'completed'}],[d],'review'],[[{...p,revision:1}],[d],'review'],[[p,{...p,id:'q'}],[],'review'],[[],[],'unplanned'],[[p],[{...d,verified:false}],'review']];
  for(const [plans,deliveries,status] of cases)if(api.reconcile(a,plans,deliveries).status!==status)throw Error('Expected '+status);
 });
+
+test('revision preparation preserves original and rejects unsafe or duplicate changes',()=>{
+ const session={id:'p',ownerId:'u',sport:'Running',status:'planned',date:'2026-12-01',revision:1,kind:'easy',meters:5000,km:5,estimatedSeconds:1800,plannedMinutes:30,detail:'x',structuredDetail:'x',structuredSteps:[{kind:'step',intensity:'active',duration:{kind:'distance',meters:5000},target:{kind:'open'}}]};
+ const req={ownerId:'u',sessionId:'p',expectedRevision:1,eventId:'e',approvedByAthlete:true,operation:'reduce-distance',factor:.9},ctx={ownerId:'u',today:'2026-11-27'};
+ const before=JSON.stringify(session),r=api.prepareRevision(session,req,ctx);
+ if(!r.ok||r.next.meters!==4500||r.next.revision!==2||r.history.before.meters!==5000||JSON.stringify(session)!==before)throw Error('revision integrity');
+ for(const [a,b,c] of [[{...session,status:'done'},req,ctx],[session,{...req,expectedRevision:0},ctx],[session,req,{...ctx,ownerId:'other'}],[session,req,{...ctx,processedIds:['e']}],[session,{...req,approvedByAthlete:false},ctx],[{...session,matchId:'activity'},req,ctx],[{...session,kind:'cruise'},req,ctx],[session,{...req,factor:.5},ctx]])if(api.prepareRevision(a,b,c).ok)throw Error('unsafe revision accepted');
+});
