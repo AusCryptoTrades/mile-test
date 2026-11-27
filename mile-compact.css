@@ -290,3 +290,18 @@ html[data-mile-buttons="challenges"] body #root .m877-challenge-tools button{min
 html[data-mile-buttons="challenges"] body #root .tabs{padding:3px!important;gap:3px!important;margin-bottom:8px!important}
 html[data-mile-buttons="challenges"] body #root .tabs button{min-height:44px!important;padding:5px!important;font-size:12px!important;box-shadow:none!important}
 @media(display-mode:standalone){html[data-mile-buttons="main"] body::after{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:2147483647;pointer-events:none}}
+
+/* Refine actual segment classes; keep native focus-visible and selected states. */
+html[data-mile-buttons="main"] body :is(#mile35-detail,#m3927-detail) .m875-seg{margin:8px 0!important;gap:3px!important;padding:3px!important;border-radius:9px!important}
+html[data-mile-buttons="main"] body :is(#mile35-detail,#m3927-detail) .m875-seg button,
+html[data-mile-buttons="main"] body #app .m79-segments button{box-shadow:none!important;border:1px solid transparent!important;min-height:44px!important;padding:5px 8px!important}
+html[data-mile-buttons="main"] body :is(#mile35-detail,#m3927-detail) .m875-seg button[aria-pressed=true],
+html[data-mile-buttons="main"] body #app .m79-segments button[aria-pressed=true]{border-color:var(--line)!important;background:var(--panel2)!important;color:var(--text)!important;box-shadow:none!important}
+html[data-mile-buttons="main"] body #app .m877-editor #m363-preview img{width:54px!important;height:54px!important;object-fit:cover;border-radius:50%}
+html[data-mile-buttons="main"] body #app .m877-following>summary{display:flex!important;align-items:center;min-height:44px!important;margin:0!important}
+html[data-mile-buttons="main"] body #app .m877-follow-row .m877-person>span{flex:1;min-width:0}
+html[data-mile-buttons="main"] body #app .m877-follow-row .m877-icon svg{width:18px;height:18px}
+html[data-mile-buttons="main"] body #app .m877-feed-tools .m877-icon{font-size:21px!important}
+html[data-mile-buttons="main"] body #app .m877-editor .m877-switch:focus-within{outline:2px solid var(--orange);outline-offset:2px}
+html[data-mile-buttons="main"] body #app .m877-editor .m877-photo-copy .m877-file:focus-visible{outline:0!important}
+@media(max-width:360px){html[data-mile-buttons="main"] body #app .m877-feed-tools{flex-wrap:wrap}html[data-mile-buttons="main"] body #app .m877-feed-tools .m37-filters{flex:1 1 100%}}
