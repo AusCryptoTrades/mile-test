@@ -7,7 +7,7 @@ import { execFileSync } from 'node:child_process';
 
 export const assets = Object.freeze([
   'index.html', 'mile-admin-centre.js', 'mile-buttons.css',
-  'mile-onboarding.js', 'mile-onboarding.css',
+  'mile-onboarding.js', 'mile-onboarding.css', 'mile-avatar.js',
   'mile-challenges.html', 'mile-run-tracker.html', 'mile-shared-header.js',
   'mile-sim-sync.js', 'mile-sim.html',
   'mile-79.css', 'mile-85-auth.css', 'mile-873.css', 'mile-device-sync.js',

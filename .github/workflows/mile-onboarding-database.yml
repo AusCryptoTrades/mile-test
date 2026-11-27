@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'supabase/migrations/*_athlete_onboarding.sql'
+      - 'supabase/migrations/*_training_disclaimer_and_avatar_access.sql'
       - 'supabase/tests/batch89-*'
       - 'docs/batch845-invitations.sql'
       - '.github/workflows/mile-onboarding-database.yml'
@@ -31,4 +32,6 @@ jobs:
           psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 \
             -f supabase/tests/batch89-fixtures.sql \
             -f supabase/migrations/20261127084450_athlete_onboarding.sql \
-            -f supabase/tests/batch89-onboarding.test.sql
+            -f supabase/tests/batch89-onboarding.test.sql \
+            -f supabase/migrations/20261127093312_training_disclaimer_and_avatar_access.sql \
+            -f supabase/tests/batch89-1-disclaimer-avatar.test.sql

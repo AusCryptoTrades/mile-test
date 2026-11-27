@@ -133,8 +133,8 @@ as $$
       'heightCm',t.training_data#>'{settings,athleteProfile,heightCm}',
       'weightKg',t.training_data#>'{settings,athleteProfile,weightKg}',
       'experience',t.training_data#>'{settings,athleteProfile,experience}'),
-    'units',case when t.training_data#>>'{settings,preferences776,appearance,distance}'='mi'
-      then 'imperial' else 'metric' end)
+    'units',case t.training_data#>>'{settings,preferences776,appearance,distance}'
+      when 'mi' then 'imperial' when 'km' then 'metric' end)
   from public.av_members m left join public.av_training_data t on t.user_id=m.user_id
   where m.user_id=athlete
 $$;

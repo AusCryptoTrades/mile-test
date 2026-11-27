@@ -7,13 +7,13 @@ const first='runner@example.test', second='legacy@example.test';
 const profile={username:'legacy_runner',display_name:'Legacy athlete',bio:'Preserved bio',primary_sport:'Cycling',disciplines:['Cycling'],is_private:false,auto_share_activities:true};
 const fixtureUser=(email,id)=>({id:'89000000-0000-4000-8000-00000000000'+id,email,email_confirmed_at:'2026-11-20T00:00:00Z'});
 
-function fixture({stage=1,member=false,garminStatus='not_connected'}={}){
+function fixture({stage=1,member=false,garminStatus='not_connected',needsConsent=false}={}){
  const users={
-  [first]:{id:fixtureUser(first,1),member,stage,revision:0,profile:null,athlete:{},units:'metric',garminStatus},
+  [first]:{id:fixtureUser(first,1),member,stage,revision:0,profile:null,athlete:{},units:null,garminStatus,needsConsent},
   [second]:{id:fixtureUser(second,2),member:true,stage:null,revision:0,profile:{...profile},athlete:{ftp:260},units:'metric',garminStatus:'authorised',
    document:{blocks:[{id:'cycling-plan',name:'Existing cycling plan',sport:'Cycling'}],activeBlock:'cycling-plan',workouts:[{id:'legacy-workout',block:'cycling-plan',sport:'Cycling',date:'2026-12-12',name:'Existing ride',status:'planned'}],settings:{athleteProfile:{ftp:260}}}}
  };
- return {users,posts:[],failNext:false,conflictNext:false,expireNext:false,holdRefresh:null,
+ return {users,posts:[],signups:[],consents:[],photos:[],failNext:false,conflictNext:false,expireNext:false,holdRefresh:null,
   async bind(target){
    await target.route('**/*',async route=>{
     const request=route.request(),url=new URL(request.url());
@@ -25,7 +25,11 @@ function fixture({stage=1,member=false,garminStatus='not_connected'}={}){
     const owner=users[token], method=request.method();
     const body=()=>request.postDataJSON()||{};
     const snapshot=()=>({stage:owner.stage,revision:owner.revision,profile:owner.profile,athlete:owner.athlete,units:owner.units});
-    if(url.pathname==='/auth/v1/signup')return offer({user:{email:body().email}});
+    if(url.pathname==='/auth/v1/signup'){
+     this.signups.push(body());
+     if(body().data?.mile_training_disclaimer!=='2026-11-26')return offer({message:'Fixture requires disclaimer acceptance'},400);
+     return offer({user:{email:body().email}});
+    }
     if(url.pathname==='/auth/v1/verify'||url.pathname==='/auth/v1/token'){
      const email=body().email||body().refresh_token?.replace('fixture-refresh:','');
      if(!users[email])return offer({msg:'Unknown fixture user'},400);
@@ -37,7 +41,12 @@ function fixture({stage=1,member=false,garminStatus='not_connected'}={}){
     if(url.pathname==='/rest/v1/av_members')return offer(owner.member?[{user_id:owner.id.id,onboarding_stage:owner.stage}]:[]);
     if(url.pathname==='/rest/v1/rpc/av_join'){
      if(body().invite_code!=='FIXTURE-INVITE')return offer({message:'Invalid or unavailable invitation'},400);
+     if(owner.needsConsent)return offer({code:'PT412',message:'Accept the Training Disclaimer to activate your account.'},412);
      owner.member=true;return offer(true);
+    }
+    if(url.pathname==='/rest/v1/rpc/mile_accept_training_disclaimer'){
+     this.consents.push({email:token,...body()});
+     owner.needsConsent=false;return offer(true);
     }
     if(url.pathname==='/rest/v1/rpc/mile_onboarding_state')return offer(snapshot());
     if(url.pathname==='/rest/v1/rpc/mile_onboarding_username')return offer(body().p_username!=='taken_name');
@@ -69,7 +78,15 @@ function fixture({stage=1,member=false,garminStatus='not_connected'}={}){
     if(url.pathname.startsWith('/storage/v1/object/mile-avatars/')){
      expect(url.pathname).toBe('/storage/v1/object/mile-avatars/'+owner.id.id+'/avatar.jpg');
      expect(request.headers()['content-type']).toBe('image/jpeg');
+     owner.photo=request.postDataBuffer();
      return offer({Key:url.pathname});
+    }
+    if(url.pathname.includes('/mile-avatars/')){
+     this.photos.push({path:url.pathname,token});
+     if(url.pathname.startsWith('/storage/v1/object/authenticated/')&&url.pathname.includes(owner.id.id)&&owner.photo){
+      return route.fulfill({contentType:'image/jpeg',body:owner.photo,headers:{'access-control-allow-origin':origin}});
+     }
+     return offer({},403);
     }
     return offer([]);
    });
@@ -104,15 +121,24 @@ test('Batch 89 registration opens private five-stage setup and saves a unified p
  await page.getByRole('link',{name:'Create account',exact:true}).click();
  await expect(page.getByRole('link',{name:'Terms',exact:true}).first()).toHaveAttribute('href','https://milefitness.com.au/terms');
  await expect(page.getByRole('link',{name:'Privacy Policy',exact:true})).toHaveAttribute('href','https://milefitness.com.au/privacy');
+ await expect(page.getByRole('link',{name:'Read the Training Disclaimer'})).toHaveAttribute('href','https://milefitness.com.au/disclaimer');
+ await shot(page,info,'00-registration','#v4Gate .panel');
  await page.locator('#v4Email').fill(first);
  await page.locator('#v4Password').fill('Synthetic password 89');
  await page.locator('#v4Invite').fill('FIXTURE-INVITE');
  await page.locator('#v4Gate button[onclick*="v4Authenticate"]').click();
+ await expect(page.locator('#v4Error')).toContainText('Accept the Training Disclaimer');
+ expect(service.signups).toHaveLength(0);
+ await page.getByRole('checkbox',{name:'I accept the MILE Training Disclaimer.'}).check();
+ await page.locator('#v4Gate button[onclick*="v4Authenticate"]').click();
  await expect(page.locator('#mile85Code')).toBeVisible();
+ expect(service.signups).toEqual([expect.objectContaining({email:first,data:{mile_training_disclaimer:'2026-11-26'}})]);
  expect(service.posts).toHaveLength(0);
  await page.locator('#mile85Code').fill('333333');
  await page.locator('#mile85Verify').click();
  await heading(page,'Your profile');
+ await expect(wizard(page).getByRole('button',{name:'Add photo'})).toBeVisible();
+ await expect(wizard(page).locator('[name="photo"]')).toBeHidden();
  await expect(wizard(page).getByLabel('Display name')).toHaveValue('');
  await expect(wizard(page).getByLabel('Username')).toHaveValue('');
  await shot(page,info,'01-profile','#v4Gate .m89');
@@ -123,12 +149,14 @@ test('Batch 89 registration opens private five-stage setup and saves a unified p
  await wizard(page).getByLabel('Username').fill('Morgan_Lane');
  await next(page);
  await heading(page,'Your sports');
- await wizard(page).getByLabel('Running',{exact:true}).check();
- await wizard(page).getByLabel('Triathlon',{exact:true}).check();
+ await expect(wizard(page).locator('.m89-progress [data-done] svg')).toHaveCount(1);
+ await wizard(page).getByText('Running',{exact:true}).click();
+ await wizard(page).getByText('Triathlon',{exact:true}).click();
  await wizard(page).getByLabel('Primary sport').selectOption('Triathlon');
  await shot(page,info,'02-sports','#v4Gate .m89');
  await next(page);
  await heading(page,'Your athlete profile');
+ await wizard(page).getByLabel('Measurement units').selectOption('metric');
  await wizard(page).getByLabel('Height (cm)',{exact:false}).fill('90');
  await wizard(page).getByLabel('Measurement units').selectOption('imperial');
  await expect(wizard(page).getByLabel('Height (in)',{exact:false})).toHaveValue('35.4331');
@@ -139,6 +167,8 @@ test('Batch 89 registration opens private five-stage setup and saves a unified p
  await next(page);
  await heading(page,'Connect your training');
  await expect(wizard(page).getByRole('status').filter({hasText:'available to connect'})).toBeVisible();
+ await expect(wizard(page).getByRole('button',{name:'Connect Garmin'})).toHaveClass('btn');
+ await expect(wizard(page).getByRole('button',{name:'Skip for now'})).toHaveClass('m89-text');
  await shot(page,info,'04-connect','#v4Gate .m89');
  await next(page,'Skip for now');
  await heading(page,'Your privacy');
@@ -146,6 +176,8 @@ test('Batch 89 registration opens private five-stage setup and saves a unified p
  await shot(page,info,'05-privacy','#v4Gate .m89');
  await next(page,'Finish setup');
  await heading(page,'You’re ready, Morgan Lane.');
+ await expect(wizard(page)).toContainText('MAKE IT LOOK EASY.');
+ await shot(page,info,'06-complete','#v4Gate .m89');
  expect(service.users[first].profile).toMatchObject({username:'morgan_lane',display_name:'Morgan Lane',primary_sport:'Triathlon',is_private:true,auto_share_activities:false});
  expect(service.users[first].document).toMatchObject({workouts:[],blocks:[],settings:{athleteProfile:{heightCm:175.26,experience:'regular'}}});
  await next(page,'Enter MILE');
@@ -177,6 +209,7 @@ test('Batch 89 saves progress across refresh, sign-out and devices with conflict
   name:'portrait.png',mimeType:'image/png',
   buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=','base64'),
  });
+ await expect(wizard(page).getByAltText('Selected profile photo')).toHaveAttribute('src',/^blob:/);
  service.failNext=true;
  await next(page);
  await expect(wizard(page).getByRole('status')).toContainText(/fetch|network|load failed/i);
@@ -188,15 +221,18 @@ test('Batch 89 saves progress across refresh, sign-out and devices with conflict
  await heading(page,'Your sports');
  await next(page,'Back');
  await expect(wizard(page).getByLabel('Username')).toHaveValue('alex_runner');
+ await expect.poll(()=>service.photos.some(photo=>photo.path.includes('/object/authenticated/')&&photo.token===first)).toBe(true);
+ await expect(wizard(page).getByAltText('Current profile photo')).toHaveAttribute('src',/^blob:/);
+ expect(service.photos.every(photo=>!photo.path.includes('/object/public/'))).toBe(true);
  await next(page);
- await wizard(page).getByLabel('Running',{exact:true}).check();
+ await wizard(page).getByText('Running',{exact:true}).click();
  await wizard(page).getByLabel('Primary sport').selectOption('Running');
  service.conflictNext=true;
  await next(page);
  await expect(wizard(page).getByRole('status')).toContainText('Reload your progress');
  await next(page,'Reload saved progress');
  await heading(page,'Your sports');
- await wizard(page).getByLabel('Running',{exact:true}).check();
+ await wizard(page).getByText('Running',{exact:true}).click();
  await wizard(page).getByLabel('Primary sport').selectOption('Running');
  await next(page);
  await heading(page,'Your athlete profile');
@@ -216,6 +252,64 @@ test('Batch 89 saves progress across refresh, sign-out and devices with conflict
   await expect(wizard(other).getByLabel('Measurement units')).toBeVisible();
   expect(await other.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
  }finally{await device.close();}
+});
+
+test('Batch 89.1 confirms the disclaimer before an in-flight account can redeem its invite',async({page})=>{
+ const service=fixture({needsConsent:true});
+ await service.bind(page);
+ await login(page);
+ await page.locator('#v4Invite').fill('FIXTURE-INVITE');
+ const activate=page.getByRole('button',{name:/Activate account/});
+ await activate.click();
+ const consent=page.getByRole('checkbox',{name:'I accept the MILE Training Disclaimer.'});
+ await expect(consent).toBeFocused();
+ expect(service.users[first].member).toBe(false);
+ await activate.click();
+ expect(service.consents).toHaveLength(0);
+ await consent.check();
+ await activate.click();
+ await heading(page,'Your profile');
+ expect(service.consents).toEqual([{email:first,p_version:'2026-11-26'}]);
+});
+
+test('Batch 89.1 picks regional units and honours a saved manual override',async({page})=>{
+ const service=fixture({member:true,stage:3});
+ await service.bind(page);
+ await page.addInitScript(()=>Object.defineProperty(navigator,'languages',{value:['en-US','en-AU']}));
+ await login(page);
+ await heading(page,'Your athlete profile');
+ const units=wizard(page).getByLabel('Measurement units');
+ await expect(units).toHaveValue('imperial');
+ await units.selectOption('metric');
+ await next(page);
+ await heading(page,'Connect your training');
+ await page.reload();
+ await heading(page,'Connect your training');
+ await next(page,'Back');
+ await expect(units).toHaveValue('metric');
+});
+
+test('Batch 89.1 keeps existing avatar and cover images on authenticated profile surfaces',async({page})=>{
+ const service=fixture();
+ const owner=service.users[second];
+ const photoPath=backend+'/storage/v1/object/public/mile-avatars/'+owner.id.id;
+ owner.profile.avatar_url=photoPath+'/avatar.jpg?v=1';
+ owner.profile.cover_url=photoPath+'/cover.jpg?v=1';
+ await service.bind(page);
+ await page.goto('/');
+ const jpeg=await page.evaluate(()=>document.createElement('canvas').toDataURL('image/jpeg').split(',')[1]);
+ owner.photo=Buffer.from(jpeg,'base64');
+ await login(page,second);
+ await expect(page.locator('#v4Gate')).toBeHidden();
+ await page.evaluate(()=>window.m36Open('profile'));
+ await expect(page.locator('#app .m362-cover img')).toHaveAttribute('src',/^blob:/);
+ await expect(page.locator('#app .m362-identity .m36-avatar img')).toHaveAttribute('src',/^blob:/);
+ for(const path of ['/mile-run-tracker.html?embedded=1','/mile-challenges.html?embedded=1']){
+  await page.goto(path);
+  await expect(page.locator('.mile-header-profile img')).toHaveAttribute('src',/^blob:/);
+ }
+ expect(service.photos.some(photo=>photo.path.endsWith('/cover.jpg'))).toBe(true);
+ expect(service.photos.every(photo=>photo.path.includes('/object/authenticated/')&&photo.token===second)).toBe(true);
 });
 
 test('Batch 89 resumes Garmin authorisation and reports the verified connection state',async({page})=>{
