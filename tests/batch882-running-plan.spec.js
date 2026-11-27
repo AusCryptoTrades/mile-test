@@ -245,3 +245,20 @@ test('quality sessions use bounded preparation and recovery rather than padding 
  }
  expect(sessions.find(s=>s.kind==='progressive').structuredSteps.some(s=>s.intensity==='active')).toBe(true);
 });
+
+test('the same distance ladder gives intermediate athletes more time to recover',()=>{
+ const input={goal:'10k',weeks:18,start:'2026-11-30',adaptation:{intervalRecovery:'time'},
+  schedule:{available:[0,1,3,5,6],runs:5,longDay:5,weekdayMinutes:75,longMinutes:130}};
+ const sessions=level=>engine.generate({...input,athlete:{...completeAthlete,level,weeklyKm:[45,45,45,45],currentKm:45,longestKm:21}}).weeks.flatMap(week=>week.sessions);
+ const beginner=sessions('beginner');
+ expect(beginner.length).toBeGreaterThan(0);
+ expect(beginner.every(session=>session.structuredSteps.every(step=>step.intensity!=='interval'))).toBe(true);
+ const ladder=level=>sessions(level).find(session=>session.kind==='ladder').structuredSteps;
+ const work=steps=>steps.filter(step=>step.intensity==='interval').map(step=>step.duration.meters);
+ const recovery=steps=>steps.filter(step=>step.intensity==='recovery').map(step=>step.duration.seconds);
+ const intermediate=ladder('intermediate'),advanced=ladder('advanced');
+ expect(work(intermediate)).toEqual([200,300,400,600]);
+ expect(work(advanced)).toEqual(work(intermediate));
+ expect(recovery(intermediate)).toEqual([75,90,120]);
+ expect(recovery(advanced)).toEqual([60,75,105]);
+});

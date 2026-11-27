@@ -104,6 +104,7 @@ test('88.3 private Analysis reviews an upcoming session after a demanding unplan
   await expect(review).toContainText('Review Threshold Intervals for enough recovery after this additional demanding run.');
   await expect(review.getByRole('button')).toHaveCount(0);
   await expect(quick).toContainText('Time30 min');
+  await expect(quick).toContainText('30 min in your two highest heart-rate zones.');
   const advanced=detail.locator('.m881-detailed');
   await expect(advanced.getByRole('heading',{name:'Recorded heart rate distribution'})).toBeHidden();
   await expect(advanced.locator('svg')).toHaveCount(0);
@@ -136,6 +137,41 @@ test('88.3 private Analysis preserves targets for a linked run without verified 
   await expect(advanced).toContainText('Planned duration estimate34 min');
   await expect(advanced).toContainText('Verified step alignment required');
   await expect(advanced.getByRole('heading',{name:'Verified work and recovery steps'})).toHaveCount(0);
+});
+
+test('88.3 Analysis quantifies easy-run HR and keeps load and pace comparisons behind the disclosure', async ({ page }, info) => {
+  const fixture=runningReviewFixture({matched:true,recordedDuration:2400,sampleCount:481});
+  const data=fixture.syncStore.data;
+  data.activities[0].averageHR=141;
+  data.activities.push(...[
+    ['81234','2026-11-16',8],['81235','2026-11-10',5],['81236','2026-11-08',4],
+  ].map(([id,date,distanceKm])=>({...activity,id,name:'Earlier run '+id,date,distanceKm})));
+  data.workouts[0].kind='long';
+  const workout=data.workouts.at(-1);
+  Object.assign(workout,{kind:'easy',detail:'6 km easy',structuredDetail:'6 km easy',structuredSteps:[{
+    kind:'step',intensity:'active',duration:{kind:'distance',meters:6000},target:{kind:'heart_rate',lowBpm:115,highBpm:145},
+  }]});
+  fixture.intervalFixture.samples.forEach((point,i)=>{point.heartRate=i<240?130:152});
+  await openApp(page,fixture);
+  const detail=await openActivity(page);
+  await detail.getByRole('button',{name:'Analysis',exact:true}).click();
+  const quick=detail.locator('.m881-quick'),advanced=detail.locator('.m881-detailed');
+  await expect(quick.locator('dl>div')).toHaveCount(4);
+  await expect(quick).toContainText('above the prescribed range for 50%');
+  await expect(quick).toContainText('Heart rate rose 22 bpm at a similar speed');
+  await expect(quick).toContainText('Start the long run gently');
+  await expect(quick).toContainText('Keep the current plan.');
+  await expect(advanced.getByText('Change in speed per heartbeat')).toBeHidden();
+  await expect(advanced.getByText('Previous seven days')).toBeHidden();
+  expect((await quick.innerText()).split(/\s+/).length).toBeLessThanOrEqual(105);
+  expect(await quick.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+  await reviewImage(info,'08-running-easy-hr-brief',quick);
+  await advanced.locator('summary').click();
+  await expect(advanced).toContainText('Change in speed per heartbeat-14%');
+  await expect(advanced).toContainText('Previous seven days9.0 km recorded');
+  await expect(advanced).toContainText('Seven days through this run14.0 km recorded');
+  await advanced.locator('summary').press('Enter');
+  await expect(advanced.getByText('Change in speed per heartbeat')).toBeHidden();
 });
 
 test.beforeEach(async ({ page }) => {

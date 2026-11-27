@@ -65,7 +65,7 @@ function analyse(activity,opts={}){
  const main=aligned?.filter(x=>x.intensity==='active'||x.intensity==='interval')||[],recovery=aligned?.filter(x=>x.intensity==='recovery')||[];
  const comparable=main.filter(x=>x.paceStatus!==null),complete=main.filter(x=>x.completionRatio!==null);
  const hrComparable=main.filter(x=>x.hrStatus!==null);
- const workPace=comparable.length&&comparable.every(x=>x.meters>0)?comparable.reduce((n,x)=>n+x.seconds,0)*1000/comparable.reduce((n,x)=>n+x.meters,0):null;
+ const workPace=comparable.length&&comparable.length===main.length?comparable.reduce((n,x)=>n+x.seconds,0)*1000/comparable.reduce((n,x)=>n+x.meters,0):null;
  const intervals=main.filter(x=>x.intensity==='interval'),first=intervals[0];
  const comparableIntervals=intervals.length>=2&&intervals.every(x=>
   x.paceStatus!==null&&x.durationKind===first.durationKind&&x.planned===first.planned&&

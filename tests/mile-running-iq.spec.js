@@ -93,7 +93,7 @@ test('88.3 verified repetitions show planned and recorded pace and recorded reco
  const quick=verified.locator('.m881-quick');
  await expect(quick.locator('h4')).toHaveText(['Session execution','Performance trend','Next session focus','Programme adjustment']);
  await expect(quick.locator('dl>div')).toHaveCount(3);
- await expect(quick).toContainText('The recorded work matched');
+ await expect(quick).toContainText('2 of 2 measured work steps were in the pace range.');
  await expect(quick).toContainText('within 9 s/km');
  expect((await quick.innerText()).split(/\s+/).length).toBeLessThanOrEqual(105);
  const detail=verified.locator('details');
@@ -124,11 +124,12 @@ test('steady heart-rate comparison uses recorded time and speed and never drives
  const samples=Array.from({length:601},(_,i)=>({t:i*5,dist:i*15,hr:i<300?135:145}));
  const result=iq.analyse(run,{workouts:[workout],points:samples,bounds});
  expect(result.prescriptionRevision).toBe(3);
- expect(result.heartRateChange).toEqual({earlyBpm:135,lateBpm:145,changeBpm:10});
+ expect(result.heartRateChange).toEqual({earlyBpm:135,lateBpm:145,changeBpm:10,earlyPace:333,latePace:333,efficiencyChange:-7});
  expect(iq.analyse(run,{points:samples,bounds}).heartRateChange).toBeNull();
  expect(iq.analyse(run,{points:samples.filter((_,i)=>i<300||i>390),workouts:[workout]}).heartRateChange).toBeNull();
  const faster=samples.map((p,i)=>({...p,dist:i<=300?p.dist:4500+(i-300)*23}));
  expect(iq.analyse(run,{points:faster,workouts:[workout]}).heartRateChange).toBeNull();
+ expect(iq.analyse({...run,heat:true},{points:samples,workouts:[workout]}).heartRateChange).toBeNull();
 });
 
 
@@ -157,7 +158,46 @@ test('continuous HR execution needs a reliable full-session trace and a single p
  const result=iq.analyse(run,{workouts:[workout],points:samples});
  expect(result.aerobicRange.percent).toBe(67);
  expect(iq.brief(result).metrics).toContainEqual(['In HR range','67%']);
- expect(iq.brief(result).execution).toContain('outside the prescribed range');
+ expect(iq.brief(result).execution).toContain('above the prescribed range for 33%');
+ const low=samples.map((point,i)=>({...point,hr:i<160?105:125}));
+ expect(iq.brief(iq.analyse(run,{workouts:[workout],points:low})).execution).toContain('below the prescribed range for 33%');
  expect(iq.analyse(run,{workouts:[workout],points:samples.slice(0,30)}).aerobicRange).toBeNull();
  expect(iq.analyse({...run,sensorError:true},{workouts:[workout],points:samples}).aerobicRange).toBeNull();
+});
+
+test('cumulative load uses distinct records through the run and omits incomplete comparison weeks',()=>{
+ const run={id:'today',date:'2026-11-24',distanceKm:8,durationMin:44};
+ const history=[{id:'earlier',date:'2026-11-21',distanceKm:10},{id:'past-a',date:'2026-11-17',distanceKm:7},
+  {id:'past-b',date:'2026-11-13',distanceKm:6},{id:'future',date:'2026-11-25',distanceKm:99},
+  {id:'today',date:run.date,distanceKm:80},{id:'past-a',date:'2026-11-17',distanceKm:70},
+  {id:'invalid',date:'2026-11-00',distanceKm:8}];
+ const result=iq.analyse(run,{history});
+ expect(result.recentLoad).toEqual({currentKm:18,previousKm:13});
+ expect(iq.brief(result).trend).toContain('18.0 km over seven days, versus 13.0 km');
+ expect(iq.brief(result).adjustment).toBe('Keep the current plan.');
+ expect(iq.analyse(run,{history:history.filter(item=>item.id!=='past-b')}).recentLoad).toBeNull();
+ expect(iq.analyse(run,{history:[...history,{id:'incomplete',date:'2026-11-16',distanceKm:null}]}).recentLoad).toBeNull();
+});
+
+test('session focus follows the next kind and incomplete recovery needs verified steps',()=>{
+ const activity={id:'r',date:'2026-11-20',distanceKm:5,durationMin:26};
+ const base=iq.analyse(activity);
+ for(const [kind,focus] of [
+  ['recovery','Keep the recovery run relaxed'],['long','Start the long run gently'],
+  ['easy','Keep the run conversational'],['threshold','Settle into the threshold pace range'],
+  ['race10','Find the prescribed race rhythm'],['vo2','Start the first rep within'],
+ ]){
+  const result={...base,recommendation:{...base.recommendation,next:{kind,demanding:kind==='vo2'}}};
+  expect(iq.brief(result).focus).toContain(focus);
+ }
+ const step=(intensity,duration,target={kind:'open'})=>({kind:'step',intensity,duration,target});
+ const work=step('interval',{kind:'distance',meters:800},{kind:'pace',fastSecondsPerKm:235,slowSecondsPerKm:255});
+ const plan={sport:'Running',matchId:activity.id,kind:'vo2',structuredSteps:[work,step('recovery',{kind:'time',seconds:90}),work]};
+ const lapEvidence={source:'provider-step-ids',verified:true,rows:[{stepIndex:0,meters:800,seconds:170},
+  {stepIndex:1,meters:110,seconds:62},{stepIndex:2,meters:800,seconds:199}]};
+ const brief=iq.brief(iq.analyse(activity,{workouts:[plan],lapEvidence}));
+ expect(brief.execution).toBe('1 of 2 measured work steps were in the pace range. The rest were faster.');
+ expect(brief.trend).toBe('The timed recovery ended 28 seconds early.');
+ expect(brief.focus).toContain('Take the full recovery');
+ expect(iq.brief(iq.analyse(activity,{workouts:[plan],lapEvidence:{...lapEvidence,verified:false}})).trend).not.toContain('seconds early');
 });
