@@ -7,7 +7,10 @@ create function public.mile_fixture_submit_revision(expected_revision integer, e
 returns jsonb language plpgsql security invoker as $$
 begin
   return public.mile_revise_running_workout(
-    '00000000-0000-4000-8000-000000000015', expected_revision, event_id, distance_factor
+    '00000000-0000-4000-8000-000000000015', expected_revision, event_id, distance_factor,
+    (select workout from public.av_training_data
+     cross join lateral jsonb_array_elements(training_data->'workouts') as w(workout)
+     where user_id = auth.uid() and workout->>'id' = '00000000-0000-4000-8000-000000000015')
   );
 exception when sqlstate 'PT409' then
   return '{"status":"conflict"}'::jsonb;

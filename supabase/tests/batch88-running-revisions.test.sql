@@ -10,27 +10,38 @@ exception when others then
 end;
 $$;
 
+-- Format a request from the athlete's currently loaded copy.
+create function pg_temp.revise_current_run(workout_id text, expected_revision integer, event_id text, factor numeric)
+returns jsonb language sql security invoker as $$
+  select public.mile_revise_running_workout(
+    workout_id, expected_revision, event_id, factor,
+    (select workout from public.av_training_data
+      cross join lateral jsonb_array_elements(training_data->'workouts') as w(workout)
+      where user_id = auth.uid() and workout->>'id' = workout_id limit 1)
+  );
+$$;
+
 set role anon;
 select pg_temp.expect_sqlstate(
-  $$select public.mile_revise_running_workout('00000000-0000-4000-8000-000000000011', 1, 'anonymous', .9)$$,
+  $$select public.mile_revise_running_workout('00000000-0000-4000-8000-000000000011', 1, 'anonymous', .9, null)$$,
   '42501'
 );
 reset role;
 
 set role authenticated;
 select pg_temp.expect_sqlstate(
-  $$select public.mile_revise_running_workout('00000000-0000-4000-8000-000000000011', 1, 'no-session', .9)$$,
+  $$select public.mile_revise_running_workout('00000000-0000-4000-8000-000000000011', 1, 'no-session', .9, null)$$,
   'PT403'
 );
 set request.jwt.claim.sub = '00000000-0000-4000-8000-000000000003';
 select pg_temp.expect_sqlstate(
-  $$select public.mile_revise_running_workout('00000000-0000-4000-8000-000000000019', 1, 'non-member', .9)$$,
+  $$select public.mile_revise_running_workout('00000000-0000-4000-8000-000000000019', 1, 'non-member', .9, null)$$,
   'PT403'
 );
 
 set request.jwt.claim.sub = '00000000-0000-4000-8000-000000000002';
 select pg_temp.expect_sqlstate(
-  $$select public.mile_revise_running_workout('00000000-0000-4000-8000-000000000011', 1, 'cross-account', .9)$$,
+  $$select public.mile_revise_running_workout('00000000-0000-4000-8000-000000000011', 1, 'cross-account', .9, null)$$,
   'PT404'
 );
 do $$
@@ -60,46 +71,55 @@ declare
 begin
   select training_data into strict original from public.av_training_data where user_id = auth.uid();
   perform pg_temp.expect_sqlstate(format(
-    'select public.mile_revise_running_workout(%L, 1, %L, 1.1)', workout_id, 'distance-increase'
+    'select pg_temp.revise_current_run(%L, 1, %L, 1.1)', workout_id, 'distance-increase'
   ), 'PT422');
   perform pg_temp.expect_sqlstate(format(
-    'select public.mile_revise_running_workout(%L, 1, %L, .1)', workout_id, 'excessive-reduction'
+    'select pg_temp.revise_current_run(%L, 1, %L, .1)', workout_id, 'excessive-reduction'
   ), 'PT422');
   perform pg_temp.expect_sqlstate(format(
-    'select public.mile_revise_running_workout(%L, 1, %L, .9)',
+    'select pg_temp.revise_current_run(%L, 1, %L, .9)',
     '00000000-0000-4000-8000-000000000012', 'completed'
   ), 'PT409');
   perform pg_temp.expect_sqlstate(format(
-    'select public.mile_revise_running_workout(%L, 1, %L, .9)',
+    'select pg_temp.revise_current_run(%L, 1, %L, .9)',
     '00000000-0000-4000-8000-000000000013', 'matched'
   ), 'PT409');
   perform pg_temp.expect_sqlstate(format(
-    'select public.mile_revise_running_workout(%L, 1, %L, .9)',
+    'select pg_temp.revise_current_run(%L, 1, %L, .9)',
     '00000000-0000-4000-8000-000000000014', 'historical'
   ), 'PT409');
   perform pg_temp.expect_sqlstate(format(
-    'select public.mile_revise_running_workout(%L, 1, %L, .9)',
+    'select pg_temp.revise_current_run(%L, 1, %L, .9)',
     '00000000-0000-4000-8000-000000000018', 'hard-session'
   ), 'PT422');
 
   perform pg_temp.expect_sqlstate(format(
-    'select public.mile_revise_running_workout(%L, 9, %L, .9)',
+    'select pg_temp.revise_current_run(%L, 9, %L, .9)',
     '00000000-0000-4000-8000-000000000020', 'untracked-initial-revision'
   ), 'PT409');
 
-  receipt := public.mile_revise_running_workout(workout_id, 1, 'reduction', .9);
+  update public.av_training_data
+    set training_data = jsonb_set(training_data, '{workouts,0,name}', '"Edited easy run"')
+    where user_id = auth.uid();
+  perform pg_temp.expect_sqlstate(format(
+    'select public.mile_revise_running_workout(%L, 1, %L, .9, %L::jsonb)',
+    workout_id, 'stale-snapshot', original #> '{workouts,0}'
+  ), 'PT409');
+  update public.av_training_data set training_data = original where user_id = auth.uid();
+
+  receipt := public.mile_revise_running_workout(workout_id, 1, 'reduction', .9, original #> '{workouts,0}');
   if receipt is distinct from jsonb_build_object('status', 'applied', 'workoutId', workout_id, 'revision', 2) then
     raise exception 'Unexpected apply response %', receipt;
   end if;
-  receipt := public.mile_revise_running_workout(workout_id, 1, 'reduction', .9);
+  receipt := public.mile_revise_running_workout(workout_id, 1, 'reduction', .9, original #> '{workouts,0}');
   if receipt is distinct from jsonb_build_object('status', 'duplicate', 'workoutId', workout_id, 'revision', 2) then
     raise exception 'Unexpected duplicate response %', receipt;
   end if;
   perform pg_temp.expect_sqlstate(format(
-    'select public.mile_revise_running_workout(%L, 1, %L, .95)', workout_id, 'reduction'
+    'select pg_temp.revise_current_run(%L, 1, %L, .95)', workout_id, 'reduction'
   ), 'PT409');
   perform pg_temp.expect_sqlstate(format(
-    'select public.mile_revise_running_workout(%L, 1, %L, .9)', workout_id, 'stale-revision'
+    'select pg_temp.revise_current_run(%L, 1, %L, .9)', workout_id, 'stale-revision'
   ), 'PT409');
 
   select training_data into strict changed from public.av_training_data where user_id = auth.uid();
@@ -133,7 +153,7 @@ begin
   perform pg_temp.expect_sqlstate(format(upsert_sql, completed #- '{workouts,0,completedAt}'), 'PT409');
   execute format(upsert_sql, jsonb_set(completed, '{workouts,0,note}', '"Recorded offline"'));
   perform pg_temp.expect_sqlstate(format(
-    'select public.mile_revise_running_workout(%L, 2, %L, .9)', workout_id, 'after-completion'
+    'select pg_temp.revise_current_run(%L, 2, %L, .9)', workout_id, 'after-completion'
   ), 'PT409');
 end;
 $$;
@@ -178,14 +198,14 @@ insert into private.mile_garmin_publications (
 );
 set role authenticated;
 select pg_temp.expect_sqlstate(
-  $$select public.mile_revise_running_workout('00000000-0000-4000-8000-000000000016', 1, 'after-garmin', .9)$$,
+  $$select pg_temp.revise_current_run('00000000-0000-4000-8000-000000000016', 1, 'after-garmin', .9)$$,
   'PT409'
 );
 
 -- A revision first prevents a stale claim. The current revision can be claimed once.
 do $$
 begin
-  if public.mile_revise_running_workout('00000000-0000-4000-8000-000000000017', 1, 'before-garmin', .9)->>'status' is distinct from 'applied' then
+  if pg_temp.revise_current_run('00000000-0000-4000-8000-000000000017', 1, 'before-garmin', .9)->>'status' is distinct from 'applied' then
     raise exception 'Could not revise an unpublished workout';
   end if;
 end;

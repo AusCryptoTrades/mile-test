@@ -112,7 +112,7 @@ before insert on private.mile_garmin_publications
 for each row execute function mile_running_private.guard_garmin_publication_revision();
 
 create function mile_running_private.revise_workout(
-  p_workout_id text, p_expected_revision integer, p_event_id text, p_distance_factor numeric
+  p_workout_id text, p_expected_revision integer, p_event_id text, p_distance_factor numeric, p_expected_workout jsonb
 ) returns jsonb
 language plpgsql security definer set search_path = ''
 as $$
@@ -166,7 +166,8 @@ begin
   if found then
     if previous_event.workout_id <> p_workout_id
       or previous_event.from_revision <> p_expected_revision
-      or previous_event.distance_factor <> p_distance_factor then
+      or previous_event.distance_factor <> p_distance_factor
+      or previous_event.before_workout is distinct from p_expected_workout then
       raise sqlstate 'PT409' using message = 'Adaptation event has already been used';
     end if;
     return jsonb_build_object('status', 'duplicate', 'workoutId', p_workout_id, 'revision', previous_event.to_revision);
@@ -212,8 +213,9 @@ begin
     order by to_revision desc limit 1
   ), 1) into old_revision;
   if old_revision <> p_expected_revision or old_revision = 2147483647
-    or original->'revision' is distinct from to_jsonb(old_revision) then
-    raise sqlstate 'PT409' using message = 'Workout revision changed';
+    or original->'revision' is distinct from to_jsonb(old_revision)
+    or original is distinct from p_expected_workout then
+    raise sqlstate 'PT409' using message = 'Workout changed since review';
   end if;
 
   -- Garmin session IDs are UUIDs. Text comparison also covers restored backups
@@ -311,18 +313,19 @@ begin
   return jsonb_build_object('status', 'applied', 'workoutId', p_workout_id, 'revision', old_revision + 1);
 end;
 $$;
-revoke all on function mile_running_private.revise_workout(text, integer, text, numeric) from public, anon, authenticated, service_role;
+revoke all on function mile_running_private.revise_workout(text, integer, text, numeric, jsonb) from public, anon, authenticated, service_role;
 grant usage on schema mile_running_private to authenticated;
-grant execute on function mile_running_private.revise_workout(text, integer, text, numeric) to authenticated;
+grant execute on function mile_running_private.revise_workout(text, integer, text, numeric, jsonb) to authenticated;
 
 -- A direct authenticated call represents approval of this exact revision.
--- No background job or client-supplied athlete identity can invoke it.
+-- The reviewed snapshot is only a comparison input. Existing Calendar edits
+-- can change a workout before its first audited revision.
 create function public.mile_revise_running_workout(
-  p_workout_id text, p_expected_revision integer, p_event_id text, p_distance_factor numeric
+  p_workout_id text, p_expected_revision integer, p_event_id text, p_distance_factor numeric, p_expected_workout jsonb
 ) returns jsonb
 language sql security invoker set search_path = ''
 as $$
-  select mile_running_private.revise_workout(p_workout_id, p_expected_revision, p_event_id, p_distance_factor);
+  select mile_running_private.revise_workout(p_workout_id, p_expected_revision, p_event_id, p_distance_factor, p_expected_workout);
 $$;
-revoke all on function public.mile_revise_running_workout(text, integer, text, numeric) from public, anon, authenticated, service_role;
-grant execute on function public.mile_revise_running_workout(text, integer, text, numeric) to authenticated;
+revoke all on function public.mile_revise_running_workout(text, integer, text, numeric, jsonb) from public, anon, authenticated, service_role;
+grant execute on function public.mile_revise_running_workout(text, integer, text, numeric, jsonb) to authenticated;
