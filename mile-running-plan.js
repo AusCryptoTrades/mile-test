@@ -28,6 +28,25 @@ const templates={
  taper:{name:'Taper easy run',purpose:'Maintain running rhythm while reducing fatigue.',focus:'Keep it easy; resist adding distance or intensity.',rpe:3},
  return:{name:'Return-to-running easy session',purpose:'Reintroduce running gradually without demanding intensity.',focus:'Keep effort comfortable, take walk breaks as needed and stop for concerning symptoms.',rpe:2}
 };
+// Variants retain the parent effort target and purpose; variation changes repetition structure, not intensity.
+const variantFamilies={cruise:[3,4,5,6],threshold:[1,2,3],vo2:[4,5,6,8],fartlek:[3,4,5,6,8],race5:[4,5,6,8],race10:[2,3,4,5],half:[1,2,3],marathon:[1,2,3],steady:[1,2,3]};
+function workoutVariant(kind,week,meters){
+ const parent=templates[kind],choices=variantFamilies[kind];
+ if(!choices)return parent;
+ const eligible=choices.filter(n=>meters*parent.fraction/n>=400&&(n===1||meters*.12/(n-1)>=100));
+ const reps=eligible.length?eligible[week%eligible.length]:parent.reps;
+ return {...parent,reps,name:parent.name+(reps>1?' · '+reps+' reps':'')};
+}
+function assessFeasibility(goal,base,weeks,raceWeek,a){
+ const distance=raceKm[goal],reasons=[];
+ if(!distance)return {status:'review-required',reasons:['Event distance or objective requires individual review.']};
+ const horizon=raceWeek===null?weeks:Math.min(weeks,raceWeek+1);
+ if(base.km<distance*.5)reasons.push('Recent weekly volume is low relative to event distance.');
+ if(distance>=21&&(!positive(a.longestKm)||a.longestKm<distance*.35))reasons.push('Recent long-run evidence is limited relative to event distance.');
+ if(horizon<(distance>=42?12:distance>=21?8:4))reasons.push('Preparation window is short; avoid compressing training.');
+ if(base.source!=='four completed weeks')reasons.push('Training history is incomplete.');
+ return {status:reasons.length?'caution':'review-required',reasons};
+}
 function baseline(a){
  const h=Array.isArray(a.weeklyKm)?a.weeklyKm.slice(0,4):[];
  const known=h.filter(x=>typeof x==='number'&&Number.isFinite(x)&&x>=0);
@@ -48,8 +67,8 @@ function chooseDays(avail,n,long,hard){
  result.push(candidates[0]);}
  return result.sort((a,b)=>a-b);
 }
-function makeSession(kind,m,a,phase){
- const t=templates[kind];let easy=validPace(a.easyPace)?a.easyPace:null,threshold=validPace(a.thresholdPace)?a.thresholdPace:null;
+function makeSession(kind,m,a,phase,week=0){
+ const t=workoutVariant(kind,week,m);let easy=validPace(a.easyPace)?a.easyPace:null,threshold=validPace(a.thresholdPace)?a.thresholdPace:null;
  const slow=easy===null?540:Math.max(easy+35,threshold===null?0:threshold+45);
  const aerobic=a.easyZone&&Number.isInteger(a.easyZone.lowBpm)&&Number.isInteger(a.easyZone.highBpm)&&a.easyZone.lowBpm>=30&&a.easyZone.highBpm<=250&&a.easyZone.lowBpm<a.easyZone.highBpm?{kind:'heart_rate',lowBpm:a.easyZone.lowBpm,highBpm:a.easyZone.highBpm}:easy!==null?{kind:'pace',fastSecondsPerKm:Math.max(150,easy-10),slowSecondsPerKm:Math.min(1800,easy+35)}:{kind:'open'};
  let quality={kind:'open'};
@@ -150,7 +169,7 @@ function generate(input={}){
    let kind=taper?'taper':goal==='return'?'return':hard.includes(o.day)||a.recovery==='poor'?'recovery':o===longSlot?(goal==='ultra'?'ultra':'long'):'easy';
    if(o===q){kind=phase==='Specific'?({'5k':'race5','10k':'race10','half-marathon':'half',marathon:'marathon',ultra:'steady'}[goal]||'cruise'):(i%3===0?'fartlek':i%3===1?'cruise':'threshold');}
    const date=new Date(st+(i*7+o.offset)*86400000).toISOString().slice(0,10);
-   return [{...makeSession(kind,m,a,phase),date,day:o.day,planWeek:i+1,durationLimitMinutes:o===longSlot?s.longMinutes:s.weekdayMinutes}];
+   return [{...makeSession(kind,m,a,phase,i),date,day:o.day,planWeek:i+1,durationLimitMinutes:o===longSlot?s.longMinutes:s.weekdayMinutes}];
   });
   const meters=sessions.reduce((x,y)=>x+y.meters,0);
   if(sessions.length<slots.length&&!warnings.includes('Some selected days could not fit a minimum 500 m session.'))warnings.push('Some selected days could not fit a minimum 500 m session.');
@@ -161,7 +180,7 @@ function generate(input={}){
   previous=meters;const ls=sessions.find(x=>x.day===long&&longSlot);if(ls&&phase!=='Recovery')previousLong=ls.meters;
  }
  if(!plan.length)return {ok:false,errors:['No safe sessions fit these constraints'],warnings,baseline:base,weeks:[]};
- return {ok:true,errors:[],warnings,baseline:base,weeks:plan,goal,chosenDays:chosen,feasibility:'review-required',settings:{...input.adaptation},version:1};
+ return {ok:true,errors:[],warnings,baseline:base,weeks:plan,goal,chosenDays:chosen,feasibility:'review-required',feasibilityDetail:assessFeasibility(goal,base,weeks,raceWeek,a),settings:{...input.adaptation},version:1};
 }
-const api={generate,baseline,templates};root.mileRunningPlan=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
+const api={generate,baseline,templates,workoutVariant,assessFeasibility};root.mileRunningPlan=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(globalThis);
