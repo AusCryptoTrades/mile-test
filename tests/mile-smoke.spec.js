@@ -958,6 +958,31 @@ test('77.5 account details use authenticated identity and confirm cloud save',as
  await expect(panel.locator('[data-m775-status]')).toHaveText('Cloud save confirmed.');
  await expect(panel.locator('[data-m775-value="cloudstatus"]')).toHaveText('Saved');
 });
+test('a running revision conflict preserves local data and the last confirmed cloud save',async ({page})=>{
+ const confirmed='2026-11-19T12:00:00Z';
+ await openApp(page,{signedIn:true,syncStore:{updated_at:confirmed,data:{activities:[activity],workouts:[{id:'stale-running-plan',revision:1,sport:'Running',status:'planned'}]}}});
+ let writes=0;
+ await page.route('**/rest/v1/av_training_data?*',async route=>{
+  if(route.request().method()!=='POST')return route.fallback();
+  writes++;
+  expect(route.request().postDataJSON().training_data.workouts).toContainEqual(
+   expect.objectContaining({id:'stale-running-plan',revision:1})
+  );
+  await route.fulfill({status:409,json:{code:'PT409',details:'mile_running_revision_conflict'}});
+ });
+ await page.evaluate(()=>window.mileV3Go('settings'));
+ await page.locator('[data-m771-open="account"]').first().click();
+ const panel=page.locator('[data-m775-account]');
+ await panel.locator('[data-m775-action="cloud-save"]').click();
+ await expect(panel.locator('[data-m775-value="cloudstatus"]')).toHaveText('Conflict');
+ await expect(panel.locator('[data-m775-status]')).toHaveText('A running workout changed in the cloud. Your edits are on this device. Export a training backup, then reload and choose the cloud copy.');
+ expect(writes).toBe(1);
+ const saved=await page.evaluate(id=>({
+  confirmed:localStorage.getItem('av-cloud-confirmed-'+id),
+  revision:JSON.parse(localStorage.getItem('av-training-v4-'+id)).workouts[0].revision
+ }),user.id);
+ expect(saved).toEqual({confirmed,revision:1});
+});
 test('77.5 connection page and safe backup export',async ({page})=>{
  await openApp(page,{signedIn:true});
  await page.evaluate(()=>window.mileV3Go('settings'));
