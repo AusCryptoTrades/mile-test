@@ -27,16 +27,17 @@ test('HYROX SIM Roxzone stages are separately tracked',async({page})=>{
 });
 test('SIM uses in-app page heading and respects iPhone safe area',async({page},testInfo)=>{
  await page.goto('/mile-sim.html');
- await expect(page.locator('#setup .page-title')).toHaveText('MILE SIM');
+ await expect(page.locator('#simSetupBanner .page-title')).toHaveText('MILE SIM');
  await expect(page.locator('#backToRaceLab')).toContainText('Back');
  await expect(page.locator('.top .brand')).toHaveCount(0);
  const metrics=await page.evaluate(()=>{
   const header=document.querySelector('.top').getBoundingClientRect();
-  const title=document.querySelector('.page-title').getBoundingClientRect();
-  return {headerTop:header.top,titleTop:title.top,headerBottom:header.bottom,width:document.documentElement.scrollWidth,viewport:innerWidth};
+  const title=document.querySelector('#simSetupBanner').getBoundingClientRect();
+  return {headerTop:header.top,titleTop:title.top,titleBottom:title.bottom,headerBottom:header.bottom,width:document.documentElement.scrollWidth,viewport:innerWidth};
  });
  expect(metrics.headerTop).toBeGreaterThanOrEqual(18);
- expect(metrics.titleTop).toBeGreaterThan(metrics.headerBottom);
+ expect(metrics.titleTop).toBeGreaterThanOrEqual(18);
+ expect(metrics.headerTop).toBeGreaterThanOrEqual(metrics.titleBottom-1);
  expect(metrics.width).toBeLessThanOrEqual(metrics.viewport+1);
 });
 
