@@ -1452,7 +1452,9 @@ test('875 overview summary uses normal rows only; own and shared tabs have no re
 
 test('8752 tracker opened from Calendar never carries Calendar heading, including remount',async({page})=>{
  await openApp(page,{signedIn:true});
- await page.getByRole('button',{name:'Calendar',exact:true}).first().click();
+ const calendarNav=page.locator('#mile-fixed-mobile-nav [data-mile-page="calendar"]');
+ if(await calendarNav.isVisible())await calendarNav.click();
+ else await page.evaluate(()=>window.mileV3Go('calendar'));
  await expect(page.locator('#app')).toContainText('Calendar');
  await page.evaluate(()=>{window.mileTrackerPlanned={name:'Planned fixture',detail:'2 km easy; 4 × 1 km @ 4:20–4:25/km; 90 sec easy recovery'};window.mileShellOpen('tracker')});
  await expect(page.locator('#mile-native-view')).toBeVisible();
@@ -1479,4 +1481,105 @@ test('8752 compact activity back button and interval metrics retain usable touch
  await detail.getByRole('button',{name:'Recovery',exact:true}).click();
  await expect(detail.locator('.m875-table tbody tr')).toHaveCount(1);
  await back.click();await expect(detail).toHaveCount(0);
+});
+
+
+// 87.6 visual release gates: use only the existing simulated backend, never real athletes.
+// Screenshots are attached to the Playwright report for review, not treated as a visual pass.
+async function densityCapture(page,testInfo,name){
+ await page.evaluate(()=>window.scrollTo(0,0));
+ await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+2)).toBe(true);
+ await testInfo.attach(name,{body:await page.screenshot({animations:'disabled'}),contentType:'image/png'});
+}
+test('876 universal banners are intrinsically sized and compact across main pages',async({page},testInfo)=>{
+ test.setTimeout(120000);
+ await openApp(page,{signedIn:true});
+ await densityCapture(page,testInfo,'dashboard-after');
+ for(const [route,title] of [['calendar','Calendar'],['builder','Build'],['goals','Training Plans'],['performance','Stats'],['insights','MILE IQ'],['events','Events & PBs'],['predictor','Race Lab'],['settings','Settings']]){
+  await page.evaluate(p=>window.mileV3Go(p),route);
+  const header=page.locator('#app > .mile-universal-header');
+  await expect(header.getByRole('heading',{name:title,exact:true})).toBeVisible();
+  await expect.poll(()=>header.evaluate(n=>parseFloat(getComputedStyle(n).minHeight))).toBe(86);
+  expect(await header.evaluate(n=>n.scrollHeight<=n.clientHeight+2)).toBe(true);
+  await densityCapture(page,testInfo,route+'-after');
+ }
+ await page.evaluate(()=>window.mileV3Go('whatsnew'));
+ await densityCapture(page,testInfo,'whats-new-after');
+});
+test('876 compare before and after shared header and retain compact menu routes in all themes',async({page},testInfo)=>{
+ test.setTimeout(120000);
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('calendar'));
+ const header=page.locator('#app > .mile-universal-header');
+ await expect(header).toBeVisible();
+ await page.evaluate(async()=>{
+  const link=document.querySelector('link[href*="mile-compact.css"]');
+  const response=await fetch(link.href);
+  const css=await response.text();
+  const marker='/* 87.6 — shared density scale.';
+  if(!css.includes(marker))throw new Error('Missing density CSS marker');
+  const style=document.createElement('style');
+  style.id='density-baseline';
+  style.textContent=css.split(marker)[0];
+  link.after(style);link.disabled=true;
+ });
+ await expect.poll(()=>header.evaluate(n=>n.getBoundingClientRect().height)).toBe(116);
+ await densityCapture(page,testInfo,'calendar-before-876');
+ await page.evaluate(()=>{document.querySelector('link[href*="mile-compact.css"]').disabled=false;document.getElementById('density-baseline').remove()});
+ await expect.poll(()=>header.evaluate(n=>n.getBoundingClientRect().height)).toBeLessThan(116);
+ await densityCapture(page,testInfo,'calendar-after-876');
+ for(const theme of ['forest','graphite','midnight','mono','light','sand','ice']){
+  await page.evaluate(t=>window.m395ThemeSet(t),theme);
+  await page.evaluate(()=>window.mileV3ToggleMore());
+  const menu=page.locator('#mile-emergency-more');
+  const row=menu.locator('[data-dest="performance"]');
+  await expect(row).toBeVisible();
+  const bounds=await row.boundingBox();
+  expect(bounds.height).toBeGreaterThanOrEqual(44);
+  expect(bounds.height).toBeLessThanOrEqual(62);
+  await densityCapture(page,testInfo,'more-'+theme);
+  await row.click();
+  await expect(page.locator('.m70-stats')).toBeVisible();
+  await expect(menu).toBeHidden();
+ }
+});
+test('876 social views and settings subpages render without horizontal overflow',async({page},testInfo)=>{
+ test.setTimeout(150000);
+ await openApp(page,{signedIn:true});
+ for(const tab of ['feed','profile','discover','requests','leaderboard','share','messages','notifications','notification_settings']){
+  await page.evaluate(t=>window.m36Open(t),tab);
+  await expect.poll(()=>page.evaluate(()=>window.m36State.loading)).toBe(false);
+  await expect(page.locator('#app')).toBeVisible();
+  await densityCapture(page,testInfo,'social-'+tab);
+ }
+ await page.evaluate(()=>window.mileV3Go('settings'));
+ const hub=page.locator('[data-m771-page="hub"]');
+ await expect(hub).toBeVisible();
+ await densityCapture(page,testInfo,'settings-hub');
+ for(const id of ['appearance','units','profile','zones','connections','account','data','privacy','notifications','about','dashboard']){
+  await hub.locator('[data-m771-open="'+id+'"]').first().click();
+  const sub=page.locator('[data-m771-page="'+id+'"]');
+  await expect(sub).toBeVisible();
+  await densityCapture(page,testInfo,'settings-'+id);
+  await sub.getByRole('button',{name:'‹ Settings',exact:true}).click();
+  await expect(hub).toBeVisible();
+ }
+});
+test('876 embedded exercise setup screens and challenges retain working navigation',async({page},testInfo)=>{
+ test.setTimeout(90000);
+ await openApp(page,{signedIn:true});
+ for(const kind of ['tracker','sim','challenges']){
+  await page.evaluate(k=>window.mileShellOpen(k),kind);
+  const frame=page.frameLocator('#mile-native-view');
+  await expect(frame.locator('html')).toHaveAttribute('data-mile-buttons',kind);
+  if(kind!=='challenges'){
+   await expect(frame.locator('#start')).toBeVisible();
+   expect(await frame.locator('#start').evaluate(n=>parseFloat(getComputedStyle(n).minHeight))).toBeGreaterThanOrEqual(48);
+  }else await expect(frame.locator('#root')).toBeVisible();
+  expect(await frame.locator('html').evaluate(n=>n.scrollWidth<=n.clientWidth+2)).toBe(true);
+  await densityCapture(page,testInfo,kind+'-setup');
+  await page.evaluate(()=>window.mileShellNavigate('calendar'));
+  await expect(page.locator('#mile-native-view')).toHaveCount(0);
+  await expect(page.locator('#app > .mile-universal-header').getByRole('heading',{name:'Calendar'})).toBeVisible();
+ }
 });
