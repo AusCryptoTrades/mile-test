@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 
 const activity = {
   id: '123456789', name: 'Fixture morning run', sport: 'Running',
-  date: '2026-11-18T07:00:00', distanceKm: 2, durationSeconds: 620, averageHR: 145,
+  date: '2026-11-10T07:00:00', distanceKm: 2, durationSeconds: 620, averageHR: 145,
 };
 const user = { id: '00000000-0000-4000-8000-000000000001', email: 'runner@example.test', email_confirmed_at: '2026-11-19T12:00:00Z' };
 const samples = Array.from({ length: 11 }, (_, i) => ({
@@ -66,7 +66,7 @@ async function openApp(page, { signedIn = false, laps = true, syncStore = null, 
 test('88.2 real Build reviews exact personalised sessions and saves Calendar steps without touching existing history',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const syncStore={};await openApp(page,{signedIn:true,syncStore});
- await page.evaluate(()=>{state.workouts=[{id:'fixture-completed-run',block:state.activeBlock,date:'2026-11-19',sport:'Running',name:'Historical run',detail:'Recorded workout',km:6,status:'done',matchId:'123456789',note:'Do not change'}];window.mileV3Go('builder');v42PickSport('Running')});
+ await page.evaluate(()=>{state.workouts=[{id:'fixture-completed-run',block:state.activeBlock,date:'2026-11-10',sport:'Running',name:'Historical run',detail:'Recorded workout',km:6,status:'done',matchId:'123456789',note:'Do not change'}];window.mileV3Go('builder');v42PickSport('Running')});
  const original=await page.evaluate(()=>JSON.stringify(state.workouts.find(w=>w.id==='fixture-completed-run')));
  const build=page.locator('.m882-build');
  await expect(build).toContainText('STEP 1 OF 5');
@@ -75,13 +75,16 @@ test('88.2 real Build reviews exact personalised sessions and saves Calendar ste
  await build.locator('#m882-weeks').fill('8');
  const next=()=>build.locator('[data-m882-action="next"]').click();
  await next();await expect(build).toContainText('STEP 2 OF 5');
- await expect(build).toContainText('180 days');
+ await expect(build.locator('.m882-history').getByText('180 days',{exact:true})).toBeVisible();
+ await expect(build.locator('.m882-history').getByText('No runs recorded',{exact:true})).toHaveCount(1);
  await build.locator('#v42Level').selectOption('experienced');
  await build.locator('#v42Volume').fill('50');
  await build.locator('#m882-longest').fill('30');
  await build.locator('#m882-five').fill('19:59');
  await build.locator('#m882-easy').fill('5:20');
  await build.locator('#m882-threshold').fill('4:19');
+ await build.locator('#m882-maxHR').fill('180');
+ await build.locator('#m882-lthr').fill('161');
  await next();await expect(build).toContainText('STEP 3 OF 5');
  await build.locator('#v42Days').selectOption('5');
  for(const d of ['2','4'])await build.locator('[data-m882-day="available"][value="'+d+'"]').uncheck();
@@ -91,6 +94,8 @@ test('88.2 real Build reviews exact personalised sessions and saves Calendar ste
  await next();await expect(build).toContainText('STEP 4 OF 5');
  await expect(build.locator('#m882-mode')).toHaveValue('automatic');
  await expect(build.locator('[data-m882-adapt="pace"]')).toBeChecked();
+ await build.locator('#m882-secondary').fill('HYROX on Sundays');
+ await expect(build.locator('#m882-notifications')).toHaveValue('significant');
  await next();await expect(build).toContainText('STEP 5 OF 5');
  await expect(build.locator('.m882-week').first()).toContainText('50.0 km');
  await build.locator('.m882-week').first().locator('summary').first().click();
@@ -100,17 +105,21 @@ test('88.2 real Build reviews exact personalised sessions and saves Calendar ste
  page.once('dialog',d=>d.accept());
  await build.locator('[data-m882-action="save"]').click();
  await expect.poll(()=>page.evaluate(()=>state.blocks.some(b=>b.runningPlan?.version===1))).toBe(true);
- const saved=await page.evaluate(()=>{const b=state.blocks.find(x=>x.runningPlan?.version===1);const w=state.workouts.filter(x=>x.block===b.id&&x.planWeek===1);return {total:w.reduce((sum,x)=>sum+x.meters,0),steps:w.every(x=>x.structuredSteps.reduce((sum,s)=>sum+s.duration.meters,0)===x.meters&&x.structuredDetail===x.detail),focus:w.every(x=>!!x.focus),dates:w.map(x=>x.date),id:w[0].id}});
+ const saved=await page.evaluate(()=>{const b=state.blocks.find(x=>x.runningPlan?.version===1);const w=state.workouts.filter(x=>x.block===b.id&&x.planWeek===1);return {total:w.reduce((sum,x)=>sum+x.meters,0),steps:w.every(x=>x.structuredSteps.reduce((sum,s)=>sum+s.duration.meters,0)===x.meters&&x.structuredDetail===x.detail),focus:w.every(x=>!!x.focus),dates:w.map(x=>x.date),id:w[0].id,first:w[0]}});
  expect(await page.evaluate(()=>JSON.stringify(state.workouts.find(w=>w.id==='fixture-completed-run')))).toBe(original);
  expect(saved.total).toBe(50000);expect(saved.steps).toBe(true);expect(saved.focus).toBe(true);
  expect(saved.dates).toEqual(['2026-11-30','2026-12-01','2026-12-03','2026-12-05','2026-12-06']);
  await expect.poll(()=>syncStore.data?.workouts?.some(w=>w.id===saved.id)).toBe(true);
  await expect(page.getByRole('heading',{name:'You’re ready to train.'})).toBeVisible();
  await page.getByRole('button',{name:'View Calendar',exact:true}).click();
- await page.evaluate(()=>{viewDate='2026-11-30';calendarMonth='2026-11';render()});
- await expect(page.getByText('Session Purpose & Focus',{exact:true}).first()).toBeVisible();
- await expect(page.locator('.v44-session-zone').filter({hasText:'RPE'}).first()).toBeVisible();
- await page.getByText('Session Purpose & Focus',{exact:true}).first().click();
- await expect(page.getByText('Session Focus',{exact:true}).first()).toBeVisible();
+ const startDate=page.locator('#app .daygrid .day').filter({has:page.getByText('30',{exact:true})});
+ await expect(startDate).toHaveClass(/\bselected\b/);
+ const sessions=page.locator('#app details.mile-v3-details').filter({has:page.getByText('Planned sessions (1)',{exact:true})});
+ await sessions.locator(':scope > summary').click();
+ const workout=sessions.locator('.item').filter({has:page.getByRole('heading',{name:saved.first.name,exact:true})});
+ await expect(workout.locator('.v44-session-zone')).toHaveText(`RPE ${saved.first.targetRpe} · ~${saved.first.plannedMinutes} min estimated`);
+ await workout.getByText('Session Purpose & Focus',{exact:true}).click();
+ await expect(workout.getByText(saved.first.purpose,{exact:true})).toBeVisible();
+ await expect(workout.getByText(saved.first.focus,{exact:true})).toBeVisible();
  expect(errors).toEqual([]);
 });
