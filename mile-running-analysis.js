@@ -53,7 +53,7 @@ function analyse(activity,opts={}){
  const base={activityId:id,kind:matched?'planned':'unplanned',distanceKm:distance,durationMin:duration,averagePace:distance&&duration?duration*60/distance:null,zones:context.sensorError?null:zones,cautions,trainingLoad:duration&&finite(opts.sessionRpe)!==null&&opts.sessionRpe>=1&&opts.sessionRpe<=10?{method:'athlete-reported RPE × minutes',value:Math.round(duration*opts.sessionRpe)}:null};
  if(!matched){
   let classification='unclassified',stimulus='Insufficient recorded evidence to classify this run.';
-  if(!confounded&&zones&&duration>=20){
+  if(!confounded&&zones&&duration>=20&&zones.coverage>=duration*60*.8){
    const high=zones.percent[3]+zones.percent[4],easy=zones.percent[0]+zones.percent[1];
    if(zones.outsidePercent<=10&&high>=25){classification='higher-intensity';stimulus='Substantial recorded time in upper configured HR zones suggests a demanding contribution.'}
    else if(zones.outsidePercent<=10&&easy>=75){classification='predominantly-aerobic';stimulus='Most recorded time was in the lower configured HR zones.'}

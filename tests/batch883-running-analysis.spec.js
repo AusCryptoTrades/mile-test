@@ -14,10 +14,11 @@ const checks=function tests(api){
  assert(api.analyse(activity,{plans:[plan],lapEvidence:faster}).execution==='above-target','faster not better');
  const incomplete={...evidence,rows:evidence.rows.map((r,i)=>i===1?{...r,meters:1200}:r)};
  assert(api.analyse(activity,{plans:[plan],lapEvidence:incomplete}).execution==='incomplete','incomplete interval');
- const zones={seconds:[0,300,600,700,200],outside:0,coverage:1800,span:1800};
+ const zones={seconds:[0,400,800,900,300],outside:0,coverage:2400,span:2400};
  assert(api.analyse(activity,{zoneDistribution:zones}).classification==='higher-intensity','unplanned high intensity');
  assert(api.analyse(activity,{zoneDistribution:zones}).adherence===null,'unplanned no adherence');
  assert(api.analyse(activity,{zoneDistribution:{...zones,span:4000}}).classification==='unclassified','insufficient coverage');
+ assert(api.analyse(activity,{zoneDistribution:{seconds:[0,0,0,300,0],outside:0,coverage:300,span:300}}).classification==='unclassified','full coverage of a short fragment cannot describe the whole run');
  assert(api.analyse(activity,{zoneDistribution:zones,context:{sensorError:true}}).zones===null,'sensor error');
  assert(api.analyse({id:'b'},{plans:[plan]}).distanceKm===null,'missing data');
  const settings={mode:'automatic',pace:true,volume:true,recovery:true,missed:true},sessions=[{id:'completed',sport:'Running',status:'done',date:'2026-12-01',targetRpe:7},{id:'linked',sport:'Running',status:'planned',date:'2026-12-01',matchId:'a',targetRpe:7},{id:'past',sport:'Running',status:'planned',date:'2026-11-20',targetRpe:7},{id:'next',sport:'Running',status:'planned',date:'2026-12-02',targetRpe:7}];

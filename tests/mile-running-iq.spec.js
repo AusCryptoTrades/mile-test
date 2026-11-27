@@ -37,7 +37,7 @@ test('88.1 analysis is read-only and UI does not invent adherence',async({page})
   return {text:host.textContent,plan:JSON.stringify(plan)};
  });
  expect(result.text).toContain('Linked session: Easy run');
- expect(result.text).toContain('Main-set adherence is not yet assessed');
+ expect(result.text).toContain('Verified step alignment required');
  expect(result.text).toContain('No workout targets or future sessions have been changed');
  expect(JSON.parse(result.plan).km).toBe(8);
 });
@@ -52,6 +52,6 @@ test('88.3 planned and unplanned analysis render distinct evidence-gated section
  const render=workouts=>{const host=document.createElement('div');window.mileRunningIQ.render(host,window.mileRunningIQ.analyse(a,{workouts}));return host.textContent};
  return {planned:render([p]),unplanned:render([]),ambiguous:render([p,p])};
  });
- expect(result.planned).toContain('Session execution');expect(result.planned).toContain('100%');expect(result.planned).toContain('verified step alignment required');
+ expect(result.planned).toContain('Session execution');expect(result.planned).toContain('100%');expect(result.planned).toContain('Verified step alignment required');
  expect(result.unplanned).toContain('Training contribution');expect(result.unplanned).not.toContain('Distance completed');expect(result.ambiguous).toContain('Training contribution');
 });

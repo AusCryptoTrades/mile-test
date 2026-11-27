@@ -69,6 +69,60 @@ async function openActivity(page) {
   return detail;
 }
 
+function runningReviewFixture({ matched = false, recordedDuration = 1800, sampleCount = 361 } = {}) {
+  const run = { ...activity, distanceKm: 6, durationSeconds: recordedDuration };
+  const future = { id: 'next-quality', block: 'running-review', name: 'Threshold Intervals', sport: 'Running', date: '2026-11-22', status: 'planned', targetRpe: 7, km: 10 };
+  const completed = { ...future, id: 'completed', name: 'Completed session', date: '2026-11-21', status: 'done' };
+  const foreignPlan = { ...future, id: 'other-programme', block: 'other-block', name: 'Other programme session', date: '2026-11-21' };
+  const linked = { ...future, id: 'linked', name: 'Planned aerobic run', date: '2026-11-18', status: 'done', matchId: run.id, km: 6, plannedMinutes: 34, purpose: 'Build aerobic endurance.' };
+  const block = { id: 'running-review', name: 'Running review', sport: 'Running', start: '2026-11-16', end: '2026-11-30', active: true,
+    runningPlan: { version: 1, config: { adaptation: { mode: 'automatic', pace: true, volume: true, recovery: true } } },
+  };
+  return {
+    signedIn: true,
+    syncStore: { data: {
+      activities: [run], workouts: [future, completed, foreignPlan, ...(matched ? [linked] : [])], blocks: [block], activeBlock: block.id,
+      settings: { athleteProfile: { zoneBounds: [100, 120, 140, 155, 170, 190] } },
+    } },
+    intervalFixture: { samples: Array.from({ length: sampleCount }, (_, i) => ({ timestamp: 1794985200000 + i * 5000, heartRate: 175 })) },
+  };
+}
+
+test('88.3 private Analysis reviews an upcoming session after a demanding unplanned run', async ({ page }) => {
+  await openApp(page, runningReviewFixture());
+  const persistedRequests = [];
+  page.on('request', request => {
+    if (request.method() !== 'GET' && /av_training_data|mile_apply_running_revision|garmin.*publish/.test(request.url())) persistedRequests.push(request.url());
+  });
+  const detail = await openActivity(page);
+  await detail.getByRole('button', { name: 'Analysis', exact: true }).click();
+  const review = detail.locator('section').filter({ has: page.getByRole('heading', { name: 'Adaptation review', exact: true }) });
+  await expect(review).toContainText('Additional demanding run');
+  await expect(review).toContainText('100% of covered recorded heart-rate time was in Zones 4 and 5.');
+  await expect(review).toContainText('Threshold Intervals · 2026-11-22');
+  await expect(review).toContainText('Review can start now');
+  await expect(review.getByRole('button')).toHaveCount(0);
+  await expect(detail).toContainText('Running distance recorded this week6.0 km');
+  await expect(detail).toContainText('Recorded duration30 min');
+  await expect(detail).not.toContainText('Distance completed');
+  await expect(detail.locator('.mile35-footer')).toContainText('private');
+  expect(await review.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+  expect(persistedRequests).toEqual([]);
+});
+
+test('88.3 private Analysis preserves targets for a linked run without verified steps', async ({ page }) => {
+  await openApp(page, runningReviewFixture({ matched: true, sampleCount: 14 }));
+  const detail = await openActivity(page);
+  await detail.getByRole('button', { name: 'Analysis', exact: true }).click();
+  await expect(detail).toContainText('Linked session: Planned aerobic run');
+  await expect(detail).toContainText('Build aerobic endurance.');
+  await expect(detail).toContainText('Planned duration estimate34 min');
+  await expect(detail).toContainText('Verified step alignment required');
+  await expect(detail).toContainText('Comparable trend unavailable');
+  await expect(detail).toContainText('Additional evidenceRequired');
+  await expect(detail).not.toContainText('Upcoming session to review');
+});
+
 test.beforeEach(async ({ page }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));

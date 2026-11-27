@@ -2478,7 +2478,7 @@ polish();
 let openActivityId=null,activeDetailTab='Overview',savedScroll=0,detailOpen=false;
 const root=document.getElementById('app');
 const safe=x=>typeof esc==='function'?esc(x):String(x??'');
-const sport=a=>typeof sportOf==='function'?sportOf(a):'Other';
+const sport=a=>{const detected=typeof sportOf==='function'?sportOf(a):'Other';return detected==='Other'&&a.sport==='Running'?'Running':detected};
 const minutes=a=>Number(a.durationMin||a.elapsedDurationMin||0);
 const dur=a=>typeof formatDuration==='function'?formatDuration(minutes(a)):Math.round(minutes(a))+' min';
 const pace=a=>Number(a.paceMinKm)>0&&Number(a.distanceKm)>0?formatPace(Number(a.paceMinKm)):null;
@@ -2720,7 +2720,21 @@ const mileDataRow=(label,value,unit='')=>value===null||value===undefined||value=
 const mileDetailOriginal=drawDetail;
 drawDetail=function(){mileDetailOriginal();let overlay=document.getElementById('mile35-detail');if(!overlay)return;let a=findActivity(openActivityId),d=mileDetail(openActivityId),summary=mileSummary(d),points=milePoints(d),content=overlay.querySelectorAll('.mile35-panel'),tab=activeDetailTab;
  const top=overlay.querySelector('.mile35-top');if(top&&!top.querySelector('[data-mile352-share]')){const share=document.createElement('button');share.className='mile352-share-btn';share.textContent='Create Card';share.setAttribute('aria-label','Create a shareable activity image');share.setAttribute('data-mile352-share','1');top.replaceChild(share,top.lastElementChild)}
- if(tab==='Analysis'&&sport(a)==='Running'&&window.mileRunningIQ){const host=document.createElement('div');host.className='m881-analysis-host';const footer=overlay.querySelector('.mile35-footer');footer.before(host);window.mileRunningIQ.render(host,window.mileRunningIQ.analyse(a,{workouts:state.workouts||[],points,bounds:state.settings?.athleteProfile?.zoneBounds}));return;}
+ if(tab==='Analysis'&&sport(a)==='Running'&&window.mileRunningIQ){
+  const host=document.createElement('div');host.className='m881-analysis-host';
+  overlay.querySelector('.mile35-footer').before(host);
+  const day=today(),runDay=activityDate(a),[start,end]=weekRange();
+  const review=v4Ready&&userId?{
+   today:day,earliest:add(day,-2),weekStart:start,weekEnd:end,
+   blocks:state.blocks||[],activeBlock:state.activeBlock,fatigue:state.checkins?.[day]?.fatigue,
+   currentRuns:allActivities().filter(x=>sport(x)==='Running').map(x=>({date:activityDate(x),distanceKm:x.distanceKm})),
+  }:null;
+  const result=window.mileRunningIQ.analyse({...a,date:runDay,durationMin:activityDuration(a)},{
+   workouts:state.workouts||[],points,bounds:state.settings?.athleteProfile?.zoneBounds,review,
+  });
+  window.mileRunningIQ.render(host,result);
+  return;
+ }
  if(!d){if(!mileDetailLoading)overlay.querySelector('.mile35-view')?.insertAdjacentHTML('beforeend','<p class="mile352-loading">Loading recorded Garmin data…</p>');return}
  if(d.error){if(content.length)content[0].insertAdjacentHTML('beforeend',`<div class="mile352-error">${safe(d.error)}</div>`);return}
  const maxHR=mileField(summary,'maxHeartRateInBeatsPerMinute','maxHR','maxHeartRate'),cal=mileField(summary,'activeKilocalories','calories','totalCalories'),elevation=mileField(summary,'elevationGain'),trainingEffect=mileField(summary,'aerobicTrainingEffect','trainingEffect'),hr=points.filter(p=>p.hr!==null);
