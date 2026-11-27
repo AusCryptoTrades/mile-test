@@ -128,6 +128,11 @@ declare
   old_meters numeric;
   old_seconds numeric;
   step jsonb;
+  target jsonb;
+  target_low numeric;
+  target_high numeric;
+  target_text text;
+  step_label text;
   step_meters numeric;
   resized_meters numeric;
   total_before numeric := 0;
@@ -201,10 +206,15 @@ begin
     or jsonb_typeof(original->'plannedMinutes') is distinct from 'number' then
     raise sqlstate 'PT422' using message = 'Only canonical aerobic running workouts support distance reduction';
   end if;
-  if original->'revision' is distinct from to_jsonb(p_expected_revision) or p_expected_revision = 2147483647 then
+  select coalesce((
+    select to_revision from mile_running_private.workout_revisions
+    where user_id = athlete and workout_id = p_workout_id
+    order by to_revision desc limit 1
+  ), 1) into old_revision;
+  if old_revision <> p_expected_revision or old_revision = 2147483647
+    or original->'revision' is distinct from to_jsonb(old_revision) then
     raise sqlstate 'PT409' using message = 'Workout revision changed';
   end if;
-  old_revision := p_expected_revision;
 
   -- Garmin session IDs are UUIDs. Text comparison also covers restored backups
   -- without letting a malformed ID cause a cast error in the publication lookup.
@@ -238,10 +248,44 @@ begin
       raise sqlstate 'PT422' using message = 'A revised step would be shorter than 100 metres';
     end if;
 
+    target := step->'target';
+    case target->>'kind'
+      when 'open' then
+        target_text := 'effort-based';
+      when 'pace' then
+        if jsonb_typeof(target->'fastSecondsPerKm') is distinct from 'number'
+          or jsonb_typeof(target->'slowSecondsPerKm') is distinct from 'number' then
+          raise sqlstate 'PT422' using message = 'Invalid stored running pace target';
+        end if;
+        target_low := (target->>'fastSecondsPerKm')::numeric;
+        target_high := (target->>'slowSecondsPerKm')::numeric;
+        if target_low < 120 or target_high > 1800 or target_low > target_high then
+          raise sqlstate 'PT422' using message = 'Invalid stored running pace target';
+        end if;
+        target_text := ltrim(to_char(make_interval(secs => round(target_low)::double precision), 'MI:SS'), '0')
+          || '–' || ltrim(to_char(make_interval(secs => round(target_high)::double precision), 'MI:SS'), '0') || '/km';
+      when 'heart_rate' then
+        if jsonb_typeof(target->'lowBpm') is distinct from 'number'
+          or jsonb_typeof(target->'highBpm') is distinct from 'number' then
+          raise sqlstate 'PT422' using message = 'Invalid stored running heart-rate target';
+        end if;
+        target_low := (target->>'lowBpm')::numeric;
+        target_high := (target->>'highBpm')::numeric;
+        if target_low < 30 or target_high > 250 or target_low >= target_high
+          or target_low <> trunc(target_low) or target_high <> trunc(target_high) then
+          raise sqlstate 'PT422' using message = 'Invalid stored running heart-rate target';
+        end if;
+        target_text := target_low::integer || '–' || target_high::integer || ' bpm';
+      else
+        raise sqlstate 'PT422' using message = 'Unsupported running step target';
+    end case;
+
+    step_label := case step->>'intensity' when 'warmup' then 'Warm-up' when 'cooldown' then 'Cooldown' else 'Main' end;
     total_before := total_before + step_meters;
     total_after := total_after + resized_meters;
     revised_steps := revised_steps || jsonb_build_array(jsonb_set(step, '{duration,meters}', to_jsonb(resized_meters)));
-    detail_parts := array_append(detail_parts, (step->>'intensity') || ': ' || (resized_meters / 1000)::numeric(20,1)::text || ' km');
+    detail_parts := array_append(detail_parts,
+      step_label || ': ' || (resized_meters / 1000)::numeric(20,1)::text || ' km · ' || target_text || '.');
   end loop;
   if total_before <> old_meters or total_after < old_meters * 0.8 or total_after >= old_meters then
     raise sqlstate 'PT422' using message = 'The revised total must be a reduction of no more than 20 percent';
@@ -251,8 +295,8 @@ begin
   revised := original || jsonb_build_object(
     'revision', old_revision + 1, 'meters', total_after, 'km', total_after / 1000,
     'estimatedSeconds', seconds_after, 'plannedMinutes', ceil(seconds_after / 60),
-    'structuredSteps', revised_steps, 'detail', array_to_string(detail_parts, ' · '),
-    'structuredDetail', array_to_string(detail_parts, ' · ')
+    'structuredSteps', revised_steps, 'detail', array_to_string(detail_parts, ' '),
+    'structuredDetail', array_to_string(detail_parts, ' ')
   );
 
   insert into mile_running_private.workout_revisions

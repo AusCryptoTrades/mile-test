@@ -82,6 +82,11 @@ begin
     '00000000-0000-4000-8000-000000000018', 'hard-session'
   ), 'PT422');
 
+  perform pg_temp.expect_sqlstate(format(
+    'select public.mile_revise_running_workout(%L, 9, %L, .9)',
+    '00000000-0000-4000-8000-000000000020', 'untracked-initial-revision'
+  ), 'PT409');
+
   receipt := public.mile_revise_running_workout(workout_id, 1, 'reduction', .9);
   if receipt is distinct from jsonb_build_object('status', 'applied', 'workoutId', workout_id, 'revision', 2) then
     raise exception 'Unexpected apply response %', receipt;
@@ -102,7 +107,9 @@ begin
   if (workout->>'meters')::integer is distinct from 4300 or (workout->>'km')::numeric is distinct from 4.3 or
      (workout->>'estimatedSeconds')::integer is distinct from 1527 or (workout->>'plannedMinutes')::integer is distinct from 26 or
      workout->'detail' is distinct from workout->'structuredDetail' or
-     workout->'detail' is not distinct from original #> '{workouts,0,detail}' or
+     workout->>'detail' is distinct from 'Warm-up: 0.6 km · 5:45–6:15/km. Main: 3.3 km · 130–148 bpm. Cooldown: 0.4 km · effort-based.' or
+     workout#>'{structuredSteps,0,target}' is distinct from original#>'{workouts,0,structuredSteps,0,target}' or
+     workout#>'{structuredSteps,1,target}' is distinct from original#>'{workouts,0,structuredSteps,1,target}' or
      (select sum((step #>> '{duration,meters}')::integer)
        from jsonb_array_elements(workout->'structuredSteps') step) is distinct from 4300 or
      jsonb_set(changed, '{workouts,0}', original #> '{workouts,0}') is distinct from original then
