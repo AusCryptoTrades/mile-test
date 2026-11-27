@@ -39,7 +39,7 @@ export function normalizedLaps(messages,expectedStart){
   const index=Number.isInteger(l.wktStepIndex)&&l.wktStepIndex>=0&&l.wktStepIndex<=1000?l.wktStepIndex:null;
   const step=index!==null&&!dups.has(index)?label(steps.get(index)):null,lap=label(l.intensity);
   // Ordinary active laps are not structured workout evidence. A conflicting explicit label remains unknown.
-  const structured=index!==null||Boolean(workoutEvidence&&lap);
+  const structured=index!==null||Boolean(workoutEvidence&&lap&&lap!=='active');
   const compatible=step===lap||['active','interval'].includes(step)&&['active','interval'].includes(lap)||['rest','recovery'].includes(step)&&['rest','recovery'].includes(lap);
   const intensity=structured?(step&&lap&&!compatible?null:step||lap):null;
   return {startTimeInSeconds:a,endTimeInSeconds:b,durationInSeconds:l.totalTimerTime,distanceInMeters:l.totalDistance,intensity,workoutStepIndex:index,averageHeartRateInBeatsPerMinute:finite(l.avgHeartRate,1,250)?l.avgHeartRate:null,maxHeartRateInBeatsPerMinute:finite(l.maxHeartRate,1,250)?l.maxHeartRate:null};
