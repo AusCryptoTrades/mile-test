@@ -114,20 +114,22 @@ function generate(input={}){
  const raceWeek=race===null?null:Math.floor((race-st)/604800000);
  if(raceWeek!==null&&raceWeek>=weeks)warnings.push('Race is outside programme dates; no race taper scheduled.');
  let ceiling=base.source==='four completed weeks'&&!base.interrupted?caps[a.level]:0;
- if(hard.length||a.recovery==='poor'||goal==='return')ceiling=0;
+ const primary=input.adaptation?.priority==null||input.adaptation.priority==='Running';
+ if(!primary)warnings.push('Running is secondary; planned mileage is reduced and demanding running sessions are suppressed.');
+ if(!primary||hard.length||a.recovery==='poor'||goal==='return')ceiling=0;
  for(let i=0;i<weeks;i++){
   const untilRace=raceWeek===null?Infinity:raceWeek-i;
   if(untilRace<0)break;
   const taper=untilRace<= (['marathon','ultra'].includes(goal)?2:1);
   const phase=taper?'Taper':i%4===3?'Recovery':i<2?'Base':i<Math.ceil(weeks*.65)?'Build':'Specific';
-  let target=round(previous*(i===0?(a.recovery==='poor'?.8:1):taper?(untilRace===0?.6:.8):phase==='Recovery'?.8:1+ceiling));
+  let target=round(previous*(i===0?(a.recovery==='poor'||!primary?.8:1):taper?(untilRace===0?.6:.8):phase==='Recovery'?.8:1+ceiling));
   // A planned deload is not loss of fitness. Restore at most the last achieved planning ceiling, never add a new peak immediately after recovery.
   if(previousPhase==='Recovery'&&!taper&&phase!=='Recovery'&&a.recovery!=='poor')target=Math.max(target,preRecovery);
   if(i===0&&taper)target=round(target*.7);
   const slots=ordered.filter(o=>race===null||st+(i*7+o.offset)*86400000<race);
   if(!slots.length)break;
   const longSlot=slots.find(o=>o.day===long&&!hard.includes(o.day))||null;
-  const qualityAllowed=base.source==='four completed weeks'&&a.level!=='beginner'&&goal!=='return'&&a.recovery!=='poor'&&base.km>=20&&n>=3&&!taper&&phase!=='Recovery'&&phase!=='Base';
+  const qualityAllowed=primary&&base.source==='four completed weeks'&&a.level!=='beginner'&&goal!=='return'&&a.recovery!=='poor'&&base.km>=20&&n>=3&&!taper&&phase!=='Recovery'&&phase!=='Base';
   const q=qualityAllowed?slots.find(o=>o!==longSlot&&!hard.some(d=>diff(o.day,d)<=1)&&(!longSlot||diff(o.day,longSlot.day)>=2)):null;
   const capacity=slots.map(o=>{let max=round((o===longSlot?s.longMinutes:s.weekdayMinutes)*60/slow*1000);
    if(o===longSlot)max=Math.min(max,round(previousLong*(i===0?1:1+Math.min(ceiling,.05))),round(target*(n<=2?.55:.40)));

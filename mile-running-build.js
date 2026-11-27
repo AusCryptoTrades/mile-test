@@ -2,7 +2,7 @@
 (function runningBuild(root){
 'use strict';
 if(!root.mileRunningPlan||typeof v41Builder!=='function')return;
-const api=root.mileRunningPlan,legacyBuild=v41Builder,legacyPick=v42PickSport,legacyRegen=v42RegenerateWeek,legacyWhy=mileCoachWhyHtml;
+const api=root.mileRunningPlan,legacyBuild=v41Builder,legacyPick=v42PickSport,legacyMove=v42Move,legacyRegen=v42RegenerateWeek,legacyWhy=mileCoachWhyHtml;
 const names=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 const goals=[['fitness','General running fitness'],['endurance','Running endurance'],['first-race','First race (distance not specified)'],['personal-best','Personal best (distance not specified)'],['5k','5K'],['10k','10K'],['half-marathon','Half marathon'],['marathon','Marathon'],['ultra','Ultra running'],['return','Return to running']];
 const levels=[['beginner','Beginner'],['intermediate','Intermediate'],['experienced','Experienced'],['advanced','Advanced']];
@@ -32,10 +32,11 @@ function form(){
  const f={owner,goal:'fitness',start:today(),weeks:'8',name:'',raceDate:'',target:'',level:pref.level||'intermediate',volume:pref.volume!==''&&pref.volume!=null?String(pref.volume):h.windows[1].runs?String(Math.round(h.windows[1].km/4*10)/10):'',completeHistory:false,longest:h.windows[2].longest??'',five:p.fiveK||'',threshold:p.threshold||'',easy:'',maxHR:p.maxHR||'',lthr:p.lthr||'',restingHR:'',lowHR:zone.min||'',highHR:zone.max||'',recovery:'unknown',interrupted:false,injury:false,available:pref.available||[0,1,2,3,4,5,6],runs:String(pref.sessions||3),longDay:String(pref.longDay??5),weekday:'60',longMinutes:'120',demanding:[],adapt:defaultAdapt()};
  v42Step=0;v42Form.running88=f;return f;
 }
-const field=(f,k,label,type='text',extra='')=>'<div class="field"><label for="m882-'+k+'">'+esc(label)+'</label><input id="m882-'+k+'" data-m882-field="'+k+'" type="'+type+'" value="'+esc(f[k])+'" '+extra+'></div>';
-const select=(f,k,label,options)=>'<div class="field"><label for="m882-'+k+'">'+esc(label)+'</label><select id="m882-'+k+'" data-m882-field="'+k+'">'+options.map(([v,l])=>'<option value="'+esc(v)+'" '+(String(f[k])===String(v)?'selected':'')+'>'+esc(l)+'</option>').join('')+'</select></div>';
+const fieldId=k=>({level:'v42Level',volume:'v42Volume',runs:'v42Days',longDay:'v42LongDay'}[k]||'m882-'+k);
+const field=(f,k,label,type='text',extra='')=>'<div class="field"><label for="'+fieldId(k)+'">'+esc(label)+'</label><input id="'+fieldId(k)+'" data-m882-field="'+k+'" type="'+type+'" value="'+esc(f[k])+'" '+extra+'></div>';
+const select=(f,k,label,options)=>'<div class="field"><label for="'+fieldId(k)+'">'+esc(label)+'</label><select id="'+fieldId(k)+'" data-m882-field="'+k+'">'+options.map(([v,l])=>'<option value="'+esc(v)+'" '+(String(f[k])===String(v)?'selected':'')+'>'+esc(l)+'</option>').join('')+'</select></div>';
 const check=(f,k,label,attr='data-m882-field')=>'<label class="m882-check"><input type="checkbox" '+attr+'="'+k+'" '+(f[k]?'checked':'')+'> <span>'+esc(label)+'</span></label>';
-const days=(f,k)=>'<div class="v42-checks m882-days">'+names.map((d,i)=>'<label><input type="checkbox" data-m882-day="'+k+'" value="'+i+'" '+(f[k].includes(i)?'checked':'')+'> '+d.slice(0,3)+'</label>').join('')+'</div>';
+const days=(f,k)=>'<div class="v42-checks m882-days">'+names.map((d,i)=>'<label><input type="checkbox" data-m882-day="'+k+'" '+(k==='available'?'data-v42-day':'')+' value="'+i+'" '+(f[k].includes(i)?'checked':'')+'> '+d.slice(0,3)+'</label>').join('')+'</div>';
 const labelPace=t=>t.kind==='pace'?paceText(t.fastSecondsPerKm)+'–'+paceText(t.slowSecondsPerKm)+'/km':t.kind==='heart_rate'?t.lowBpm+'–'+t.highBpm+' bpm':'effort-based';
 function compactDetail(s){
  const steps=s.structuredSteps;
@@ -81,13 +82,15 @@ function capture(el){
  if(day){const d=Number(el.value);f[day]=el.checked?[...new Set([...f[day],d])]:f[day].filter(x=>x!==d)}
  if(adapt)f.adapt[adapt]=el.type==='checkbox'?el.checked:el.value;
 }
+let previewToken=null;
+const previewKey=(f,config,result)=>JSON.stringify([f.owner,config,result,existing(f).map(w=>[w.id,w.date,w.name,w.status,w.km])]);
 function review(f){
- const result=api.generate(input(f));
+ const config=input(f),result=api.generate(config);previewToken=previewKey(f,config,result);
  if(!result.ok)return '<div class="item" role="alert">'+result.errors.map(x=>'<p>'+esc(x)+'</p>').join('')+'</div>';
- const collisions=existing(f),byDate=new Map();for(const x of collisions){const arr=byDate.get(x.date)||[];arr.push(x.name);byDate.set(x.date,arr)}
+ const collisions=existing(f),overlappingRuns=collisions.some(w=>w.sport==='Running'&&w.status!=='done'&&!w.matchId),byDate=new Map();for(const x of collisions){const arr=byDate.get(x.date)||[];arr.push(x.name);byDate.set(x.date,arr)}
  const total=result.weeks.reduce((sum,w)=>sum+w.meters,0),minutes=result.weeks.reduce((sum,w)=>sum+w.plannedMinutes,0),sessions=result.weeks.flatMap(w=>w.sessions);
  const hard=sessions.filter(x=>x.targetRpe>=6).length,hardM=sessions.flatMap(x=>x.structuredSteps).filter(x=>x.intensity==='interval').reduce((s,x)=>s+x.duration.meters,0);
- return '<div class="mile873-review-intro"><h3>'+esc(goals.find(g=>g[0]===f.goal)?.[1])+'</h3><div class="mile873-metrics"><div><strong>'+result.weeks.length+'</strong><small>Weeks</small></div><div><strong>'+sessions.length+'</strong><small>Sessions</small></div><div><strong>'+kmText(total)+'</strong><small>Total</small></div></div><p class="muted small">Baseline '+result.baseline.km.toFixed(1)+' km/week ('+esc(result.baseline.source)+') · Estimated '+Math.round(minutes/60*10)/10+' h total · '+hard+' demanding runs · '+Math.round(hardM/total*100)+'% distance in prescribed quality segments (not measured HR distribution).</p></div><p class="muted small"><strong>Goal feasibility:</strong> review required. MILE has not validated your target time or race readiness. '+esc(result.warnings.join(' '))+'</p>'+result.weeks.map(w=>'<details class="item m882-week"><summary><strong>Week '+w.week+' · '+esc(w.phase)+'</strong> · '+kmText(w.meters)+' · ~'+w.plannedMinutes+' min</summary>'+w.sessions.map(s=>'<details class="m882-session"><summary><strong>'+esc(nice(s.date))+' · '+esc(s.name)+'</strong><span>'+kmText(s.meters)+' · ~'+s.plannedMinutes+' min · RPE '+s.targetRpe+'</span></summary><p>'+esc(compactDetail(s))+'</p><p><strong>Session Purpose:</strong> '+esc(s.purpose)+'</p><p><strong>Session Focus:</strong> '+esc(s.focus)+'</p>'+(byDate.has(s.date)?'<p class="muted small">Other sessions: '+esc(byDate.get(s.date).join(', '))+'</p>':'')+'</details>').join('')+'</details>').join('')+'<p class="muted small">Other programmes remain unchanged. Adaptation preferences are saved for a later release; automatic adjustments and Garmin revisions are not active in this build.</p>';
+ return (overlappingRuns?'<p role="alert">An existing visible running programme overlaps this plan. Change dates or manage that plan before creating another running programme.</p>':'')+'<div class="mile873-review-intro"><h3>'+esc(goals.find(g=>g[0]===f.goal)?.[1])+'</h3><div class="mile873-metrics"><div><strong>'+result.weeks.length+'</strong><small>Weeks</small></div><div><strong>'+sessions.length+'</strong><small>Sessions</small></div><div><strong>'+kmText(total)+'</strong><small>Total</small></div></div><p class="muted small">Baseline '+result.baseline.km.toFixed(1)+' km/week ('+esc(result.baseline.source)+') · Estimated '+Math.round(minutes/60*10)/10+' h total · '+hard+' demanding runs · '+Math.round(hardM/total*100)+'% distance in prescribed quality segments (not measured HR distribution).</p></div><p class="muted small"><strong>Goal feasibility:</strong> review required. MILE has not validated your target time or race readiness. '+esc(result.warnings.join(' '))+'</p>'+result.weeks.map(w=>'<details class="item m882-week"><summary><strong>Week '+w.week+' · '+esc(w.phase)+'</strong> · '+kmText(w.meters)+' · ~'+w.plannedMinutes+' min</summary>'+w.sessions.map(s=>'<details class="m882-session"><summary><strong>'+esc(nice(s.date))+' · '+esc(s.name)+'</strong><span>'+kmText(s.meters)+' · ~'+s.plannedMinutes+' min · RPE '+s.targetRpe+'</span></summary><p>'+esc(compactDetail(s))+'</p><p><strong>Session Purpose:</strong> '+esc(s.purpose)+'</p><p><strong>Session Focus:</strong> '+esc(s.focus)+'</p>'+(byDate.has(s.date)?'<p class="muted small">Other sessions: '+esc(byDate.get(s.date).join(', '))+'</p>':'')+'</details>').join('')+'</details>').join('')+'<p class="muted small">Other programmes remain unchanged. Adaptation preferences are saved for a later release; automatic adjustments and Garmin revisions are not active in this build.</p>';
 }
 function draw(){
  const f=form(),step=Math.max(0,Math.min(4,v42Step)),h=history();let content='';
@@ -103,7 +106,9 @@ function create(){
  const f=form();if(!v4Ready||!userId||String(userId)!==f.owner)return report('Sign in before saving.');
  for(let i=0;i<3;i++){const error=validStage(f,i);if(error)return report(error)}
  const config=input(f),result=api.generate(config);if(!result.ok)return report(result.errors.join(' '));
+ if(previewToken!==previewKey(f,config,result)){draw();return report('Training data changed since your review. Check the updated programme before saving.');}
  const others=existing(f);
+ if(others.some(w=>w.sport==='Running'&&w.status!=='done'&&!w.matchId))return report('An existing visible running programme overlaps this plan. Change your programme dates or manage that plan before adding additional running volume.');
  if(!confirm('Create '+result.weeks.reduce((n,w)=>n+w.sessions.length,0)+' running sessions? '+others.length+' existing sessions will be preserved. No workouts will be sent to Garmin automatically.'))return;
  const id=uid(),name=f.name||'Running · '+goals.find(g=>g[0]===f.goal)[1],items=result.weeks.flatMap(w=>w.sessions.map(s=>{const detail=compactDetail(s);return {...s,id:uid(),block:id,sport:'Running',status:'planned',note:'',rpe:null,matchId:null,detail,structuredDetail:detail,runningPlanVersion:1,revision:1,whyScheduled:'Phase: '+s.phase+'.'}}));
  if(!items.length)return report('No sessions to save.');
@@ -113,6 +118,7 @@ function create(){
 document.addEventListener('input',e=>{if(e.target.closest?.('.m882-build')&&e.target.matches('[data-m882-field],[data-m882-day],[data-m882-adapt]'))capture(e.target)});
 document.addEventListener('change',e=>{if(e.target.closest?.('.m882-build')&&e.target.matches('[data-m882-field],[data-m882-day],[data-m882-adapt]'))capture(e.target)});
 document.addEventListener('click',e=>{const b=e.target.closest?.('[data-m882-action]');if(!b||!b.closest('.m882-build'))return;e.preventDefault();const a=b.dataset.m882Action;if(a==='back'){v42Step=Math.max(0,v42Step-1);draw()}else if(a==='next'){const message=validStage(form(),v42Step);if(message)return report(message);v42Step=Math.min(4,v42Step+1);draw()}else if(a==='save'){b.disabled=true;try{create()}finally{if(b.isConnected)b.disabled=false}}});
+v42Move=function(n){if(v42Sport!=='Running')return legacyMove.apply(this,arguments);if(n>0){const message=validStage(form(),v42Step);if(message)return report(message)}v42Step=Math.max(0,Math.min(4,v42Step+n));draw()};
 v41Builder=function(){return v42Sport==='Running'?draw():legacyBuild.apply(this,arguments)};
 v42PickSport=function(sp){if(sp==='Running'){v42Sport=sp;v42Step=0;v42Form={};draw();return}return legacyPick.apply(this,arguments)};
 v42RegenerateWeek=function(id,week){const b=state.blocks.find(x=>x.id===id);if(b?.runningPlan)return notice('Personalised running week adjustments are not yet available. Existing sessions are preserved.');return legacyRegen.apply(this,arguments)};
