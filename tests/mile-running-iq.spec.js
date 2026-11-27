@@ -41,3 +41,17 @@ test('88.1 analysis is read-only and UI does not invent adherence',async({page})
  expect(result.text).toContain('No workout targets or future sessions have been changed');
  expect(JSON.parse(result.plan).km).toBe(8);
 });
+
+test('88.3 planned and unplanned analysis render distinct evidence-gated sections',async({page})=>{
+ await page.goto('/index.html');
+ await page.addScriptTag({path:require.resolve('../mile-running-analysis.js')});
+ await page.addScriptTag({path:require.resolve('../mile-running-iq.js')});
+ const result=await page.evaluate(()=>{
+ const a=Object.freeze({id:'a',distanceKm:5,durationMin:30});
+ const p=Object.freeze({id:'p',sport:'Running',matchId:'a',km:5,name:'Easy'});
+ const render=workouts=>{const host=document.createElement('div');window.mileRunningIQ.render(host,window.mileRunningIQ.analyse(a,{workouts}));return host.textContent};
+ return {planned:render([p]),unplanned:render([]),ambiguous:render([p,p])};
+ });
+ expect(result.planned).toContain('Session execution');expect(result.planned).toContain('100%');expect(result.planned).toContain('verified step alignment required');
+ expect(result.unplanned).toContain('Training contribution');expect(result.unplanned).not.toContain('Distance completed');expect(result.ambiguous).toContain('Training contribution');
+});
