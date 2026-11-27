@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-mile-buttons="main"><head><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/><meta content="#090a0c" name="theme-color"/><meta content="yes" name="apple-mobile-web-app-capable"/><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/><title>MILE. | V3.9.53 Improvements</title><style>
+<html lang="en" data-mile-buttons="main"><head><meta charset="utf-8"/><script src="./mile-avatar.js?v=1"></script><script src="./mile-onboarding.js?v=89.1"></script><link rel="stylesheet" href="./mile-onboarding.css?v=89.1"><meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/><meta content="#090a0c" name="theme-color"/><meta content="yes" name="apple-mobile-web-app-capable"/><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/><title>MILE. | V3.9.53 Improvements</title><style>
 :root{color-scheme:dark;--bg:#090a0c;--panel:#1b1d21;--panel2:#24272c;--line:#34383e;--text:#f4f5f6;--muted:#a1a6ad;--orange:#e5e7eb;--good:#78c69b;--warn:#e4a36a}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,Segoe UI,sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}a{color:var(--orange)}.shell{max-width:1200px;margin:auto;padding:24px 20px 100px}.top{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:23px}.brand{font-weight:900;font-size:clamp(20px,3vw,30px);letter-spacing:-1px}.eyebrow{color:var(--orange);font-size:10px;font-weight:800;letter-spacing:2px}.muted{color:var(--muted)}.small{font-size:12px}.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.between{justify-content:space-between}.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;min-width:0}.metric{grid-column:span 3}.half{grid-column:span 6}.full{grid-column:span 12}.third{grid-column:span 4}h1,h2,h3,p{margin:0}h2{font-size:19px;margin-bottom:13px}h3{font-size:15px;margin-bottom:8px}p{line-height:1.55}.number{font-size:31px;font-weight:850;letter-spacing:-1px}.orange{color:var(--orange)}.pill{display:inline-block;border:1px solid #654337;color:#ffb296;border-radius:30px;padding:5px 9px;font-size:11px}.btn{background:var(--orange);color:#171717;border:0;border-radius:9px;padding:10px 13px;font-weight:800}.btn.alt{background:#333;color:var(--text);border:1px solid #4b4b4b}.btn.ghost{background:transparent;color:var(--orange);border:1px solid #794632}.btn.sm{padding:7px 10px;font-size:12px}.nav{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px}.nav button{background:#242424;color:var(--muted);border:1px solid #333;padding:11px 15px;border-radius:10px;font-weight:700}.nav button.active{color:#111;background:var(--orange);border-color:var(--orange)}.progress{height:7px;background:#3a3a3a;border-radius:10px;overflow:hidden;margin:10px 0}.progress>div{height:100%;background:var(--orange);border-radius:10px}.list{display:grid;gap:9px}.item{border:1px solid var(--line);background:var(--panel2);padding:12px;border-radius:12px}.item.active{border-color:var(--orange)}.item-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.date{font-size:12px;color:var(--muted)}input,select,textarea{background:#303030;color:var(--text);border:1px solid #515151;border-radius:9px;padding:10px;max-width:100%;width:100%}textarea{min-height:85px;resize:vertical}.field{display:grid;gap:6px}.field label{font-size:12px;color:var(--muted)}.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.span2{grid-column:span 2}.daygrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}.day{background:#2a2a2a;border:1px solid #3b3b3b;min-height:86px;padding:8px;border-radius:10px;text-align:left;color:var(--text);min-width:0}.day.selected{border-color:var(--orange)}.day.other{opacity:.35}.day strong{display:block}.dot{display:inline-block;width:7px;height:7px;background:var(--orange);border-radius:50%;margin-right:3px}.mini{font-size:10px;line-height:1.3;overflow-wrap:anywhere}.chart{width:100%;height:180px;display:block}.sep{border:0;border-top:1px solid var(--line);margin:15px 0}.toast{position:fixed;bottom:20px;right:20px;background:#323232;border:1px solid #555;padding:13px;border-radius:10px;z-index:9;max-width:300px}.hidden{display:none!important}.tag{color:var(--good);font-size:11px;font-weight:700}.warning{color:var(--warn)}.foot{margin-top:20px;color:var(--muted);font-size:11px}.switch{display:flex;gap:8px;align-items:center}.switch input{width:auto}.modalback{position:fixed;inset:0;background:#000b;z-index:20;display:flex;align-items:center;justify-content:center;padding:12px}.modal{background:#222;border:1px solid #555;border-radius:16px;padding:20px;max-width:560px;width:100%;max-height:90vh;overflow:auto}.tabsmall{display:flex;gap:8px;flex-wrap:wrap}.tabsmall button{background:#343434;color:var(--text);border:1px solid #555;padding:7px 10px;border-radius:8px}.tabsmall button.active{border-color:var(--orange);color:var(--orange)}.bar{display:flex;align-items:center;gap:10px;margin:7px 0}.bar label{width:80px;font-size:11px;color:var(--muted)}.bar .track{flex:1;height:13px;background:#373737;border-radius:5px;overflow:hidden}.bar .fill{height:100%;background:var(--orange)}.bar b{font-size:11px;width:38px;text-align:right}.kpi{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1px}.empty{color:var(--muted);padding:20px;text-align:center;border:1px dashed #555;border-radius:12px} @media(max-width:780px){.shell{padding:16px 12px 105px}.metric{grid-column:span 6}.half,.third{grid-column:span 12}.nav{position:fixed;bottom:0;left:0;right:0;background:#171717;border-top:1px solid #393939;z-index:10;display:grid;grid-template-columns:repeat(6,1fr);gap:3px;margin:0;padding:8px 5px max(8px,env(safe-area-inset-bottom))}.nav button{font-size:10px;padding:12px 2px}.day{padding:5px;min-height:72px}.day .mini{font-size:9px}.formgrid{grid-template-columns:1fr}.span2{grid-column:span 1}.top{align-items:flex-start}.brand{font-size:22px}}@media(max-width:390px){.metric{grid-column:span 6}.number{font-size:25px}}
 
 /* Mobile-first refinements */
@@ -1071,7 +1071,7 @@ const nextWorkout=()=>workouts().find(w=>w.date>=today()&&w.status!=='done'&&!w.
 const c=(title,body,cls='full')=>`<section class="card ${cls}"><h2>${title}</h2>${body}</section>`;
 const b=(label,fn,alt='',ariaLabel='')=>`<button class="btn ${alt}" onclick="${fn}"${ariaLabel?' aria-label="'+esc(ariaLabel)+'"':''}>${label}</button>`;
 function navigate(p){page=p;render();window.scrollTo(0,0)}
-function render(){document.getElementById('subtitle').textContent=active().name+' · '+new Date().toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'});document.getElementById('syncStatus').textContent=token?'Cloud signed in':'Local mode';let tabs=[['dashboard','⌂ Home'],['calendar','▦ Calendar'],['goals','◈ Training'],['performance','▥ Stats'],['recovery','♡ Recovery']];document.getElementById('nav').innerHTML=tabs.map(([id,t])=>`<button class="${page===id?'active':''}" onclick="navigate('${id}')">${t}</button>`).join('');document.getElementById('app').innerHTML=({dashboard:dashboard,calendar:calendar,performance:milePerformancePage,recovery:recovery,goals:goals,settings:settings})[page]();}
+function render(){document.getElementById('subtitle').textContent=(active()?.name||'Training dashboard')+' · '+new Date().toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'});document.getElementById('syncStatus').textContent=token?'Cloud signed in':'Local mode';let tabs=[['dashboard','⌂ Home'],['calendar','▦ Calendar'],['goals','◈ Training'],['performance','▥ Stats'],['recovery','♡ Recovery']];document.getElementById('nav').innerHTML=tabs.map(([id,t])=>`<button class="${page===id?'active':''}" onclick="navigate('${id}')">${t}</button>`).join('');document.getElementById('app').innerHTML=({dashboard:dashboard,calendar:calendar,performance:milePerformancePage,recovery:recovery,goals:goals,settings:settings})[page]();}
 function readableWorkout(detail){
  const raw=String(detail||'').trim();if(!raw)return '<p class="muted small">No instructions added yet.</p>';
  const sections=[];const pattern=/(?:^|[\n;.]\s*)(Warm[ -]?up|Main(?: set)?|Recovery|Recoveries|Cool[ -]?down|RPE|Heart rate|HR|Notes?)\s*:\s*/gi;
@@ -1252,7 +1252,29 @@ function cloudSave(){
 async function cloudLoad(retry=true){let r=await fetch(state.settings.supabaseUrl+'/rest/v1/av_training_data?user_id=eq.'+encodeURIComponent(userId)+'&select=training_data',{headers:sbHeaders()});if(r.status===401&&retry&&await refreshSession())return cloudLoad(false);if(!r.ok)throw Error('Cloud read HTTP '+r.status);let rows=await r.json();if(rows.length&&rows[0].training_data){let settings=state.settings,localRecoverySnapshot=recoveryRecords();state=rows[0].training_data;if(!Array.isArray(state.recoveryDays)||!state.recoveryDays.length)state.recoveryDays=localRecoverySnapshot;state.settings={...state.settings,supabaseUrl:settings.supabaseUrl,supabaseAnon:settings.supabaseAnon,garminKey:settings.garminKey};window.mile776?.hydrate(false);for(let k of Object.keys(defaults))if(state[k]===undefined)state[k]=defaults[k];localStorage.setItem('av-training-v2',JSON.stringify(state));render()}else await cloudSave();await mileRefreshOwnRuns()}
 function sbConfig(){return state.settings.supabaseUrl&&state.settings.supabaseAnon}
 let authRefreshBusy=null;
-async function refreshSession(){let rt=(localStorage.getItem('av-refresh')||sessionStorage.getItem('av-refresh'));if(!rt||!sbConfig())return false;if(authRefreshBusy)return authRefreshBusy;authRefreshBusy=(async()=>{try{let r=await fetch(state.settings.supabaseUrl+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:state.settings.supabaseAnon,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:rt})});if(!r.ok)throw Error('Session expired');let d=await r.json();token=d.access_token;userId=d.user?.id||userId;sessionStorage.setItem('av-token',token);localStorage.setItem('av-token',token);sessionStorage.setItem('av-user',userId);localStorage.setItem('av-user',userId);if(d.refresh_token)sessionStorage.setItem('av-refresh',d.refresh_token);localStorage.setItem('av-refresh',d.refresh_token);render();return true}catch(e){token='';userId='';sessionStorage.removeItem('av-token');localStorage.removeItem('av-token');sessionStorage.removeItem('av-user');localStorage.removeItem('av-user');sessionStorage.removeItem('av-refresh');localStorage.removeItem('av-refresh');render();notice('Session expired. Please sign in again.');return false}finally{authRefreshBusy=null}})();return authRefreshBusy}
+async function refreshSession(){
+ const owner=userId, accessToken=token, endpoint=state.settings.supabaseUrl;
+ const rt=localStorage.getItem('av-refresh')||sessionStorage.getItem('av-refresh');
+ if(!rt||!sbConfig())return false;
+ if(authRefreshBusy)return authRefreshBusy;
+ const current=()=>userId===owner&&token===accessToken&&state.settings.supabaseUrl===endpoint;
+ authRefreshBusy=(async()=>{
+  try{
+   const response=await fetch(endpoint+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:state.settings.supabaseAnon,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:rt})});
+   if(!response.ok)throw Error('Session expired');
+   const session=await response.json();
+   if(!current())return false;
+   if(!session.access_token||!session.user?.id||(owner&&session.user.id!==owner))throw Error('Session expired');
+   v4SetSession(session);render();return true;
+  }catch(error){
+   if(!current())return false;
+   token='';userId='';v4Ready=false;v4Member=false;mileResetProfileIdentity();
+   for(const key of ['av-token','av-user','av-refresh']){sessionStorage.removeItem(key);localStorage.removeItem(key)}
+   render();v4Show('login');v4SetError('Session expired. Please sign in again.');return false;
+  }finally{authRefreshBusy=null}
+ })();
+ return authRefreshBusy;
+}
 async function auth(action){const emailInput=document.getElementById('sbEmail')?.value.trim(),passwordInput=document.getElementById('sbPass')?.value;const cloudUrl=document.getElementById('sbUrl')?.value.trim().replace(/\/$/,''),cloudAnon=document.getElementById('sbAnon')?.value.trim();state.settings.supabaseUrl=cloudUrl;state.settings.supabaseAnon=cloudAnon;localStorage.setItem('av-training-v2',JSON.stringify(state));if(!sbConfig())return notice('Configure Supabase URL and publishable key first');if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(cloudUrl))return notice('Invalid Supabase URL. Check project hostname.');let email=emailInput,password=passwordInput;if(!email||!password)return notice('Enter email and password');try{let r=await fetch(state.settings.supabaseUrl+'/auth/v1/'+action,{method:'POST',headers:{'apikey':state.settings.supabaseAnon,'Content-Type':'application/json'},body:JSON.stringify({email,password})}),d=await r.json();if(!r.ok)throw Error(d.msg||d.error_description||d.message||'Authentication failed');if(!d.access_token){notice('Account created. Confirm email, then sign in.');return}token=d.access_token;userId=d.user.id;sessionStorage.setItem('av-token',token);localStorage.setItem('av-token',token);sessionStorage.setItem('av-user',userId);localStorage.setItem('av-user',userId);if(d.refresh_token)sessionStorage.setItem('av-refresh',d.refresh_token);localStorage.setItem('av-refresh',d.refresh_token);await cloudLoad();render();notice('Signed in; cloud data ready')}catch(e){notice(e.message)}}
 function signIn(){auth('v1/token?grant_type=password'.replace('v1/',''))}function signUp(){auth('v1/signup'.replace('v1/',''))}function signOut(){token='';userId='';sessionStorage.removeItem('av-token');localStorage.removeItem('av-token');sessionStorage.removeItem('av-user');localStorage.removeItem('av-user');sessionStorage.removeItem('av-refresh');localStorage.removeItem('av-refresh');render();notice('Signed out')}
 // Preserve access to current Garmin activities while opening the app, if key is already saved.
@@ -1275,17 +1297,22 @@ function v4SetError(msg,kind='error'){let e=document.getElementById('v4Error');i
 const mile842Screens={"login":"<div class=\"eyebrow\">MAKE IT LOOK EASY.</div><h2>Welcome back.</h2><p class=\"intro\">Your training. Your progress.</p><div class=\"field\"><label>Email address<input id=\"v4Email\" type=\"email\" placeholder=\"you@example.com\" autocomplete=\"username\"></label></div><div class=\"field\"><label for=\"v4Password\">Password</label><div class=\"pw\"><input id=\"v4Password\" type=\"password\" placeholder=\"Enter password\" autocomplete=\"current-password\"><button type=\"button\" onclick=\"mile842Toggle(this)\">Show</button></div></div><div class=\"meta\"><label class=\"av-remember-row\"><input id=\"v4RememberEmail\" type=\"checkbox\"> Remember email</label><a href=\"https://app.milefitness.com.au/mile-reset-password.html\">Forgot password?</a></div><button class=\"primary\" onclick=\"v4Authenticate()\">Sign in &nbsp; →</button><p class=\"center small\">New to MILE? <strong><a href=\"#\" onclick=\"v4Show('register');return false\">Create account</a></strong></p>","register":"<div class=\"step\"><i class=\"on\"></i><i class=\"\"></i><i class=\"\"></i></div><div class=\"eyebrow\">STEP 1 / 3 · YOUR ACCOUNT</div><h2>Start your MILE.</h2><p class=\"intro\">Create your private athlete account.</p><div class=\"field\"><label>Email address<input id=\"v4Email\" type=\"email\" placeholder=\"you@example.com\" autocomplete=\"username\"></label></div><div class=\"field\"><label for=\"v4Password\">Create password</label><div class=\"pw\"><input id=\"v4Password\" type=\"password\" placeholder=\"Enter password\" autocomplete=\"new-password\"><button type=\"button\" onclick=\"mile842Toggle(this)\">Show</button></div></div><div class=\"field\"><label>Invitation code<input id=\"v4Invite\" type=\"text\" autocomplete=\"off\"></label></div><p class=\"small\">By creating an account, you agree to our <a href=\"https://milefitness.com.au/terms\">Terms</a> and acknowledge our <a href=\"https://milefitness.com.au/privacy\">Privacy Policy</a>.</p><button class=\"primary\" onclick=\"v4Authenticate()\">Create account &nbsp; →</button><p class=\"center small\">Already have an account? <strong><a href=\"#\" onclick=\"v4Show('login');return false\">Sign in</a></strong></p>","invite":"<div class=\"step\"><i class=\"on\"></i><i class=\"\"></i><i class=\"\"></i></div><div class=\"eyebrow\">PRIVATE BETA ACCESS</div><h2>You’re almost in.</h2><p class=\"intro\">Enter your invitation code to activate your private beta account.</p><div class=\"field\"><label>Invitation code<input id=\"v4Invite\" type=\"text\" autocomplete=\"off\"></label></div><button class=\"primary\" onclick=\"v4Join()\">Activate account &nbsp; →</button><button class=\"secondary\" onclick=\"v4Logout()\">Sign out</button><p class=\"small center\">Need an invitation? <a href=\"mailto:support@milefitness.com.au\">Contact MILE Support.</a></p>","connect":"<div class=\"step\"><i class=\"on\"></i><i class=\"on\"></i><i class=\"on\"></i></div><div class=\"connect\"><div class=\"tile\"><span class=\"logo\">M<span class=\"lime\">.</span></span></div><span class=\"lime\">↔</span><div class=\"tile garmin\">GARMIN<span class=\"lime\">▲</span></div></div><div class=\"eyebrow\">STEP 3 / 3 · CONNECT</div><h2>Connect your Garmin.</h2><p class=\"intro\">Bring your training data together.</p><div class=\"features\"><div class=\"feature\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M2 12h5l3-7 4 14 3-7h5\"/></svg>Activities & workouts</div><div class=\"feature\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 5c-3-3-6-1-8 1-2-2-5-4-8-1s-2 7 0 9l8 7 8-7c2-2 3-6 0-9z\"/></svg>Health & recovery</div><div class=\"feature\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 3v18h18M7 15l5-5 4 3 5-7\"/></svg>Performance insights</div></div><button class=\"primary\" onclick=\"v4Connect()\">Connect Garmin &nbsp; →</button><p class=\"center small\"><a href=\"#\" onclick=\"v4SkipGarmin();return false\">Skip for now</a></p><div class=\"security\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3l8 3v6c0 5-8 9-8 9s-8-4-8-9V6zM9 12l2 2 4-4\"/></svg> Secure authorisation · No Garmin password stored</div>"};
 mile842Screens.verify="<div class=\"step\"><i class=\"on\"></i><i class=\"on\"></i><i></i></div><div class=\"eyebrow\">STEP 2 / 3 · VERIFY YOUR EMAIL</div><h2>Verify your email.</h2><p class=\"intro\">Enter the six-digit code from your MILE email.</p><div class=\"note\"><span class=\"small\">Verification email sent to</span><strong id=\"mile85VerifyAddress\" style=\"display:block;overflow-wrap:anywhere\"></strong></div><form id=\"mile85VerifyForm\"><div class=\"field\"><label for=\"mile85Code\">Verification code</label><input id=\"mile85Code\" type=\"text\" inputmode=\"numeric\" autocomplete=\"one-time-code\" maxlength=\"6\" pattern=\"[0-9]{6}\" required placeholder=\"000000\"></div><button id=\"mile85Verify\" class=\"primary\" type=\"submit\">Verify email →</button></form><p class=\"center small\">Didn't receive a code? <button class=\"mile85-text\" id=\"mile85Resend\" type=\"button\">Resend code</button></p><p class=\"center small\"><button class=\"mile85-text\" type=\"button\" id=\"mile85ChangeEmail\">Use a different email</button> · <button class=\"mile85-text\" type=\"button\" id=\"mile85BackLogin\">Sign in</button></p>";
 function mile842Toggle(button){const input=button.previousElementSibling;const show=input.type==='password';input.type=show?'text':'password';button.textContent=show?'Hide':'Show';button.setAttribute('aria-pressed',String(show))}
+const mileTrainingDisclaimerVersion='2026-11-26';
+function mileTrainingDisclaimerControl(){
+ return '<div class="m89-disclaimer"><label><input id="v4Disclaimer" type="checkbox" required> <span>I accept the MILE Training Disclaimer.</span></label><a href="https://milefitness.com.au/disclaimer" target="_blank" rel="noopener noreferrer">Read the Training Disclaimer</a></div>';
+}
 function v4Show(mode='login'){
  if(!Object.prototype.hasOwnProperty.call(mile842Screens,mode))mode='login';v4Mode=mode;const gate=document.getElementById('v4Gate');gate.classList.remove('hidden');
  gate.innerHTML="<div class=\"layout\"><aside class=\"story\"><div><span class=\"logo\">MILE<span class=\"lime\">.</span></span></div><div><div class=\"eyebrow\">BUILT FOR THE WORK.</div><h1>TRAIN.<br>TRACK.<br><span class=\"lime\">PROGRESS.</span></h1><p>One place to plan your training, understand your performance and keep moving forward.</p><div class=\"sports\"><span>RUNNING</span><span>HYROX</span><span>CYCLING</span><span>SWIMMING</span><span>STRENGTH</span></div></div><div class=\"eyebrow\">MAKE IT LOOK EASY.</div></aside><main class=\"main\"><div class=\"panel\"><div class=\"brand\"><span class=\"logo\">MILE<span class=\"lime\">.</span></span><span class=\"tag\" id=\"tag\">BETA</span></div><div id=\"content\">"+mile842Screens[mode]+"</div><div id=\"v4Error\" class=\"v4err\" role=\"status\" aria-live=\"polite\"></div><div class=\"footer\"><a href=\"https://milefitness.com.au/privacy\" target=\"_blank\">Privacy</a><a href=\"https://milefitness.com.au/terms\" target=\"_blank\">Terms</a><a href=\"mailto:support@milefitness.com.au\">Support</a></div></div></main></div>";
  gate.querySelector('#tag').textContent=mode==='login'?'BETA':'SETUP';const remember=gate.querySelector('#v4RememberEmail');if(remember){remember.checked=localStorage.getItem('av-remember-email-enabled')==='1';if(remember.checked)gate.querySelector('#v4Email').value=localStorage.getItem('av-remember-email-value')||'';}
  const inviteField=gate.querySelector('#v4Invite');if(inviteField){const draft=sessionStorage.getItem(v4InviteDraftKey);if(draft)inviteField.value=draft;}
  if(mode==='register'&&inviteField&&inviteField.value){const note=document.createElement('p');note.className='small';note.textContent='Invitation code filled in · validated when you activate your account';inviteField.closest('.field').append(note)}
+ if(mode==='register')gate.querySelector('.primary').insertAdjacentHTML('beforebegin',mileTrainingDisclaimerControl());
  if(mode==='verify'){mile85BindVerify(gate)}
  const connect=gate.querySelector('button[onclick="v4Connect()"]');if(connect)connect.type='button';gate.scrollTop=0;
 }
 async function v4AuthRequest(path,body){let r=await fetch(state.settings.supabaseUrl+'/auth/v1/'+path,{method:'POST',headers:{apikey:state.settings.supabaseAnon,'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json();if(!r.ok){const e=Error(d.msg||d.error_description||d.message||'Authentication failed');e.code=d.error_code||d.code;e.status=r.status;throw e}return d}
-function v4SetSession(d){token=d.access_token;userId=d.user.id;sessionStorage.setItem('av-token',token);localStorage.setItem('av-token',token);sessionStorage.setItem('av-user',userId);localStorage.setItem('av-user',userId);if(d.refresh_token){sessionStorage.setItem('av-refresh',d.refresh_token);localStorage.setItem('av-refresh',d.refresh_token)}}
+function v4SetSession(d){if(d.user.id!==userId)mileResetProfileIdentity();token=d.access_token;userId=d.user.id;sessionStorage.setItem('av-token',token);localStorage.setItem('av-token',token);sessionStorage.setItem('av-user',userId);localStorage.setItem('av-user',userId);if(d.refresh_token){sessionStorage.setItem('av-refresh',d.refresh_token);localStorage.setItem('av-refresh',d.refresh_token)}}
 const mile85EmailKey='mile85-verify-email',mile85CooldownKey='mile85-resend-until';
 function mile85OpenVerify(email,wait=false){sessionStorage.setItem(mile85EmailKey,email);if(wait)sessionStorage.setItem(mile85CooldownKey,String(Date.now()+60000));v4Show('verify')}
 function mile85ClearVerify(){sessionStorage.removeItem(mile85EmailKey);sessionStorage.removeItem(mile85CooldownKey)}
@@ -1304,28 +1331,73 @@ function mile85BindVerify(gate){
 }
 let mile85AuthBusy=false;
 async function v4Authenticate(){
- if(mile85AuthBusy)return;const mode=v4Mode,email=document.getElementById('v4Email')?.value.trim(),password=document.getElementById('v4Password')?.value,invite=document.getElementById('v4Invite')?.value.trim();if(!email||!password)return v4SetError('Enter your email and password.');if(mode==='register'&&!invite)return v4SetError('Enter your invitation code.');const remember=document.getElementById('v4RememberEmail')?.checked;if(mode==='login'){if(remember){localStorage.setItem('av-remember-email-enabled','1');localStorage.setItem('av-remember-email-value',email)}else{localStorage.removeItem('av-remember-email-enabled');localStorage.removeItem('av-remember-email-value')}}
+ if(mile85AuthBusy)return;const mode=v4Mode,email=document.getElementById('v4Email')?.value.trim(),password=document.getElementById('v4Password')?.value,invite=document.getElementById('v4Invite')?.value.trim();if(!email||!password)return v4SetError('Enter your email and password.');if(mode==='register'&&!invite)return v4SetError('Enter your invitation code.');if(mode==='register'&&!document.getElementById('v4Disclaimer')?.checked)return v4SetError('Accept the Training Disclaimer to create your account.');const remember=document.getElementById('v4RememberEmail')?.checked;if(mode==='login'){if(remember){localStorage.setItem('av-remember-email-enabled','1');localStorage.setItem('av-remember-email-value',email)}else{localStorage.removeItem('av-remember-email-enabled');localStorage.removeItem('av-remember-email-value')}}
  const button=document.querySelector('#v4Gate .primary');mile85AuthBusy=true;if(button)button.disabled=true;v4SetError('Please wait…','info');
- try{const d=await v4AuthRequest(mode==='register'?'signup':'token?grant_type=password',{email,password});if(v4Mode!==mode)return;if(mode==='register'){sessionStorage.setItem(v4PendingKey,invite.toUpperCase());sessionStorage.removeItem(v4InviteDraftKey)}
+ try{const d=await v4AuthRequest(mode==='register'?'signup':'token?grant_type=password',{email,password,...(mode==='register'?{data:{mile_training_disclaimer:mileTrainingDisclaimerVersion}}:{})});if(v4Mode!==mode)return;if(mode==='register'){sessionStorage.setItem(v4PendingKey,invite.toUpperCase());sessionStorage.removeItem(v4InviteDraftKey)}
  if(!d.access_token){mile85OpenVerify(email,true);return}
  if(!d.user?.email_confirmed_at){mile85OpenVerify(email);return}
  mile85ClearVerify();v4SetSession(d);await v4AfterLogin();
  }catch(e){if(v4Mode!==mode)return;if(mode==='login'&&(e.code==='email_not_confirmed'||/email not confirmed/i.test(e.message))){mile85OpenVerify(email);return}v4SetError(e.message==='Failed to fetch'?'Could not reach MILE. Check your connection.':e.message)}finally{mile85AuthBusy=false;if(button.isConnected)button.disabled=false}
 }
-async function v4Join(){let code=document.getElementById('v4Invite')?.value.trim();if(!code)return v4SetError('Enter an invitation code.');v4SetError('Checking code…','info');try{let r=await fetch(state.settings.supabaseUrl+'/rest/v1/rpc/av_join',{method:'POST',headers:sbHeaders(),body:JSON.stringify({invite_code:code})});if(!r.ok){let d=await r.json();throw Error(d.message||'Invitation failed')}sessionStorage.removeItem(v4PendingKey);sessionStorage.removeItem(v4InviteDraftKey);await v4AfterLogin()}catch(e){v4SetError(e.message)}}
-async function v4AfterLogin(){try{
+async function v4Join(){
+ const button=document.querySelector('#v4Gate button[onclick="v4Join()"]');
+ const code=document.getElementById('v4Invite')?.value.trim(),consent=document.getElementById('v4Disclaimer');
+ if(!code)return v4SetError('Enter an invitation code.');
+ if(consent&&!consent.checked)return v4SetError('Accept the Training Disclaimer to activate your account.');
+ if(!button||button.disabled)return;
+ const owner=userId,endpoint=state.settings.supabaseUrl;
+ const current=()=>button.isConnected&&owner===userId&&endpoint===state.settings.supabaseUrl&&!!token;
+ button.disabled=true;
+ v4SetError('Checking code…','info');
+ try{
+  if(consent)await mileOnboardingRequest('mile_accept_training_disclaimer',{p_version:mileTrainingDisclaimerVersion},current,endpoint);
+  const response=await fetch(endpoint+'/rest/v1/rpc/av_join',{method:'POST',headers:sbHeaders(),body:JSON.stringify({invite_code:code})});
+  if(!current())return;
+  if(!response.ok){
+   const detail=await response.json();
+   if(!current())return;
+   if(detail.code==='PT412'&&!consent){
+    button.insertAdjacentHTML('beforebegin',mileTrainingDisclaimerControl());
+    document.getElementById('v4Disclaimer').focus();
+   }
+   throw Error(detail.message||'Invitation failed');
+  }
+  sessionStorage.removeItem(v4PendingKey);sessionStorage.removeItem(v4InviteDraftKey);
+  await v4AfterLogin();
+ }catch(error){if(current())v4SetError(error.message)}
+ finally{button.disabled=false}
+}
+async function v4AfterLogin(){
+ const owner=userId,endpoint=state.settings.supabaseUrl,current=()=>!!token&&userId===owner&&state.settings.supabaseUrl===endpoint;
+ try{
  // Verify restored sessions against the authoritative auth service before loading athlete data.
- const confirmedUser=await fetch(state.settings.supabaseUrl+'/auth/v1/user',{headers:sbHeaders(),cache:'no-store'});if(!confirmedUser.ok)throw Error('Your session could not be verified. Please sign in again.');const verified=await confirmedUser.json();if(verified.id!==userId||!verified.email_confirmed_at)throw Error('Verify your email before accessing MILE.');
- let r=await fetch(state.settings.supabaseUrl+'/rest/v1/av_members?user_id=eq.'+encodeURIComponent(userId)+'&select=user_id',{headers:sbHeaders()});if(!r.ok)throw Error('Could not check account membership: '+r.status);
- let rows=await r.json();if(!rows.length){let pending=sessionStorage.getItem(v4PendingKey);v4Show('invite');if(pending){document.getElementById('v4Invite').value=pending;await v4Join()}return}
+ const confirmedUser=await fetch(state.settings.supabaseUrl+'/auth/v1/user',{headers:sbHeaders(),cache:'no-store'});if(!confirmedUser.ok)throw Error('Your session could not be verified. Please sign in again.');const verified=await confirmedUser.json();if(!current())return;if(verified.id!==owner||!verified.email_confirmed_at)throw Error('Verify your email before accessing MILE.');
+ let r=await fetch(state.settings.supabaseUrl+'/rest/v1/av_members?user_id=eq.'+encodeURIComponent(userId)+'&select=user_id,onboarding_stage',{headers:sbHeaders()});if(!r.ok)throw Error('Could not check account membership: '+r.status);
+ let rows=await r.json();if(!current())return;if(!rows.some(row=>row.user_id===owner)){let pending=sessionStorage.getItem(v4PendingKey);v4Show('invite');if(pending){document.getElementById('v4Invite').value=pending;await v4Join()}return}
  sessionStorage.removeItem(v4InviteDraftKey);sessionStorage.removeItem(v4PendingKey);
  v4Member=true;
+ const membership=rows.find(row=>row.user_id===owner);
+ let completedSetup=membership.onboarding_stage===6;
+ if(membership.onboarding_stage>=1&&membership.onboarding_stage<=5){
+   v4Ready=false;render();v4ShowRestoring();
+   const started=await window.mileOnboarding.start({
+    gate:document.getElementById('v4Gate'),current,
+    rpc:(name,body)=>mileOnboardingRequest(name,body,current,endpoint),
+    logout:v4Logout,enter:v4AfterLogin,garmin:()=>mileReadGarminStatus(current),
+    connect:()=>mileOpenGarminAuthorization(current),
+    upload:file=>window.mileProfileAvatarUpload(file),
+    icon:sport=>window.mileProfileSportIcon?.(sport)||''
+   });
+   if(started||!current())return;
+   completedSetup=true;
+ }
+ const profileReady=mileLoadProfileIdentity(current,owner,endpoint);
  let stored=localStorage.getItem(v4LocalKey(userId));
  let local=null;try{local=stored?JSON.parse(stored):null}catch(e){}
  // Keep credentials from the running app: cloud snapshots intentionally strip them.
  let settings={...state.settings};
  let cloud=await fetch(settings.supabaseUrl+'/rest/v1/av_training_data?user_id=eq.'+encodeURIComponent(userId)+'&select=training_data,updated_at',{headers:sbHeaders()});if(!cloud.ok)throw Error('Cloud load failed: '+cloud.status);
- let records=await cloud.json(),remote=records[0]?.training_data||null;
+ let records=await cloud.json();if(!current())return;const remote=records[0]?.training_data||null;
  let confirmed=localStorage.getItem('av-cloud-confirmed-'+userId)||'';
  let localEdited=localStorage.getItem('av-local-edited-'+userId)||'';
  let remoteEdited=records[0]?.updated_at||'';
@@ -1343,15 +1415,70 @@ async function v4AfterLogin(){try{
  for(let k of Object.keys(defaults))if(state[k]===undefined)state[k]=defaults[k];
  window.mile776?.hydrate(!!local);
  localStorage.setItem(v4LocalKey(userId),JSON.stringify(state));
+ await profileReady;
+ if(!current())return;
  v4Ready=true;document.getElementById('v4Gate').classList.add('hidden');render();
  if(restoreLocal||!records.length){
    try{await cloudSave()}catch(e){if(e.code!==avCloudRevisionConflict)throw e;notice(e.message)}
  }
  if(remote&&!restoreLocal&&remoteEdited)localStorage.setItem('av-cloud-confirmed-'+userId,remoteEdited);
- await mileGarminCheckAfterLogin();window.mile777?.checkAdmin();
- }catch(e){v4Show('login');v4SetError(e.message)}}
-const MILE_GARMIN_FUNCTIONS='https://mgixvokjlytjuypzcfzz.supabase.co/functions/v1/';
-async function mileGarminCheckAfterLogin(){
+ await mileGarminCheckAfterLogin(!completedSetup);if(current())window.mile777?.checkAdmin();
+ }catch(e){if(current()){v4Show('login');v4SetError(e.message)}}
+}
+const mileGarminFunctions=(endpoint=state.settings.supabaseUrl)=>endpoint+'/functions/v1/';
+async function mileOnboardingRequest(name,body,current,endpoint,retry=true){
+ if(!current())throw Error('Your session changed. Sign in again.');
+ const response=await fetch(endpoint+'/rest/v1/rpc/'+name,{
+  method:'POST',headers:sbHeaders(),body:JSON.stringify(body||{}),cache:'no-store'
+ });
+ if(!current())throw Error('Your session changed. Sign in again.');
+ if(response.status===401&&retry&&await refreshSession())return mileOnboardingRequest(name,body,current,endpoint,false);
+ const value=await response.json().catch(()=>null);
+ if(!current())throw Error('Your session changed. Sign in again.');
+ if(!response.ok||value===null)throw Object.assign(Error(value?.message||'Could not save profile setup. Try again.'),{status:response.status});
+ return value;
+}
+window.mileAvatar.configure(()=>({base:state.settings.supabaseUrl,owner:userId,headers:sbHeaders()}));
+function mileResetProfileIdentity(){
+ window.mileAvatar.reset();
+ window.mileCurrentProfileIdentity=null;
+ if(window.m36State){window.m36State.profiles=[];window.m36State.mine=null}
+ for(const key of ['mile-ui-avatar-cache','mile-ui-name-cache','mile-profile'])localStorage.removeItem(key);
+}
+function mileRememberProfile(profile){
+ if(!profile||profile.user_id!==userId)return;
+ window.mileCurrentProfileIdentity={name:profile.display_name||'',photo:profile.avatar_url||''};
+ if(profile.display_name)localStorage.setItem('mile-ui-name-cache',profile.display_name);
+ if(profile.avatar_url&&/^https:\/\//i.test(profile.avatar_url))localStorage.setItem('mile-ui-avatar-cache',profile.avatar_url);
+ else localStorage.removeItem('mile-ui-avatar-cache');
+}
+async function mileLoadProfileIdentity(current,owner,endpoint){
+ try{
+  const r=await fetch(endpoint+'/rest/v1/mile_profiles?select=user_id,username,display_name,avatar_url,disciplines,primary_sport&user_id=eq.'+encodeURIComponent(owner)+'&limit=1',{headers:sbHeaders(),cache:'no-store',signal:AbortSignal.timeout(3500)});
+  if(!r.ok)return;
+  const rows=await r.json();
+  if(!current())return;
+  const profile=rows.find(row=>row.user_id===owner);
+  if(!profile)return;
+  if(window.m36State)window.m36State.mine={...(window.m36State.mine||{}),...profile};
+  mileRememberProfile(profile);
+ }catch(_){}
+}
+window.mileAthleteProfile={
+ read:()=>v4Ready&&userId?{athlete:{...(state.settings.athleteProfile||{})},
+  sports:[...(window.m36State?.mine?.user_id===userId?window.m36State.mine.disciplines||[]:[])],
+  primarySport:window.m36State?.mine?.user_id===userId?window.m36State.mine.primary_sport||null:null}:null
+};
+async function mileReadGarminStatus(current){
+ if(!current())return 'unavailable';
+ try{
+  const r=await fetch(mileGarminFunctions()+'garmin-connection-status',{headers:sbHeaders(),cache:'no-store',signal:AbortSignal.timeout(10000)});
+  if(!r.ok)return 'unavailable';
+  const data=await r.json();
+  return current()&&['authorised','expired','not_connected'].includes(data.status)?data.status:'unavailable';
+ }catch(_){return 'unavailable'}
+}
+async function mileGarminCheckAfterLogin(offer=true){
   const params=new URLSearchParams(location.search);
   const outcome=params.get('garmin');
   if(outcome==='connected'||outcome==='failed'){
@@ -1362,12 +1489,9 @@ async function mileGarminCheckAfterLogin(){
   if(!owner||!session)return;
   const key='mile-garmin-onboarding-'+owner;
   const prior=localStorage.getItem(key);
-  let status='unknown';
-  try{
-    const response=await fetch(MILE_GARMIN_FUNCTIONS+'garmin-connection-status',{headers:sbHeaders(),cache:'no-store',signal:AbortSignal.timeout(10000)});
-    if(response.ok){const data=await response.json();if(['authorised','expired','not_connected'].includes(data.status))status=data.status}
-  }catch(_){}
-  if(owner!==userId||session!==token)return;
+  const current=()=>owner===userId&&session===token;
+  const status=await mileReadGarminStatus(current);
+  if(!current())return;
   if(status==='authorised'){
     localStorage.setItem(key,'server-authorised');
     if(outcome==='connected')notice('Garmin authorisation confirmed.');
@@ -1375,32 +1499,33 @@ async function mileGarminCheckAfterLogin(){
   }
   if(outcome==='failed')notice('Garmin authorization failed. Please try again.');
   if(status==='expired'){notice('Garmin authorisation needs attention. Check Settings before reconnecting.');return}
-  if(status==='unknown'){notice('Garmin connection status unavailable. Check Settings later.');return}
-  if(prior!=='skipped')v4Show('connect');
+  if(status==='unavailable'){if(offer)notice('Garmin connection status unavailable. Check Settings later.');return}
+  if(offer&&prior!=='skipped')v4Show('connect');
+}
+async function mileOpenGarminAuthorization(current){
+ if(!current())throw Error('Please sign in to MILE first.');
+ const response=await fetch(mileGarminFunctions()+'garmin-oauth-start',{
+  method:'POST',headers:sbHeaders(),body:'{}'
+ });
+ const data=await response.json().catch(()=>({}));
+ if(!current())throw Error('Your session changed. Sign in again.');
+ if(!response.ok||!data.authorization_url)throw Error(data.error||'Garmin connection could not be started (HTTP '+response.status+').');
+ const target=new URL(data.authorization_url);
+ if(target.protocol!=='https:'||target.hostname!=='connect.garmin.com')throw Error('Unexpected Garmin authorization address.');
+ location.assign(target.toString());
 }
 async function v4Connect(){
-  if(!token||!userId)return v4SetError('Please sign in to MILE first.');
-  const button=document.querySelector('#v4Gate button[onclick="v4Connect()"]');
-  if(button)button.disabled=true;
-  v4SetError('Opening Garmin authorization…','info');
-  try{
-    const response=await fetch(MILE_GARMIN_FUNCTIONS+'garmin-oauth-start',{
-      method:'POST',
-      headers:{'Authorization':'Bearer '+token,'apikey':state.settings.supabaseAnon,'Content-Type':'application/json'},
-      body:'{}'
-    });
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok||!data.authorization_url)throw Error(data.error||'Garmin connection could not be started (HTTP '+response.status+').');
-    const target=new URL(data.authorization_url);
-    if(target.protocol!=='https:'||target.hostname!=='connect.garmin.com')throw Error('Unexpected Garmin authorization address.');
-    location.assign(target.toString());
-  }catch(error){
-    v4SetError(error.message||'Could not open Garmin.');
-    if(button)button.disabled=false;
-  }
+ const owner=userId;
+ const current=()=>!!owner&&owner===userId&&!!token;
+ if(!current())return v4SetError('Please sign in to MILE first.');
+ const button=document.querySelector('#v4Gate button[onclick="v4Connect()"]');
+ if(button)button.disabled=true;
+ v4SetError('Opening Garmin authorization…','info');
+ try{await mileOpenGarminAuthorization(current)}
+ catch(error){if(current())v4SetError(error.message||'Could not open Garmin.');if(button)button.disabled=false}
 }
 function v4SkipGarmin(){if(userId)localStorage.setItem('mile-garmin-onboarding-'+userId,'skipped');document.getElementById('v4Gate').classList.add('hidden');render()}
-async function v4Logout(){mile85ClearVerify();if(avCloudPending){notice('Finishing cloud save before signing out…');await avCloudQueue}if(avCloudError&&!confirm('Cloud save failed. Your latest edits may exist only on this device. Sign out anyway?'))return;window.mileClosePrivateActivity?.();avCloudError='';token='';userId='';v4Ready=false;v4Member=false;sessionStorage.removeItem(v4InviteDraftKey);sessionStorage.removeItem(v4PendingKey);sessionStorage.removeItem('av-token');localStorage.removeItem('av-token');sessionStorage.removeItem('av-user');localStorage.removeItem('av-user');sessionStorage.removeItem('av-refresh');localStorage.removeItem('av-refresh');state=seed();state.workouts=[];state.activities=[];state.goals=[];v4Show('login')}
+async function v4Logout(){mile85ClearVerify();if(avCloudPending){notice('Finishing cloud save before signing out…');await avCloudQueue}if(avCloudError&&!confirm('Cloud save failed. Your latest edits may exist only on this device. Sign out anyway?'))return;window.mileClosePrivateActivity?.();token='';userId='';v4Ready=false;v4Member=false;avCloudError='';mileResetProfileIdentity();sessionStorage.removeItem(v4InviteDraftKey);sessionStorage.removeItem(v4PendingKey);sessionStorage.removeItem('av-token');localStorage.removeItem('av-token');sessionStorage.removeItem('av-user');localStorage.removeItem('av-user');sessionStorage.removeItem('av-refresh');localStorage.removeItem('av-refresh');state=seed();state.workouts=[];state.activities=[];state.goals=[];v4Show('login')}
 const avSyncOriginalRender=render;
 render=function(){avSyncOriginalRender();let badge=document.querySelector('.top .row');if(v4Ready&&badge&&!document.getElementById('avCloudStatus')){let el=document.createElement('span');el.id='avCloudStatus';el.className='small muted';el.style.fontSize='11px';badge.appendChild(el)}avCloudIndicator()};
 const v4OriginalRender=render;
@@ -1477,7 +1602,7 @@ function v41Generate(){
 const v41OriginalNavigate=navigate;
 navigate=function(p){if(p==='builder'){page=p;v41Builder();window.scrollTo(0,0)}else v41OriginalNavigate(p)};
 const v41OriginalRender=render;
-render=function(){if(!v4Ready)return v41OriginalRender();if(page==='builder'){v41Builder();document.getElementById('subtitle').textContent=active().name;document.getElementById('syncStatus').textContent=token?'Cloud signed in':'Local mode';document.getElementById('nav').innerHTML=[['dashboard','⌂ Home'],['calendar','▦ Calendar'],['builder','＋ Build'],['goals','◈ Training'],['performance','▥ Stats'],['recovery','♡ Recovery']].map(([id,t])=>`<button class="${page===id?'active':''}" onclick="navigate('${id}')">${t}</button>`).join('');return}v41OriginalRender();let nav=document.getElementById('nav');if(nav&&!nav.querySelector('[data-builder]')){let btn=document.createElement('button');btn.dataset.builder='1';btn.textContent='＋ Build';btn.onclick=()=>navigate('builder');nav.insertBefore(btn,nav.children[2]||null)}};
+render=function(){if(!v4Ready)return v41OriginalRender();if(page==='builder'){v41Builder();document.getElementById('subtitle').textContent=active()?.name||'Training programmes';document.getElementById('syncStatus').textContent=token?'Cloud signed in':'Local mode';document.getElementById('nav').innerHTML=[['dashboard','⌂ Home'],['calendar','▦ Calendar'],['builder','＋ Build'],['goals','◈ Training'],['performance','▥ Stats'],['recovery','♡ Recovery']].map(([id,t])=>`<button class="${page===id?'active':''}" onclick="navigate('${id}')">${t}</button>`).join('');return}v41OriginalRender();let nav=document.getElementById('nav');if(nav&&!nav.querySelector('[data-builder]')){let btn=document.createElement('button');btn.dataset.builder='1';btn.textContent='＋ Build';btn.onclick=()=>navigate('builder');nav.insertBefore(btn,nav.children[2]||null)}};
 
 // V4.2 keeps all existing data and login/connection functionality.
 let v42Step=0,v42Sport='HYROX',v42Form={},v42Combined=true;
@@ -2550,7 +2675,7 @@ async function mileLoadDetail(id){
  if(!token){cache.set(key,{error:'Please sign in again to load recorded Garmin details.'});drawDetail();return;}
  pending.add(key);drawDetail();
  try{
-  const response=await fetch(MILE_GARMIN_FUNCTIONS+'garmin-data-read?activityId='+encodeURIComponent(garminId),{
+  const response=await fetch(mileGarminFunctions()+'garmin-data-read?activityId='+encodeURIComponent(garminId),{
    method:'GET',headers:{Authorization:'Bearer '+token,apikey:state.settings.supabaseAnon,Accept:'application/json'}
   });
   const data=await response.json();
@@ -2823,27 +2948,31 @@ window.m383ReloadMessages=()=>loadMessages();window.m383Repaint=()=>paint();
 const base=()=>state.settings.supabaseUrl+'/rest/v1/';
 window.m383SocialApi=(...args)=>api(...args);window.mileChallengesUserId=()=>userId;
 async function api(table,method='GET',data=null,query='',retry=true){if(!token||!userId)throw Error('Sign in to MILE first');let headers={...sbHeaders(),Prefer:table==='mile_notification_dismissals'&&method==='POST'?'resolution=ignore-duplicates,return=minimal':query.includes('on_conflict=')?'resolution=merge-duplicates,return=representation':'return=representation'},r=await fetch(base()+table+query,{method,headers,body:data===null?undefined:JSON.stringify(data)});if(r.status===401&&retry&&await refreshSession())return api(table,method,data,query,false);let body=await r.text(),value;try{value=body?JSON.parse(body):[]}catch{value=[]}if(!r.ok)throw Error(value.message||value.hint||table+' request failed ('+r.status+')');return value}
-const avatar=(p)=>`<span class="m36-avatar">${p?.avatar_url&&/^https:\/\//.test(p.avatar_url)?`<img src="${e(p.avatar_url)}" alt="">`:e((p?.display_name||p?.username||'M')[0].toUpperCase())}</span>`;
+const avatar=(p)=>`<span class="m36-avatar">${window.mileAvatar.markup(p?.avatar_url)||e((p?.display_name||p?.username||'M')[0].toUpperCase())}</span>`;
 const mine=()=>S.profiles.find(x=>x.user_id===userId)||S.mine;
 const prof=id=>S.profiles.find(x=>x.user_id===id)||{user_id:id,display_name:'MILE Athlete',is_private:true};
 const follow=id=>S.follows.find(x=>x.follower_id===userId&&x.following_id===id);
 const accepted=id=>S.follows.some(x=>x.follower_id===userId&&x.following_id===id&&x.status==='accepted');
 const canView=id=>id===userId||accepted(id)||(!prof(id).is_private);
 const safePic=url=>typeof url==='string'&&/^https:\/\//i.test(url)?url:'';
-// Avatar images are publicly viewable for athlete discovery; writes require an authenticated owner.
+// The stored URL identifies the object. Viewers fetch it through authenticated Storage.
 async function m363UploadAvatar(file){
  if(!userId||!token)throw Error('Sign in before uploading a photo');
+ const owner=userId,endpoint=state.settings.supabaseUrl,current=()=>owner===userId&&endpoint===state.settings.supabaseUrl&&!!token;
  if(file.size>15*1024*1024)throw Error('Please choose a photo smaller than 15 MB');
  if(!(/^image\//.test(file.type)||/\.(heic|heif)$/i.test(file.name)))throw Error('Please select an image');
  const bitmap=await new Promise((resolve,reject)=>{const img=new Image(),url=URL.createObjectURL(file);img.onload=()=>{URL.revokeObjectURL(url);resolve(img)};img.onerror=()=>{URL.revokeObjectURL(url);reject(Error('This photo format could not be opened on this device. Try JPG or PNG.'))};img.src=url});
  const canvas=document.createElement('canvas');canvas.width=512;canvas.height=512;const ctx=canvas.getContext('2d');const side=Math.min(bitmap.naturalWidth,bitmap.naturalHeight);ctx.drawImage(bitmap,(bitmap.naturalWidth-side)/2,(bitmap.naturalHeight-side)/2,side,side,0,0,512,512);
  const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error('Could not prepare photo')),'image/jpeg',0.85));
- const path=userId+'/avatar.jpg';const url=state.settings.supabaseUrl+'/storage/v1/object/mile-avatars/'+path;
- const send=()=>fetch(url,{method:'POST',headers:{...sbHeaders(),'Content-Type':'image/jpeg','x-upsert':'true','cache-control':'3600'},body:blob});
- let res=await send();if(res.status===401&&await refreshSession())res=await send();
+ const path=owner+'/avatar.jpg';const url=endpoint+'/storage/v1/object/mile-avatars/'+path;
+ const send=()=>{if(!current())throw Error('Your session changed. Sign in again.');return fetch(url,{method:'POST',headers:{...sbHeaders(),'Content-Type':'image/jpeg','x-upsert':'true','cache-control':'3600'},body:blob});};
+ let res=await send();if(res.status===401&&current()&&await refreshSession())res=await send();
+ if(!current())throw Error('Your session changed. Sign in again.');
  if(!res.ok){let data=await res.json().catch(()=>({}));throw Error(data.message||data.error||'Photo upload failed ('+res.status+'). Check the mile-avatars Storage policies.')}
- return state.settings.supabaseUrl+'/storage/v1/object/public/mile-avatars/'+path+'?v='+Date.now();
+ return endpoint+'/storage/v1/object/public/mile-avatars/'+path+'?v='+Date.now();
 }
+window.mileProfileAvatarUpload=m363UploadAvatar;
+window.mileProfileSportIcon=sport=>sport==='Triathlon'?'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m12 3 9 16H3zM8 15h8M10 11h4"/></svg>':m384SportIcon(sport);
 document.addEventListener('change',ev=>{if(ev.target.id!=='m363-photo')return;const file=ev.target.files?.[0];if(!file)return;const status=document.getElementById('m363-photo-status');if(status)status.textContent=file.name+' selected. Tap Save profile to upload.';const preview=document.getElementById('m363-preview');if(preview){const url=URL.createObjectURL(file);preview.innerHTML='<span class="m36-avatar"><img alt="Selected profile photo preview"></span>';const img=preview.querySelector('img');img.onload=()=>URL.revokeObjectURL(url);img.onerror=()=>{URL.revokeObjectURL(url);preview.textContent='Photo selected'};img.src=url;}});
 async function discoverRpc(){
  const r=await fetch(state.settings.supabaseUrl+'/rest/v1/rpc/mile_discover_athletes',{method:'POST',headers:sbHeaders(),body:'{}'});
@@ -2900,7 +3029,7 @@ function m388Readable(t){return String(t||'Workout').replace(/[_-]+/g,' ').repla
 function m388Number(v){return v===null||v===undefined||v===''?null:(Number.isFinite(Number(v))?Number(v):null)}
 function m388Duration(seconds){const n=m388Number(seconds);if(n===null||n<=0)return '';const h=Math.floor(n/3600),m=Math.floor(n%3600/60),sec=Math.round(n%60);return h?`${h}h ${String(m).padStart(2,'0')}m`:`${m}m ${String(sec).padStart(2,'0')}s`}
 function m388Metrics(p){const cat=m388Category(p.activity_type),snapshot=p.detail_snapshot&&typeof p.detail_snapshot==='object'?p.detail_snapshot:{},rawDist=m388Number(p.distance_m)??m388Number(p.distanceInMeters)??m388Number(p.distance_meters)??(m388Number(p.distance_km)!=null?m388Number(p.distance_km)*1000:null)??(m388Number(p.distanceKm)!=null?m388Number(p.distanceKm)*1000:null)??m388Number(snapshot.distance_m),dist=rawDist,sec=m388Number(p.duration_s),hr=m388Number(p.average_hr),cal=m388Number(p.calories),elev=m388Number(p.elevation_gain_m);const out=[];const add=(label,value)=>{if(value!==null&&value!==undefined&&value!=='')out.push(`<div><b>${e(value)}</b><small>${e(label)}</small></div>`)};if(dist>0)add('DISTANCE',cat==='swimming'?`${Math.round(dist)} m`:`${(dist/1000).toFixed(2)} km`);if(sec>0)add('TIME',m388Duration(sec));if(sec>0&&dist>0&&cat==='running'){const p=sec/(dist/1000);add('PACE',`${Math.floor(p/60)}:${String(Math.floor(p%60)).padStart(2,'0')} /km`)}if(sec>0&&dist>0&&cat==='swimming'){const p=sec/(dist/100);add('PACE',`${Math.floor(p/60)}:${String(Math.floor(p%60)).padStart(2,'0')} /100m`)}if(sec>0&&dist>0&&cat==='cycling')add('AVG SPEED',`${(dist/1000/(sec/3600)).toFixed(1)} km/h`);if(hr>0)add('AVG HR',`${Math.round(hr)} bpm`);if(cal>0)add('CALORIES',`${Math.round(cal)} kcal`);if(elev>0&&['running','cycling'].includes(cat))add('ELEVATION',`${Math.round(elev)} m`);return out.length?`<div class="m37-workout-stats m388-metrics">${out.join('')}</div>`:`<p class="m388-empty-metrics">Garmin hasn't supplied detailed metrics for this shared activity.</p>`}
-function m388AvatarHeader(){const p=typeof mine==='function'?mine():null;const u=p&&typeof safePic==='function'?safePic(p.avatar_url):null;return u?`<img src="${e(u)}" alt="Your profile" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`:null}
+function m388AvatarHeader(){const p=typeof mine==='function'?mine():null;const u=p&&typeof safePic==='function'?safePic(p.avatar_url):null;return u?`${window.mileAvatar.markup(u,"Your profile")}`:null}
 
 function m320ActivityMedia(p){
  const existing=m387ActivityMedia(p);
@@ -2937,11 +3066,11 @@ function m86DiscoverResults(value){const q=String(value||'').trim().toLowerCase(
 function discover(){let q=document.getElementById('m36-search')?.value||'';return `<div class="m36-panel"><div class="m79-intro"><h3>Find your community</h3><p>Connect with athletes who share your goals.</p></div><input aria-label="Search athletes" id="m36-search" placeholder="Search athlete name or username" value="${e(q)}" autocomplete="off"><p class="muted small">Private athletes show only their name and profile photo until they accept your request.</p><div id="m36-results" aria-live="polite">${m86DiscoverResults(q)}</div></div>`}
 function requests(){const incoming=S.follows.filter(f=>f.following_id===userId&&f.status==='pending'),sent=S.follows.filter(f=>f.follower_id===userId&&f.status==='pending'),accepted=S.follows.filter(f=>f.follower_id===userId&&f.status==='accepted'),mode=S.m79Requests==='sent'?'sent':'received';return `<div class="m36-panel m79-panel"> <div class="m79-segments" role="group" aria-label="Request direction"><button type="button" data-m79-requests="received" aria-pressed="${mode==='received'}">Received <span>${incoming.length}</span></button><button type="button" data-m79-requests="sent" aria-pressed="${mode==='sent'}">Sent <span>${sent.length}</span></button></div><div class="m79-list">${mode==='received'?(incoming.map(f=>{const p=prof(f.follower_id);return `<div class="m36-athlete m79-request">${avatar(p)}<div><strong>${e(p.display_name||p.username||'Athlete')}</strong><small>@${e(p.username||'athlete')}</small></div><div class="m79-actions"><button class="m36-btn" data-m36-accept="${e(f.follower_id)}">Accept</button><button class="m36-btn alt" data-m36-decline="${e(f.follower_id)}">Decline</button></div></div>`}).join('')||'<div class="m79-empty">No pending requests.</div>'):(sent.map(f=>athlete(prof(f.following_id))).join('')||'<div class="m79-empty">No sent requests.<small>Requests awaiting approval will appear here.</small></div>')}</div></div><details class="m36-panel m79-panel m877-following"><summary>Following · ${accepted.length}</summary>${accepted.map(f=>m877FollowingAthlete(prof(f.following_id))).join('')||'<p class="muted">No accepted connections yet.</p>'}</details>`}
 function m877FollowingAthlete(p){const id=e(p.user_id),privateProfile=p.is_private!==false;return `<div class="m36-athlete m877-follow-row"><button type="button" class="m877-person" data-m375-profile="${id}" aria-label="View ${e(p.display_name||p.username||'athlete')} profile">${avatar(p)}<span><strong>${e(p.display_name||p.username||'MILE Athlete')}</strong><small>@${e(p.username||'athlete')} · ${privateProfile?'Private':'Public'}${p.primary_sport?' · '+e(p.primary_sport):''}</small></span></button><button type="button" class="m36-btn alt m877-icon" data-m37-open="${id}" aria-label="Message ${e(p.display_name||p.username||'athlete')}">${m361Icon('message-circle')}</button><details class="m877-athlete-actions"><summary aria-label="Connection actions for ${e(p.display_name||p.username||'athlete')}">⋯</summary><button type="button" class="m36-btn alt" data-m36-follow="${id}">Unfollow</button></details></div>`}
-const M387_SPORTS=['Running','HYROX','Swimming','Cycling','Strength'];
+const M387_SPORTS=['Running','HYROX','Swimming','Cycling','Strength','Triathlon'];
 const M387_ICONS={'Running':'♧','HYROX':'▥','Swimming':'≋','Cycling':'◉','Strength':'⌁'};
 function m387Sports(p){let a=Array.isArray(p.disciplines)?p.disciplines:[];return Array.isArray(p.disciplines)?a.filter(x=>M387_SPORTS.includes(x)):([p.primary_sport].filter(x=>M387_SPORTS.includes(x)).length?[p.primary_sport]:[])}
 function m387SportTiles(p){return `<div class="m387-sports m320-sports">${m387Sports(p).map(x=>`<span class="m320-sport m320-${x.toLowerCase()}">${m384SportIcon(x)}<small>${e(x)}</small></span>`).join('')}</div>`}
-function m387Cover(p){const u=safePic(p.cover_url);return `<div class="m362-cover m385-cover" ${u?`style="--m388-cover:linear-gradient(180deg,#071b1480,#071b14aa),url('${e(u)}')"`:''}><span class="m36-kicker">MILE ATHLETE</span><span class="m362-privacy">${p.is_private!==false?'Private':'Public'} profile</span></div>`}
+function m387Cover(p){return `<div class="m362-cover m385-cover">${window.mileAvatar.markup(p.cover_url)}<span class="m36-kicker">MILE ATHLETE</span><span class="m362-privacy">${p.is_private!==false?'Private':'Public'} profile</span></div>`}
 function m387Week(posts){const start=new Date();start.setHours(0,0,0,0);start.setDate(start.getDate()-((start.getDay()+6)%7));const week=posts.filter(x=>new Date(x.activity_at||x.created_at)>=start);const unique=[...new Map(week.map(p=>[String(p.garmin_activity_id||p.source_activity_id||p.id),p])).values()];const run=unique.filter(x=>/run|jog/i.test(x.activity_type||''));const strength=unique.filter(x=>/strength|weight|gym/i.test(x.activity_type||''));const km=run.reduce((t,x)=>t+(Number(x.distance_m)||0),0)/1000;return `<div class="m387-week"><h3>THIS WEEK</h3><div class="m387-week-grid"><div><strong>${km.toFixed(1)} km</strong><small>Running</small></div><div><strong>${unique.length}</strong><small>Total workouts</small></div><div><strong>${strength.length}</strong><small>Strength</small></div></div></div>`}
 function m387RouteCoords(raw){let r=raw;if(typeof r==='string'){try{r=JSON.parse(r)}catch(_){return []}}if(!r)return [];let a=Array.isArray(r)?r:r.coordinates||r.points||r.route||r.geometry?.coordinates||[];if(!Array.isArray(a))return [];return a.map(p=>{if(Array.isArray(p))return p.length>=2?[Number(p[0]),Number(p[1])]:null;const lat=Number(p.lat??p.latitude),lon=Number(p.lon??p.lng??p.longitude);return Number.isFinite(lat)&&Number.isFinite(lon)?[lon,lat]:null}).filter(p=>p&&p.every(Number.isFinite)&&Math.abs(p[0])<=180&&Math.abs(p[1])<=90).slice(0,10000)}
 function m387ActivityMedia(p){if(p.photo_url)return `<img class="m387-activity-photo" data-m374-private-photo="${e(p.id)}" alt="Athlete workout photo" loading="lazy" style="display:none">`;if(p.share_route!==true)return '';const cat=m388Category(p.activity_type);if(!['running','cycling','swimming'].includes(cat))return '';const coords=m387RouteCoords(p.route_data);if(coords.length<2)return '';const xs=coords.map(c=>c[0]),ys=coords.map(c=>c[1]),minx=Math.min(...xs),maxx=Math.max(...xs),miny=Math.min(...ys),maxy=Math.max(...ys),dx=Math.max(maxx-minx,.00001),dy=Math.max(maxy-miny,.00001);const pts=coords.map(([x,y])=>`${(12+(x-minx)/dx*376).toFixed(1)},${(12+(maxy-y)/dy*196).toFixed(1)}`).join(' ');return `<div class="m388-route-wrap"><svg class="m387-route" viewBox="0 0 400 220" role="img" aria-label="GPS track from recorded coordinates"><polyline points="${pts}"/></svg><small>Recorded GPS route · schematic track, not a street map</small></div>`}
@@ -2959,7 +3088,7 @@ function profile(){let p=mine()||{};if(p.user_id===userId){window.mileCurrentPro
 <label class="m877-switch"><span><strong>Private profile</strong><small>Approve followers before they see your content.</small></span><input type="checkbox" id="m36-private" ${p.is_private!==false?'checked':''}></label>
 <label class="m877-switch"><span><strong>Allow athlete discovery</strong><small>Let athletes find your profile.</small></span><input type="checkbox" id="m36-discover" ${p.is_discoverable!==false?'checked':''}></label>
 <label class="m877-field">Workout visibility<select id="m37-workout-privacy"><option value="followers" ${p.workout_privacy!=='anyone'?'selected':''}>Approved followers</option><option value="anyone" ${p.workout_privacy==='anyone'?'selected':''}>Any signed-in athlete</option></select></label>
-<label class="m877-switch"><span><strong>Automatically share Garmin activities</strong><small>Share completed activities using your visibility preference.</small></span><input type="checkbox" id="m37-auto-share" ${p.auto_share_activities!==false?'checked':''}></label>
+<label class="m877-switch"><span><strong>Automatically share Garmin activities</strong><small>Share completed activities using your visibility preference.</small></span><input type="checkbox" id="m37-auto-share" ${p.auto_share_activities===true?'checked':''}></label>
 <label class="m877-field">Who can message me?<select id="m37-message-privacy"><option value="followers" ${p.message_privacy!=='anyone'?'selected':''}>Approved followers</option><option value="anyone" ${p.message_privacy==='anyone'?'selected':''}>Any signed-in athlete</option></select></label>
 <p class="m877-help">Private profiles reveal only your name, username and profile photo to non-followers. Activity visibility is controlled separately.</p></section></div>
 <div class="m36-actions m877-bottom-save"><button type="button" class="m36-btn m8774-save" data-m36-saveprofile="1"><span>Save profile</span></button>${p.user_id?'<button class="m36-btn alt" data-m36-canceledit="1">Cancel</button>':''}</div></section>`}
@@ -3011,7 +3140,7 @@ function leaderboardView(){
  const auditHtml='<details class="mile-v3953-audit"><summary>My points breakdown · '+ownAudit.filter(a=>a.points>0).length+' eligible / '+ownAudit.length+' verified Garmin sessions</summary><p class="muted small">Only Garmin records received by MILE’s server are scored. Legacy imports or manual activities not verified by the server do not count.</p>'+ownAudit.map(a=>'<div class="mile-v3953-audit-row"><div><strong>'+mileLbEsc(a.name)+'</strong><small>'+mileLbEsc(a.type)+' · '+a.mins+' min'+(a.points?'':' · '+mileLbEsc(a.reason||'Not eligible'))+'</small></div><strong>'+a.points+' pts</strong></div>').join('')+'</details>';
  const sorted=[...entries.values()].sort((a,b)=>b.points-a.points||b.sessions-a.sessions||a.id.localeCompare(b.id));
  const own=sorted.findIndex(x=>x.id===userId);
- const avatarMarkup=p=>p.avatar_url&&/^https:\/\//i.test(p.avatar_url)?'<img src="'+mileLbEsc(p.avatar_url)+'" alt="" loading="lazy">':'<span>'+mileLbEsc((p.display_name||p.username||'M')[0].toUpperCase())+'</span>';
+ const avatarMarkup=p=>window.mileAvatar.markup(p.avatar_url)||'<span>'+mileLbEsc((p.display_name||p.username||'M')[0].toUpperCase())+'</span>';
  const athleteRow=(x,i)=>'<button type="button" class="mile-lb-athlete" data-mile-lb-profile="'+mileLbEsc(x.id)+'"><span class="mile-lb-rank">'+(i+1)+'</span><span class="mile-lb-avatar">'+avatarMarkup(x.profile)+'</span><span class="mile-lb-identity"><strong>'+mileLbEsc(x.profile.display_name||x.profile.username||'MILE Athlete')+(x.id===userId?' (You)':'')+'</strong><small>@'+mileLbEsc(x.profile.username||'athlete')+' · '+x.sessions+' sessions</small></span><span class="mile-lb-score"><strong>'+x.points+'</strong><small>PTS</small></span></button>';
  const podium=sorted.slice(0,3).map((x,i)=>'<button type="button" class="mile-lb-podium mile-lb-podium-'+(i+1)+'" data-mile-lb-profile="'+mileLbEsc(x.id)+'"><span class="mile-lb-avatar">'+avatarMarkup(x.profile)+'</span><span class="mile-lb-medal">'+['1ST','2ND','3RD'][i]+'</span><strong>'+mileLbEsc(x.profile.display_name||x.profile.username||'Athlete')+'</strong><small>@'+mileLbEsc(x.profile.username||'athlete')+'</small><b>'+x.points+' pts</b></button>').join('');
  return '<div class="mile-lb-page"><div class="mile-lb-top"><span class="mile-lb-kicker">MILE / SOCIAL</span><h2>Weekly Leaderboard<span>.</span></h2><p>Earn points for Garmin-linked training across five activity categories. HIIT is included in Cardio.</p></div>'+
@@ -3171,7 +3300,7 @@ document.addEventListener('click',async ev=>{let t=ev.target.closest('[data-m374
 if(t.dataset.m374Hide){const p=S.posts.find(x=>String(x.id)===t.dataset.m374Hide&&x.user_id===userId);if(!p)return;const hidden=!p.hidden_from_profile;try{const rows=await api('mile_social_activities','PATCH',{hidden_from_profile:hidden},'?id=eq.'+encodeURIComponent(p.id)+'&user_id=eq.'+encodeURIComponent(userId));if(!rows?.some(x=>x.id===p.id&&x.hidden_from_profile===hidden))throw Error('Profile visibility was not saved');p.hidden_from_profile=hidden;paint();notice(hidden?'Hidden from profile; feed unchanged':'Restored to profile')}catch(err){notice(err.message)}return}
 if(t.dataset.m36Follow){let id=t.dataset.m36Follow,rel=follow(id);return action(async()=>rel?api('mile_follows','DELETE',null,`?follower_id=eq.${encodeURIComponent(userId)}&following_id=eq.${encodeURIComponent(id)}`):api('mile_follows','POST',{follower_id:userId,following_id:id,status:(S.discovery.find(p=>p.user_id===id)||S.profiles.find(p=>p.user_id===id))?.is_private===false?'accepted':'pending'}))}
 if(t.dataset.m36Accept||t.dataset.m36Decline){let id=t.dataset.m36Accept||t.dataset.m36Decline;return action(()=>t.dataset.m36Accept?api('mile_follows','PATCH',{status:'accepted'},`?follower_id=eq.${encodeURIComponent(id)}&following_id=eq.${encodeURIComponent(userId)}&status=eq.pending`):api('mile_follows','DELETE',null,`?follower_id=eq.${encodeURIComponent(id)}&following_id=eq.${encodeURIComponent(userId)}`))}
-if(t.dataset.m36Saveprofile){let username=document.getElementById('m36-username').value.trim(),name=document.getElementById('m36-name').value.trim();if(!/^[a-z0-9_]{3,24}$/.test(username))return notice('Username must be 3–24 lowercase letters, numbers or underscores');if(!name||name.length>60)return notice('Enter a name of up to 60 characters');return action(async()=>{let avatarUrl=mine()?.avatar_url||null;const photo=document.getElementById('m363-photo')?.files?.[0];if(photo)avatarUrl=await m363UploadAvatar(photo);let coverUrl=mine()?.cover_url||null;const cover=document.getElementById('m387-cover')?.files?.[0];if(cover)coverUrl=await m387UploadCover(cover);const disciplines=[...document.querySelectorAll('[data-m387-discipline]:checked')].map(x=>x.dataset.m387Discipline);await api('mile_profiles','POST',{user_id:userId,username,display_name:name,bio:document.getElementById('m36-bio').value.trim(),avatar_url:avatarUrl,cover_url:coverUrl,disciplines,primary_sport:document.getElementById('m36-sport').value,is_private:document.getElementById('m36-private').checked,is_discoverable:document.getElementById('m36-discover').checked,message_privacy:document.getElementById('m37-message-privacy').value,workout_privacy:document.getElementById('m37-workout-privacy').value,auto_share_activities:document.getElementById('m37-auto-share').checked},'?on_conflict=user_id');S.editingProfile=false})}
+if(t.dataset.m36Saveprofile){let username=document.getElementById('m36-username').value.trim().toLowerCase(),name=document.getElementById('m36-name').value.trim();if(!/^[a-z0-9_]{3,24}$/.test(username))return notice('Username must be 3–24 lowercase letters, numbers or underscores');if(!name||name.length>60)return notice('Enter a name of up to 60 characters');return action(async()=>{let avatarUrl=mine()?.avatar_url||null;const photo=document.getElementById('m363-photo')?.files?.[0];if(photo)avatarUrl=await m363UploadAvatar(photo);let coverUrl=mine()?.cover_url||null;const cover=document.getElementById('m387-cover')?.files?.[0];if(cover)coverUrl=await m387UploadCover(cover);const disciplines=[...document.querySelectorAll('[data-m387-discipline]:checked')].map(x=>x.dataset.m387Discipline);await api('mile_profiles','POST',{user_id:userId,username,display_name:name,bio:document.getElementById('m36-bio').value.trim(),avatar_url:avatarUrl,cover_url:coverUrl,disciplines,primary_sport:document.getElementById('m36-sport').value,is_private:document.getElementById('m36-private').checked,is_discoverable:document.getElementById('m36-discover').checked,message_privacy:document.getElementById('m37-message-privacy').value,workout_privacy:document.getElementById('m37-workout-privacy').value,auto_share_activities:document.getElementById('m37-auto-share').checked},'?on_conflict=user_id');S.editingProfile=false})}
 if(t.dataset.m36Publish){
  const manual=document.querySelector('input[name="m383-mode"]:checked')?.value==='manual';
  const visibility=document.getElementById('m36-visibility').value,caption=document.getElementById('m36-caption').value.trim();
@@ -3513,7 +3642,7 @@ document.addEventListener('click',ev=>{const b=ev.target.closest('[data-m388-up]
    if(read.loading||(!force&&Date.now()-read.lastRead<300000))return;
    read.loading=true;
    try{
-     const res=await fetch(MILE_GARMIN_FUNCTIONS+'garmin-data-read',{method:'GET',headers:{'Authorization':'Bearer '+token,'apikey':trainingState.settings.supabaseAnon,'Accept':'application/json'}});
+     const res=await fetch(mileGarminFunctions(trainingState.settings.supabaseUrl)+'garmin-data-read',{method:'GET',headers:{'Authorization':'Bearer '+token,'apikey':trainingState.settings.supabaseAnon,'Accept':'application/json'}});
      const data=await res.json().catch(()=>({}));
      if(!current())return;
      if(!res.ok||data.error)throw Error(data.error||'Garmin data read HTTP '+res.status);
@@ -3747,8 +3876,8 @@ const svg=(t)=>{const d={run:'<circle cx="19" cy="5" r="2.5"/><path d="m15 12 5-
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const sport=a=>{const key=v=>String(typeof v==='object'?v?.typeKey||'':v||'').toLowerCase().trim().replace(/[\s-]+/g,'_');const types=[a?.type,a?.activityType,a?.raw?.activityType,a?.summaryDTO?.activityType,a?.sport].map(key);if(types.some(v=>/(?:^|_)(?:cardio|hiit)(?:_|$)|high_intensity_interval_training/.test(v)))return 'Cardio';const v=key(a?.sport)||key(a?.type)||key(a?.activityType);return /hyrox/.test(v)?'HYROX':/swim/.test(v)?'Swimming':/cycl|bike/.test(v)?'Cycling':/strength|weight|gym/.test(v)?'Strength':/run|treadmill/.test(v)?'Running':'Other'};
 const ico={Running:'run',Cardio:'cardio',HYROX:'hyrox',Strength:'strength',Cycling:'cycle',Swimming:'swim',Other:'strength'};
-function identity(){let name=window.mileCurrentProfileIdentity?.name||'',photo=window.mileCurrentProfileIdentity?.photo||'';try{const p=typeof S!=='undefined'?(S.profiles?.find(x=>x.user_id===userId)||S.mine):null;name=p?.display_name||p?.username||'';photo=p?.avatar_url||'';}catch(e){}try{const p=JSON.parse(localStorage.getItem('mile-profile')||'null');if(!name)name=p?.display_name||p?.name||'';if(!photo)photo=p?.avatar_url||''}catch(e){}if(!photo){const im=document.querySelector('.m362-profile .m362-identity>.m36-avatar img');photo=im?.getAttribute('src')||''}try{if(photo&&/^https:\/\//.test(photo))localStorage.setItem('mile-ui-avatar-cache',photo);if(!photo)photo=localStorage.getItem('mile-ui-avatar-cache')||'';if(!name)name=localStorage.getItem('mile-ui-name-cache')||''}catch(e){}return {name:name&&!/^(hyrox|athlete)$/i.test(name)?name.split(/\s+/)[0]:'',photo};}
-function syncAvatar(){const id=identity();if(!id.photo)return;document.querySelectorAll('.shell>.top .m36-avatar,.shell>.top .m385-head-avatar,.shell>.top .m362-avatar,.top .m36-avatar,.top .m385-head-avatar').forEach(el=>{let img=el.querySelector('img');if(!img){el.textContent='';img=document.createElement('img');el.appendChild(img)}if(img.getAttribute('src')!==id.photo)img.src=id.photo;img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:50%';});}
+function identity(){let name=window.mileCurrentProfileIdentity?.name||'',photo=window.mileCurrentProfileIdentity?.photo||'';try{const p=typeof S!=='undefined'?(S.profiles?.find(x=>x.user_id===userId)||S.mine):null;name=p?.display_name||p?.username||'';photo=p?.avatar_url||'';}catch(e){}try{const p=JSON.parse(localStorage.getItem('mile-profile')||'null');if(!name)name=p?.display_name||p?.name||'';if(!photo)photo=p?.avatar_url||''}catch(e){}try{if(photo&&/^https:\/\//.test(photo))localStorage.setItem('mile-ui-avatar-cache',photo);if(!photo)photo=localStorage.getItem('mile-ui-avatar-cache')||'';if(!name)name=localStorage.getItem('mile-ui-name-cache')||''}catch(e){}return {name:name&&!/^(hyrox|athlete)$/i.test(name)?name.split(/\s+/)[0]:'',photo};}
+function syncAvatar(){const id=identity();if(!id.photo)return;document.querySelectorAll('.shell>.top .m36-avatar,.shell>.top .m385-head-avatar,.shell>.top .m362-avatar,.top .m36-avatar,.top .m385-head-avatar').forEach(el=>{let img=el.querySelector('img');if(!img){el.textContent='';img=document.createElement('img');el.appendChild(img)}window.mileAvatar.set(img,id.photo);img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:50%';});}
 function row(label,value){return `<div class="mile-ui-sportrow"><span class="mile-ui-sport-${ico[label]||'run'}">${svg(ico[label]||'run')}</span><span>${label}</span><b>${esc(value)}</b></div>`}
 function localDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function details(w){let raw=String(w?.detail||w?.description||w?.notes||'').trim();if(!raw)return '';return `<p class="mile-actual-detail">${esc(raw).replace(/\n/g,'<br>')}</p>`}
@@ -5385,7 +5514,7 @@ html[data-m772-one-quick="true"] .mile-ui-dashboard .mile-home-quick{grid-templa
  for(const id of ['FiveK','Threshold','Swim'])if(field(id)&&!(v42PaceSeconds(field(id))>0))return notice('Use a positive mm:ss time for '+id);
  let ranges=v451Ranges();if(max!==oldMax){if(!confirm('Changing maximum HR will recalculate all five heart-rate zones. Continue?'))return;const b=v45DefaultZones(max);ranges=full.slice(0,5).map(i=>({min:b[i],max:i===4?b[i+1]:b[i+1]-1}))}
  state.settings.athleteProfile={...v45Profile(),maxHR:max,lthr,fiveK:field('FiveK'),threshold:field('Threshold'),swim:field('Swim'),ftp,zoneRanges:ranges,zoneBounds:[ranges[0].min,...ranges.map(r=>r.max)]};state.settings.trainingMaxHR=max;save();notice('Performance metrics saved')}
- function applyDefaults(){const p=get()[v42Sport];if(!p||!sports.includes(v42Sport))return;if(v42Step===1){if(v42Form.Level===undefined)v42Form.Level=p.level;if(v42Form.Volume===undefined&&p.volume!=='')v42Form.Volume=p.volume}if(v42Step===2){for(const [k,v] of Object.entries({Days:p.sessions,LongDay:p.longDay,Available:p.available.slice(),...(v42Sport==='HYROX'?{RunFocus:p.runFocus}:{})}))if(v42Form[k]===undefined)v42Form[k]=v}}
+ function applyDefaults(){const p=get()[v42Sport];if(!sports.includes(v42Sport))return;if(v42Step===1){const general={beginner:'beginner',regular:'intermediate',experienced:'advanced',competitive:'advanced'}[v45Profile().experience];if(v42Form.Level===undefined&&(p?.level||general))v42Form.Level=p?.level||general;if(v42Form.Volume===undefined&&p&&p.volume!=='')v42Form.Volume=p.volume}if(v42Step===2&&p){for(const [k,v] of Object.entries({Days:p.sessions,LongDay:p.longDay,Available:p.available.slice(),...(v42Sport==='HYROX'?{RunFocus:p.runFocus}:{})}))if(v42Form[k]===undefined)v42Form[k]=v}}
  const build=v41Builder;v41Builder=function(){applyDefaults();return build.apply(this,arguments)};
  document.addEventListener('click',e=>{if(e.target.closest('[data-m773-save]')){const p=readPanel();if(!p)return;state.settings.trainingPreferences773=p;save();notice('Training preferences saved')}if(e.target.closest('[data-m773-reset]')){if(!confirm('Restore all sport training preferences to their defaults?'))return;delete state.settings.trainingPreferences773;save();notice('Default training preferences restored')}});
  window.mile773={panel,profile,saveProfile};
@@ -5470,7 +5599,7 @@ function zones(html){const p=v45Profile(),ranges=v451Ranges(),colors=['#a5adb5',
 function account(html){const remembered=localStorage.getItem('av-remember-email-enabled')==='1';return html+panel('Personal information','Manage your profile and sign-in preferences.',link('Edit personal information','Name, profile and athlete identity','user','data-m771-action="profile"')+'<label class="m774-row"><span><strong>Remember my email</strong><small>On this device only; does not store your password</small></span><input type="checkbox" data-m777-remember '+(remembered?'checked':'')+'></label>')+'<section class="m777-panel m777-security"><div class="m777-intro"><h3>Security</h3><p>Change your password using your current signed-in account.</p></div><details><summary>Change password</summary><form data-m777-password><label>Current password<input name="current" type="password" autocomplete="current-password" required></label><label>New password<input name="next" type="password" autocomplete="new-password" minlength="8" required></label><label>Confirm new password<input name="confirm" type="password" autocomplete="new-password" minlength="8" required></label><button class="btn" type="submit">Update password</button><div role="status"></div></form></details></section>'}
 function adminRow(){return window.mileBetaIsAdmin?.()?'<div class="m771-panel">'+link('Admin Centre','Review beta reports and feedback','shield','data-m771-action="admin"')+'</div>':''}
 async function checkAdmin(){if(!token||!userId||window.mileBetaIsAdmin?.())return;const id=userId;try{const r=await fetch(state.settings.supabaseUrl+'/auth/v1/user',{headers:sbHeaders()});const u=await r.json();if(r.ok&&u.id===id&&u.app_metadata?.mile_role==='admin'&&id===userId)await refreshSession()}catch(_){}}
-async function connectionStatus(){const el=document.querySelector('[data-m777-garmin-status]'),id=userId;if(!el||!id||!token)return;try{const r=await fetch(MILE_GARMIN_FUNCTIONS+'garmin-connection-status',{headers:sbHeaders()});const d=await r.json();if(!r.ok||!['authorised','expired','not_connected'].includes(d.status))throw Error('unavailable');if(el.isConnected&&id===userId){el.dataset.state=d.status;el.textContent=({authorised:'Authorisation stored',expired:'Authorisation expired — reconnect',not_connected:'Not connected'})[d.status]}}catch(_){if(el.isConnected&&id===userId){el.dataset.state='unknown';el.textContent='Connection status unavailable'}}}
+async function connectionStatus(){const el=document.querySelector('[data-m777-garmin-status]'),id=userId;if(!el||!id||!token)return;try{const r=await fetch(mileGarminFunctions()+'garmin-connection-status',{headers:sbHeaders()});const d=await r.json();if(!r.ok||!['authorised','expired','not_connected'].includes(d.status))throw Error('unavailable');if(el.isConnected&&id===userId){el.dataset.state=d.status;el.textContent=({authorised:'Authorisation stored',expired:'Authorisation expired — reconnect',not_connected:'Not connected'})[d.status]}}catch(_){if(el.isConnected&&id===userId){el.dataset.state='unknown';el.textContent='Connection status unavailable'}}}
 const api=window.mile777={zones,account,help,about,adminRow,checkAdmin,connectionStatus,fromSettings:false};
 document.addEventListener('click',e=>{const b=e.target.closest('[data-m777-action]');if(!b)return;const a=b.dataset.m777Action;if(a==='feature')window.mileBetaReport?.('feedback');if(a==='faq')alert('Connect Garmin in Settings → Connected devices. Build creates training programmes. Calendar displays planned and imported sessions. Dashboard widgets can be personalised in Settings.');if(a==='history')window.mileShowWhatsNewFromCurrent?.()});
 document.addEventListener('change',e=>{if(!e.target.matches('[data-m777-remember]'))return;const email=document.querySelector('[data-m775-value="email"]')?.textContent;if(e.target.checked&&email?.includes('@')){localStorage.setItem('av-remember-email-enabled','1');localStorage.setItem('av-remember-email-value',email)}else{e.target.checked=false;localStorage.removeItem('av-remember-email-enabled');localStorage.removeItem('av-remember-email-value')}});
@@ -5498,9 +5627,15 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-m381-back]
  if(current==='appearance'||current==='units')body=appearance(current);
  if(current==='dashboard')body=window.mile772.panel();
  if(current==='profile'||current==='zones')body=window.mile773.profile(current,legacy(current));if(current==='zones')body=window.mile777.zones(body);
- if(current==='trainingprefs')body=window.mile773.panel();
+ if(current==='profile'){
+  const units=window.mile776?.get('appearance').distance==='mi'?'imperial':'metric';
+  body=window.mileOnboarding.profileSettings(v45Profile(),units)+body;
+ }
+ if(current==='trainingprefs')body='<section class="card"><h3>Sporting interests</h3><p class="muted small">Manage your primary sport and disciplines on your social profile.</p>'+action('Edit sporting interests','profile')+'</section>'+window.mile773.panel();
  if(current==='connections')body=window.mile775.connections();
- if(current==='account')body=window.mile777.account(window.mile775.account())+ '<section class="card full">'+action('Sign out','logout')+'</section>';
+ if(current==='account')body=window.mile777.account(window.mile775.account())+
+  (!v45Profile().experience?'<section class="card full"><h3>Profile setup</h3><p class="muted small">You can add private athlete details at any time.</p><button type="button" class="btn alt" data-m771-open="profile">Complete athlete details</button></section>':'')+
+  '<section class="card full">'+action('Sign out','logout')+'</section>';
  if(current==='data')body=window.mile775.data();
  if(current==='privacy')body=window.mile774.privacy()+ '<section class="card full">'+action('Open my profile','profile')+'</section>';
  if(current==='notifications')body=window.mile774.notifications()+'<section class="card full">'+action('Open notifications','notifications')+'</section>';
@@ -5508,6 +5643,20 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-m381-back]
  if(current==='about')body=window.mile777.about();
  return '<div class="m771-sub" data-m771-page="'+current+'">'+back()+'<h2 class="m771-heading">'+(item?.[1]||'Settings')+'</h2>'+body+'</div>'};
  document.addEventListener('click',e=>{const b=e.target.closest('[data-m771-open],[data-m771-action]');if(!b||!b.closest('#app'))return;e.preventDefault();const id=b.dataset.m771Open,a=b.dataset.m771Action;if(id){current=id;render();if(id==='privacy')window.mile774.loadPrivacy();if(id==='account')window.mile775.loadAccount();if(id==='connections')window.mile777.connectionStatus();window.scrollTo(0,0);return}if(a==='logout'){if(confirm('Sign out of MILE?'))v4Logout();return}if(a==='profile'||a==='notifications'){if(a==='notifications')window.mile777.fromSettings=true;current='hub';window.m36Open(a==='profile'?'profile':'notifications');return}if(a==='admin'){window.mileBetaAdmin?.();return}if(a==='bug'||a==='feedback'){window.mileBetaReport?.(a);return}if(a==='news'){window.mileShowWhatsNewFromCurrent?.()}});
+ document.addEventListener('submit',async event=>{
+  const form=event.target;
+  if(!form.matches('[data-m89-baseline]')||!v4Ready||!userId)return;
+  event.preventDefault();
+  const status=form.querySelector('[data-m89-status]');
+  try{
+   const values=window.mileOnboarding.readBaseline(form,form.dataset.units);
+   const athlete={...v45Profile()};
+   for(const [key,value] of Object.entries(values)){if(value===null)delete athlete[key];else athlete[key]=value}
+   state.settings.athleteProfile=athlete;
+   save();
+   notice('Athlete details saved on this device');
+  }catch(error){status.textContent=error.message}
+ });
  const go=window.mileV3Go;window.mileV3Go=function(p){if(p==='settings'&&page!=='settings')current='hub';return go.apply(this,arguments)};
  window.mile771={groups:groups.map(([name,items])=>[name,items.map(x=>x[0])]),open(id){window.mileV3Go('settings');current=id;render();window.scrollTo(0,0)}};
 })();
