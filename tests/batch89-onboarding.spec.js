@@ -100,6 +100,7 @@ async function login(page,email=first){
  await page.locator('#v4Gate button[onclick*="v4Authenticate"]').click();
 }
 const wizard=page=>page.locator('#v4Gate .m89');
+const sportTile=(page,sport)=>wizard(page).getByRole('group',{name:'Sporting interests'}).getByText(sport,{exact:true});
 async function heading(page,name){await expect(wizard(page).getByRole('heading',{name,exact:true})).toBeVisible();}
 async function next(page,name='Continue'){await wizard(page).getByRole('button',{name,exact:true}).click();}
 async function shot(page, info, name, selector) {
@@ -150,8 +151,8 @@ test('Batch 89 registration opens private five-stage setup and saves a unified p
  await next(page);
  await heading(page,'Your sports');
  await expect(wizard(page).locator('.m89-progress [data-done] svg')).toHaveCount(1);
- await wizard(page).getByText('Running',{exact:true}).click();
- await wizard(page).getByText('Triathlon',{exact:true}).click();
+ await sportTile(page,'Running').click();
+ await sportTile(page,'Triathlon').click();
  await wizard(page).getByLabel('Primary sport').selectOption('Triathlon');
  await shot(page,info,'02-sports','#v4Gate .m89');
  await next(page);
@@ -225,14 +226,16 @@ test('Batch 89 saves progress across refresh, sign-out and devices with conflict
  await expect(wizard(page).getByAltText('Current profile photo')).toHaveAttribute('src',/^blob:/);
  expect(service.photos.every(photo=>!photo.path.includes('/object/public/'))).toBe(true);
  await next(page);
- await wizard(page).getByText('Running',{exact:true}).click();
+ await sportTile(page,'Running').click();
  await wizard(page).getByLabel('Primary sport').selectOption('Running');
  service.conflictNext=true;
  await next(page);
  await expect(wizard(page).getByRole('status')).toContainText('Reload your progress');
  await next(page,'Reload saved progress');
  await heading(page,'Your sports');
- await wizard(page).getByText('Running',{exact:true}).click();
+ await expect(wizard(page).getByRole('button',{name:'Reload saved progress'})).toBeHidden();
+ await expect(wizard(page).getByRole('checkbox',{name:'Running',exact:true})).not.toBeChecked();
+ await sportTile(page,'Running').click();
  await wizard(page).getByLabel('Primary sport').selectOption('Running');
  await next(page);
  await heading(page,'Your athlete profile');
