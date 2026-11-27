@@ -75,7 +75,7 @@ async function stubTrackerGPS(tracker){
 test('88.2 Build saves the reviewed plan and Calendar starts the same structured Tracker workout',async({page,baseURL},info)=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const syncStore={};await openApp(page,{origin:new URL(baseURL).origin,signedIn:true,syncStore});
- await page.evaluate(()=>{state.workouts=[{id:'fixture-completed-run',block:state.activeBlock,date:'2026-11-10',sport:'Running',name:'Historical run',detail:'Recorded workout',km:6,status:'done',matchId:'123456789',note:'Do not change'}];window.mileV3Go('builder');v42PickSport('Running')});
+ await page.evaluate(()=>{state.workouts=[{id:'fixture-completed-run',block:state.activeBlock,date:'2026-11-10',sport:'Running',name:'Historical run',detail:'Recorded workout. RPE 5/10.',km:6,status:'done',matchId:'123456789',rpe:5,note:'Do not change'}];window.mileV3Go('builder');v42PickSport('Running')});
  const original=await page.evaluate(()=>JSON.stringify(state.workouts.find(w=>w.id==='fixture-completed-run')));
  const build=page.locator('.m882-build');
  await expect(build).toContainText('STEP 1 OF 5');
@@ -155,7 +155,10 @@ test('88.2 Build saves the reviewed plan and Calendar starts the same structured
  const sessions=page.locator('#app details.mile-v3-details').filter({has:page.getByText('Planned sessions (1)',{exact:true})});
  await sessions.locator(':scope > summary').click();
  const workout=sessions.locator('.item').filter({has:page.getByRole('heading',{name:saved.first.name,exact:true})});
- await expect(workout.locator('.v44-session-zone')).toHaveText(`RPE ${saved.first.targetRpe} · ~${saved.first.plannedMinutes} min estimated`);
+ await expect(workout.locator('.v44-session-zone')).toHaveText(`Planned · ~${saved.first.plannedMinutes} min`);
+ await expect(workout).not.toContainText(/\bRPE\b/i);
+ await expect(workout.locator('.m882-workout-steps')).toContainText('120–142 bpm');
+ expect(saved.first).not.toHaveProperty('targetRpe');
  await workout.getByText('Session Purpose & Focus',{exact:true}).click();
  await expect(workout.getByText(saved.first.purpose,{exact:true})).toBeVisible();
  await expect(workout.getByText(saved.first.focus,{exact:true})).toBeVisible();
@@ -200,7 +203,9 @@ test('88.2 Return to running saves a timed prescription without a mileage estima
  await week.locator(':scope > summary').click();
  const session=week.locator('.m882-session').first();
  await session.locator(':scope > summary').click();
- await expect(session).toContainText('Warm-up walk · 2 min → Easy jog · 30 s → Walk recovery · 90 s');
+ await expect(session.locator('.m882-workout-steps dd')).toHaveText([
+  'Warm-up walk · 2 min','3 × (Easy jog · 30 sec + Walk recovery · 90 sec)','Cool-down walk · 2 min',
+ ]);
  page.once('dialog',dialog=>dialog.accept());
  await build.locator('[data-m882-action="save"]').click();
  await expect.poll(()=>syncStore.data?.workouts?.filter(w=>w.kind==='return').length).toBe(6);
@@ -221,4 +226,48 @@ test('88.2 Return to running saves a timed prescription without a mileage estima
  await expect(tracker.locator('#phase')).toHaveText('EASY JOG');
  await tracker.locator('#nextBlock').click();
  await expect(tracker.locator('#phase')).toHaveText('WALK RECOVERY');
+});
+
+test('Tracker advances on distance and time and keeps manual lap and timed HR fallback distinct', async ({page,baseURL})=>{
+ await openApp(page,{origin:new URL(baseURL).origin,signedIn:true});
+ await page.clock.install({ time:new Date('2026-11-20T12:00:00Z') });
+ await page.evaluate(()=>{
+  const step=(intensity,duration,target={kind:'open'})=>({kind:'step',intensity,duration,target});
+  const detail='Distance, timed work, lap, and HR recovery';
+  const session={id:'tracker-conditions',sport:'Running',status:'planned',name:'Tracker completion fixture',
+   date:today(),detail,structuredDetail:detail,structuredSteps:[
+    step('warmup',{kind:'distance',meters:100},{kind:'heart_rate',lowBpm:115,highBpm:138}),
+    step('interval',{kind:'time',seconds:12},{kind:'pace',fastSecondsPerKm:245,slowSecondsPerKm:265}),
+    step('active',{kind:'lap'}),
+    step('recovery',{kind:'heart_rate',direction:'below',bpm:118,fallbackSeconds:60}),
+   ]};
+  state.workouts.push(session);
+  window.mileStartPlannedRun(session.id);
+ });
+ const tracker=page.frameLocator('#mile-native-view');
+ await expect(tracker.locator('#workout')).toHaveValue('planned');
+ await tracker.locator('html').evaluate(()=>{
+  const position=(longitude,timestamp)=>({coords:{latitude:0,longitude,accuracy:5},timestamp});
+  Object.defineProperty(navigator,'geolocation',{configurable:true,value:{
+   getCurrentPosition:resolve=>resolve(position(0,Date.now())),
+   watchPosition:callback=>{window.testTrackerGPS=callback;return 1},
+   clearWatch:()=>{},
+  }});
+  window.testTrackerAdvanceDistance=()=>{
+   const now=Date.now();
+   window.testTrackerGPS(position(0.00045,now+10000));
+   window.testTrackerGPS(position(0.00092,now+21000));
+  };
+ });
+ await tracker.locator('#start').click();
+ await expect(tracker.locator('#countdown')).toHaveText('0.10 km');
+ await tracker.locator('html').evaluate(()=>window.testTrackerAdvanceDistance());
+ await expect(tracker.locator('#phase')).toHaveText('INTERVAL');
+ await page.clock.fastForward(13000);
+ await expect(tracker.locator('#countdown')).toHaveText('LAP');
+ await expect(tracker.locator('#phase')).toHaveText('RUN');
+ await tracker.locator('#nextBlock').click();
+ await expect(tracker.locator('#blockInfo')).toContainText('Timed recovery · live HR unavailable');
+ await page.clock.fastForward(61000);
+ await expect(tracker.locator('#phase')).toHaveText('WORKOUT COMPLETE');
 });

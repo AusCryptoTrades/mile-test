@@ -19,7 +19,7 @@ const scenarios=function scenarios(api){
     assert(s.meters===s.structuredSteps.reduce((x,y)=>x+y.duration.meters,0),'step reconciliation');
     assert(s.structuredSteps.every(x=>x.duration.meters>0),'positive steps');
     assert(s.plannedMinutes<=s.durationLimitMinutes,'actual slot duration envelope');
-    if(s.targetRpe>=6)assert(!hard.some(d=>Math.min((d-s.day+7)%7,(s.day-d+7)%7)<=1),'hard conflict');
+    if(s.demanding)assert(!hard.some(d=>Math.min((d-s.day+7)%7,(s.day-d+7)%7)<=1),'hard conflict');
    }
   }
  }
@@ -77,7 +77,7 @@ for (const [level, ceiling] of Object.entries({ beginner: 0.05, intermediate: 0.
       const previous = result.weeks[index - 1];
       if (week.phase === 'Recovery') {
         expect(week.meters).toBeLessThanOrEqual(previous.meters * 0.8);
-        expect(week.sessions.every(session => session.targetRpe < 6)).toBe(true);
+        expect(week.sessions.every(session => !session.demanding)).toBe(true);
       } else if (previous.phase === 'Recovery') {
         expect(week.meters).toBeLessThanOrEqual(result.weeks[index - 2].meters);
       } else {
@@ -98,7 +98,7 @@ test('reduces load approaching a dated race and ends the schedule before race da
   expect(raceWeek.meters).toBeLessThanOrEqual(taper.meters * 0.6);
   for (const run of [...taper.sessions, ...raceWeek.sessions]) {
     expect(run.date < raceDate).toBe(true);
-    expect(run.targetRpe).toBeLessThan(6);
+    expect(run.demanding).toBe(false);
   }
 });
 
@@ -155,4 +155,35 @@ test('a confirmed walk–run return is timed, non-progressive and respects recov
   expect(engine.generate({ ...input, athlete: { ...input.athlete, injury: true } }).ok).toBe(false);
   expect(engine.generate({ ...input, athlete: { ...input.athlete, returnMinutes: undefined } }).ok).toBe(false);
   expect(engine.generate({ ...input, goal: 'fitness' }).ok).toBe(false);
+});
+
+
+test('running targets and step endings use independently confirmed HR and pace', () => {
+ const run = require('../mile-running-workout.js');
+ const input = {goal:'10k',start:'2026-11-30',weeks:18,
+  athlete:{level:'experienced',weeklyKm:[55,55,55,55],longestKm:24,maxHR:180,lthr:161,restingHR:55,
+   easyPace:320,thresholdPace:259,fiveKSeconds:1199,recovery:'normal',easyZone:{lowBpm:120,highBpm:145},recoveryZone:{lowBpm:106,highBpm:122}},
+  schedule:{available:[0,1,3,5,6],runs:5,longDay:5,weekdayMinutes:60,longMinutes:180},
+  adaptation:{intervalRecovery:'heart_rate'}};
+ const generateSessions = value => engine.generate(value).weeks.flatMap(w=>w.sessions);
+ const sessions = generateSessions(input);
+ const steps = sessions.flatMap(s=>s.structuredSteps);
+ expect(sessions.filter(s=>['easy','long','steady','progressive'].includes(s.kind)).every(s=>
+  s.structuredSteps.every(step=>step.target.kind==='heart_rate'))).toBe(true);
+ expect(sessions.filter(s=>['cruise','threshold','race10','fartlek'].includes(s.kind)).every(s=>
+  s.structuredSteps.filter(step=>step.intensity==='interval').every(step=>step.target.kind==='pace'))).toBe(true);
+ expect(sessions.every(s=>!Object.hasOwn(s,'targetRpe')&&s.plannedMinutes<=s.durationLimitMinutes)).toBe(true);
+ const recovered=steps.filter(s=>s.duration.kind==='heart_rate');
+ expect(recovered.length).toBeGreaterThan(0);
+ expect(recovered.every(s=>s.intensity==='recovery'&&s.duration.direction==='below'&&s.duration.bpm===122&&
+  !run.recoveryFinish(s.duration,s.duration.fallbackSeconds-1)&&run.recoveryFinish(s.duration,s.duration.fallbackSeconds))).toBe(true);
+ for(const session of sessions.filter(s=>s.fixedMeters!=null)){
+  const fixed=session.structuredSteps.reduce((sum,s)=>sum+(s.duration.meters??0),0);
+  const timed=session.structuredSteps.reduce((sum,s)=>sum+(s.duration.seconds??s.duration.fallbackSeconds??0),0);
+  expect(session.fixedMeters).toBe(fixed);
+  expect(session.estimatedSeconds).toBe(Math.ceil(fixed*session.estimatedPaceSeconds/1000+timed));
+ }
+ const uncertain=generateSessions({...input,athlete:{...input.athlete,easyZone:undefined,recoveryZone:undefined}});
+ expect(uncertain.flatMap(s=>s.structuredSteps).some(s=>s.duration.kind==='time')).toBe(true);
+ expect(uncertain.flatMap(s=>s.structuredSteps).some(s=>s.duration.kind==='heart_rate')).toBe(false);
 });

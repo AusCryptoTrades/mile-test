@@ -34,3 +34,10 @@ test('reject excessive steps, nested repeats and unsupported targets',()=>{
  assert.throws(()=>buildGarminRunningWorkout(plan([{kind:'repeat',count:50,steps:[{kind:'repeat',count:50,steps:[s]}]}])),/Too many expanded/);
  assert.throws(()=>buildGarminRunningWorkout(plan([step('active',{kind:'time',seconds:60},{kind:'power',watts:300})])),/Unsupported/);
 });
+test('a manual lap round-trips through the established JSON mapping while HR completion stays out of it',()=>{
+ const lap=buildGarminRunningWorkout(plan([step('recovery',{kind:'lap'})])).segments[0].steps[0];
+ assert.equal(lap.durationType,'OPEN');
+ assert.equal(lap.durationValue,null);
+ for(const direction of ['below','above'])
+  assert.throws(()=>buildGarminRunningWorkout(plan([step('recovery',{kind:'heart_rate',direction,bpm:125,fallbackSeconds:90})])),/Use timed recovery/);
+});

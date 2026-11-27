@@ -70,12 +70,15 @@ test('audits 27 synthetic Running profiles week by week', async ({}, info) => {
         expect(session.structuredSteps.at(-1).intensity,name).toBe('cooldown');
         if (input.raceDate) expect(Date.parse(session.date),name).toBeLessThan(Date.parse(input.raceDate));
         const demanding = input.schedule.demandingDays;
-        if (session.targetRpe>=6||session.kind==='progressive'||session.kind==='strides')
+        if (session.demanding||session.kind==='progressive'||session.kind==='strides')
           expect(demanding.some(day=>[0,1,6].includes((day-session.day+7)%7)),name).toBe(false);
         if (rule==='flat'||week.phase==='Recovery'||week.phase==='Taper')
-          expect(session.targetRpe,name).toBeLessThan(6);
+          expect(session.demanding,name).toBe(false);
         if (rule==='hybrid'&&session.day===6) expect(session.kind,name).toBe('recovery');
-        if (rule==='effort') expect(session.structuredSteps.filter(s=>s.intensity==='interval').every(s=>s.target.kind==='open'),name).toBe(true);
+        if (rule==='effort') expect(session.structuredSteps.every(s=>s.target.kind!=='pace'),name).toBe(true);
+        expect(session,name).not.toHaveProperty('targetRpe');
+        if(profile.easyZone&&['easy','recovery','long','taper','ultra','progressive','steady'].includes(session.kind))
+          expect(session.structuredSteps.every(s=>s.target.kind==='heart_rate'),name).toBe(true);
         const duration = session.structuredSteps.reduce((sum,s)=>sum+(s.duration.meters??s.duration.seconds),0);
         expect(duration,name).toBe(session.meters??session.estimatedSeconds);
       }

@@ -17,6 +17,8 @@ on:
       - 'supabase/migrations/*_training_revision_consent.sql'
       - 'supabase/migrations/*_training_revision_legacy_workout_ids.sql'
       - 'supabase/tests/batch88-training-revision-consent.test.sql'
+      - 'supabase/migrations/*_running_manual_match.sql'
+      - 'supabase/tests/batch88-running-manual-match.test.sql'
       - '.github/workflows/mile-garmin-training.yml'
   workflow_dispatch:
 permissions:
@@ -34,7 +36,7 @@ jobs:
           node-version: '22'
       - run: node --test integrations/garmin/*.test.mjs
       - run: npm ci --prefix integrations/garmin --ignore-scripts --no-audit --no-fund
-      - run: node --test integrations/garmin/fit-binary.mjs
+      - run: node --test integrations/garmin/fit-binary.mjs integrations/garmin/running-workout-fit.verify.mjs
   registry-database:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -83,3 +85,18 @@ jobs:
             -f supabase/migrations/20261127081603_training_revision_consent.sql \
             -f supabase/migrations/20261127082454_training_revision_legacy_workout_ids.sql \
             -f supabase/tests/batch88-training-revision-consent.test.sql
+
+      - name: Run atomic Garmin matching and stale cloud save regression
+        env:
+          PGHOST: 127.0.0.1
+          PGUSER: postgres
+          PGDATABASE: mile_running_match_test
+        run: |
+          createdb "$PGDATABASE"
+          psql -v ON_ERROR_STOP=1 \
+            -f supabase/tests/batch88-running-revisions-fixtures.sql \
+            -f supabase/migrations/20261127064605_running_workout_revisions.sql \
+            -f supabase/migrations/20261127081603_training_revision_consent.sql \
+            -f supabase/migrations/20261127082454_training_revision_legacy_workout_ids.sql \
+            -f supabase/migrations/20261127162230_running_manual_match.sql \
+            -f supabase/tests/batch88-running-manual-match.test.sql

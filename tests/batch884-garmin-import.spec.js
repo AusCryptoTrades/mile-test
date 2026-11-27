@@ -43,6 +43,10 @@ async function routeGarmin(page, { activities = () => [], plans = {}, read = () 
       json = [{ user_id: athlete.id }];
     } else if (url.pathname === '/rest/v1/av_training_data') {
       json = [{ training_data: { activities: activities(athlete), workouts: [], ...plans } }];
+    } else if (url.pathname === '/rest/v1/rpc/mile_confirm_running_match') {
+      expect(athlete).toBeDefined();
+      const { p_expected_workout, p_expected_version, p_activity_id, p_action } = request.postDataJSON();
+      json = { version:p_expected_version+1, action:p_action, workout:{...p_expected_workout,status:'done',matchId:p_activity_id} };
     } else if (url.pathname === '/functions/v1/garmin-connection-status') {
       json = { status: 'authorised' };
     } else if (url.pathname === '/functions/v1/garmin-data-read') {
@@ -221,10 +225,14 @@ test('private Analysis presents ambiguous Garmin candidates for confirmation and
   expect(writes).toEqual([]);
   await detail.getByRole('button', { name: /Back/ }).click();
   const choices = await openReview('Ambiguous Garmin run');
+  expect(await detail.locator('.mile35-tabs').evaluate(tabs=>tabs.scrollWidth<=tabs.clientWidth+1)).toBe(true);
   await choices.getByRole('button', { name: 'Link to Morning aerobic run', exact: true }).click();
   await expect(detail).toContainText('Linked session: Morning aerobic run');
+  await reviewImage(info,'05-running-analysis',detail.locator('.m881-analysis-host').locator('section').first());
   await expect.poll(()=>writes.length).toBe(1);
-  const saved=writes[0].training_data.workouts;
+  expect(writes[0]).toMatchObject({p_action:'link',p_workout_id:'easy',p_activity_id:'783649251',p_expected_version:0,
+   p_expected_workout:{status:'planned',id:'easy'}});
+  const saved=await page.evaluate(()=>state.workouts);
   expect(saved.find(w=>w.id==='easy')).toMatchObject({status:'done',matchId:'783649251'});
   expect(saved.find(w=>w.id==='steady')).toMatchObject({status:'planned'});
   expect(await page.evaluate(()=>confirmMatch('steady','783649251'))).toBe(false);

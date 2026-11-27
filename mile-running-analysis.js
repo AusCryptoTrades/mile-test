@@ -7,20 +7,8 @@ const date=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&Number.isFinit
 const same=(a,b)=>a!=null&&b!=null&&String(a)===String(b);
 const paceTarget=t=>t?.kind==='pace'&&pos(t.fastSecondsPerKm)&&pos(t.slowSecondsPerKm)&&t.fastSecondsPerKm>=120&&t.slowSecondsPerKm<=1800&&t.fastSecondsPerKm<=t.slowSecondsPerKm;
 const hrTarget=t=>t?.kind==='heart_rate'&&Number.isInteger(t.lowBpm)&&Number.isInteger(t.highBpm)&&t.lowBpm>=30&&t.highBpm<=250&&t.lowBpm<t.highBpm;
-function expand(steps,depth=0){
- if(!Array.isArray(steps)||!steps.length||depth>2)return null;
- let out=[];
- for(const x of steps){
-  if(x?.kind==='repeat'){
-   if(!Number.isInteger(x.count)||x.count<2||x.count>50)return null;
-   const nested=expand(x.steps,depth+1);if(!nested||nested.length*x.count+out.length>200)return null;
-   for(let i=0;i<x.count;i++)out.push(...nested);
-  }else if(x?.kind==='step'&&['warmup','active','interval','recovery','cooldown'].includes(x.intensity)&&((x.duration?.kind==='distance'&&pos(x.duration.meters))||(x.duration?.kind==='time'&&pos(x.duration.seconds))||x.duration?.kind==='open'))out.push(x);
-  else return null;
-  if(out.length>200)return null;
- }
- return out;
-}
+const prescription=root.mileRunningWorkout||(typeof module!=='undefined'?require('./mile-running-workout.js'):null);
+const expand=steps=>prescription?.expand(steps)??null;
 function uniqueMatch(activity,plans){
  if(activity?.id==null||!Array.isArray(plans))return null;
  const matches=plans.filter(w=>w?.sport==='Running'&&same(w.matchId,activity.id));
@@ -42,7 +30,7 @@ function align(steps,evidence){
   const ratio=quantity!==null&&planned!==null?quantity/planned:null;
   let paceStatus=null;if(paceTarget(target)&&pace!==null)paceStatus=pace<target.fastSecondsPerKm?'faster':pace>target.slowSecondsPerKm?'slower':'within';
   const h=finite(r.averageHR),hrStatus=hrTarget(target)&&h!==null&&h>=30&&h<=250?h<target.lowBpm?'below':h>target.highBpm?'above':'within':null;
-  return {index:i,intensity:s.intensity,durationKind:s.duration.kind,planned,quantity,completionRatio:ratio,pace,paceStatus,averageHR:h!==null&&h>=30&&h<=250?h:null,hrStatus,seconds:r.seconds,meters:r.meters,target:paceTarget(target)||hrTarget(target)?{...target}:null};
+  return {index:i,intensity:s.intensity,durationKind:s.duration.kind,duration:s.duration,planned,quantity,completionRatio:ratio,pace,paceStatus,averageHR:h!==null&&h>=30&&h<=250?h:null,hrStatus,seconds:r.seconds,meters:r.meters,target:paceTarget(target)||hrTarget(target)?{...target}:null};
  });
 }
 function plannedTotals(workout){
@@ -56,7 +44,7 @@ function analyse(activity,opts={}){
  const matched=uniqueMatch(activity,opts.plans),zones=validatedDistribution(opts.zoneDistribution),context=opts.context||{};
  const confounded=Boolean(context.heat||context.hilly||context.treadmill||context.sensorError||context.incompleteLaps);
  const cautions=[];if(context.heat)cautions.push('Heat may affect pace and heart rate.');if(context.hilly)cautions.push('Hills may affect pace and heart rate.');if(context.treadmill)cautions.push('Treadmill distance and pace can differ from outdoor measurements.');if(context.sensorError)cautions.push('Sensor quality is flagged.');if(context.incompleteLaps)cautions.push('Lap information is incomplete.');
- const base={activityId:id,kind:matched?'planned':'unplanned',distanceKm:distance,durationMin:duration,averagePace:distance&&duration?duration*60/distance:null,zones:context.sensorError?null:zones,cautions,trainingLoad:duration&&finite(opts.sessionRpe)!==null&&opts.sessionRpe>=1&&opts.sessionRpe<=10?{method:'athlete-reported RPE × minutes',value:Math.round(duration*opts.sessionRpe)}:null};
+ const base={activityId:id,kind:matched?'planned':'unplanned',distanceKm:distance,durationMin:duration,averagePace:distance&&duration?duration*60/distance:null,zones:context.sensorError?null:zones,cautions};
  if(!matched){
   let classification='unclassified',stimulus='Insufficient recorded evidence to classify this run.';
   if(!confounded&&zones&&duration>=20&&zones.coverage>=duration*60*.8){
@@ -81,7 +69,7 @@ function analyse(activity,opts={}){
  );
  const intervalPaces=comparableIntervals?intervals.map(x=>x.pace):[];
  const spread=comparableIntervals?Math.max(...intervalPaces)-Math.min(...intervalPaces):null;
- const totalDistanceRatio=plannedDistance&&distance?distance/plannedDistance:null,totalDurationRatio=plannedDuration&&duration?duration/plannedDuration:null;
+ const totalDistanceRatio=plannedDistance&&distance&&(!steps||distanceExact!==null)?distance/plannedDistance:null,totalDurationRatio=plannedDuration&&duration?duration/plannedDuration:null;
  let execution='insufficient-evidence',stimulus='Main-set execution and intended physiological stimulus cannot be established from available evidence.',good=[],improve=[];
  if(confounded)improve.push('Review context before interpreting performance; no adaptation evidence generated.');
  else if(aligned&&main.length&&complete.length===main.length){
@@ -111,7 +99,7 @@ function propose(event,ctx={}){
  if(Array.isArray(ctx.processedIds)&&ctx.processedIds.map(String).includes(id))return response('duplicate','Event already evaluated.',{action:'none',requiresApproval:false});
  if(settings.mode!=='automatic'&&settings.mode!=='manual')return response('settings-missing','Adaptation settings are not confirmed.');
  const future=(Array.isArray(ctx.sessions)?ctx.sessions:[]).filter(w=>w?.sport==='Running'&&w.status==='planned'&&w.matchId==null&&w.id!=null&&date(w.date)!==null&&date(w.date)>today).sort((a,b)=>a.date.localeCompare(b.date)||String(a.id).localeCompare(String(b.id)));
- const hard=future.find(w=>finite(w.targetRpe)!==null&&w.targetRpe>=6),next=future[0];
+ const hard=future.find(w=>prescription?.demanding(w)),next=future[0];
  const hold=(rule,reason,w)=>response(rule,reason,w?{changes:[{sessionId:String(w.id),operation:'review-session'}]}:{});
  if(ctx.injury===true)return hold('injury-hold','Current symptoms require individual review. Do not progress or reschedule demanding training.',next);
  if(event.kind==='missed'){

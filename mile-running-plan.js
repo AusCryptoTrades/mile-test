@@ -12,24 +12,24 @@ const caps={beginner:.05,intermediate:.07,experienced:.08,advanced:.10};
 const goals=['fitness','endurance','first-race','personal-best','5k','10k','half-marathon','marathon','ultra','return'];
 const raceKm={'5k':5,'10k':10,'half-marathon':21.0975,marathon:42.195,ultra:null};
 const templates={
- easy:{name:'Easy aerobic run',purpose:'Build aerobic fitness with low fatigue.',focus:'Keep breathing conversational; slow down to stay within your easy effort or HR range.',rpe:3},
- recovery:{name:'Recovery run',purpose:'Maintain gentle aerobic movement without adding a demanding stimulus.',focus:'Keep effort very relaxed; shorten or skip if recovery is poor.',rpe:2},
- long:{name:'Long aerobic run',purpose:'Develop endurance and durability through sustained aerobic work.',focus:'Start gently, keep effort steady and avoid chasing pace on hills.',rpe:4},
- progressive:{name:'Progressive long run',purpose:'Practise finishing an endurance session with controlled form.',focus:'Run the opening section easily. Increase effort gently in the final work segment only if you feel comfortable.',rpe:5,reps:1,fraction:.24},
- hills:{name:'Controlled uphill repeats',purpose:'Practise uphill running form at controlled aerobic effort.',focus:'Use a moderate grade, keep the effort repeatable, and jog gently downhill for recovery.',rpe:6,reps:4,fraction:.24},
- strides:{name:'Easy run with relaxed strides',purpose:'Practise quick, relaxed turnover with minimal fast volume.',focus:'Accelerate smoothly, stay relaxed and take full easy recoveries.',rpe:5,reps:4,fraction:.10},
- steady:{name:'Controlled steady run',purpose:'Build sustained aerobic endurance above easy effort.',focus:'Stay controlled, never force the pace.',rpe:5,reps:1,fraction:.55},
- cruise:{name:'Threshold cruise intervals',purpose:'Improve sustainable running speed and threshold endurance.',focus:'Keep each repetition controlled and consistent; do not chase a faster final repetition.',rpe:7,reps:4,fraction:.48},
- threshold:{name:'Continuous threshold run',purpose:'Develop sustained threshold endurance.',focus:'Finish with control; avoid racing the final segment.',rpe:7,reps:1,fraction:.40},
- vo2:{name:'Controlled fast intervals',purpose:'Develop aerobic power and running economy.',focus:'Maintain smooth mechanics and repeatable effort, not an all-out sprint.',rpe:8,reps:5,fraction:.30},
- fartlek:{name:'Controlled fartlek',purpose:'Practise changing speed while maintaining aerobic control.',focus:'Relax during recoveries and keep faster efforts repeatable.',rpe:6,reps:5,fraction:.30},
- race5:{name:'5K-specific intervals',purpose:'Practise controlled 5K rhythm.',focus:'Use current demonstrated ability, not an aspirational race pace.',rpe:8,reps:5,fraction:.36},
- race10:{name:'10K-specific intervals',purpose:'Develop sustained 10K effort.',focus:'Keep repetitions even and avoid exceeding current fitness.',rpe:7,reps:3,fraction:.45},
- half:{name:'Half marathon rhythm',purpose:'Practise sustained half marathon effort.',focus:'Maintain steady breathing and even rhythm.',rpe:6,reps:2,fraction:.55},
- marathon:{name:'Marathon rhythm',purpose:'Practise controlled marathon effort and pacing.',focus:'Keep effort sustainable; practise fueling when appropriate.',rpe:5,reps:2,fraction:.55},
- ultra:{name:'Ultra endurance rehearsal',purpose:'Practise sustainable endurance and fueling.',focus:'Use easy effort and practise fueling; walk steep climbs if needed.',rpe:4},
- taper:{name:'Taper easy run',purpose:'Maintain running rhythm while reducing fatigue.',focus:'Keep it easy; resist adding distance or intensity.',rpe:3},
- return:{name:'Return-to-running easy session',purpose:'Reintroduce running gradually without demanding intensity.',focus:'Keep effort comfortable, take walk breaks as needed and stop for concerning symptoms.',rpe:2}
+ easy:{name:'Easy aerobic run',purpose:'Build aerobic fitness with low fatigue.',focus:'Keep breathing conversational; slow down to stay within your easy effort or HR range.'},
+ recovery:{name:'Recovery run',purpose:'Maintain gentle aerobic movement without adding a demanding stimulus.',focus:'Keep effort very relaxed; shorten or skip if recovery is poor.'},
+ long:{name:'Long aerobic run',purpose:'Develop endurance and durability through sustained aerobic work.',focus:'Start gently, keep effort steady and avoid chasing pace on hills.'},
+ progressive:{name:'Progressive long run',purpose:'Practise finishing an endurance session with controlled form.',focus:'Run the opening section easily. Increase effort gently in the final work segment only if you feel comfortable.',reps:1,fraction:.24},
+ hills:{name:'Controlled uphill repeats',purpose:'Practise uphill running form at controlled aerobic effort.',focus:'Use a moderate grade, keep the effort repeatable, and jog gently downhill for recovery.',demanding:true,reps:4,fraction:.24},
+ strides:{name:'Easy run with relaxed strides',purpose:'Practise quick, relaxed turnover with minimal fast volume.',focus:'Accelerate smoothly, stay relaxed and take full easy recoveries.',reps:4,fraction:.10},
+ steady:{name:'Controlled steady run',purpose:'Build sustained aerobic endurance above easy effort.',focus:'Stay controlled, never force the pace.',reps:1,fraction:.55},
+ cruise:{name:'Threshold cruise intervals',purpose:'Improve sustainable running speed and threshold endurance.',focus:'Keep each repetition controlled and consistent; do not chase a faster final repetition.',demanding:true,reps:4,fraction:.48},
+ threshold:{name:'Continuous threshold run',purpose:'Develop sustained threshold endurance.',focus:'Finish with control; avoid racing the final segment.',demanding:true,reps:1,fraction:.40},
+ vo2:{name:'Controlled fast intervals',purpose:'Develop aerobic power and running economy.',focus:'Maintain smooth mechanics and repeatable effort, not an all-out sprint.',demanding:true,reps:5,fraction:.30},
+ fartlek:{name:'Controlled fartlek',purpose:'Practise changing speed while maintaining aerobic control.',focus:'Relax during recoveries and keep faster efforts repeatable.',demanding:true,reps:5,fraction:.30},
+ race5:{name:'5K-specific intervals',purpose:'Practise controlled 5K rhythm.',focus:'Use current demonstrated ability, not an aspirational race pace.',demanding:true,reps:5,fraction:.36},
+ race10:{name:'10K-specific intervals',purpose:'Develop sustained 10K effort.',focus:'Keep repetitions even and avoid exceeding current fitness.',demanding:true,reps:3,fraction:.45},
+ half:{name:'Half marathon rhythm',purpose:'Practise sustained half marathon effort.',focus:'Maintain steady breathing and even rhythm.',demanding:true,reps:2,fraction:.55},
+ marathon:{name:'Marathon rhythm',purpose:'Practise controlled marathon effort and pacing.',focus:'Keep effort sustainable; practise fueling when appropriate.',reps:2,fraction:.55},
+ ultra:{name:'Ultra endurance rehearsal',purpose:'Practise sustainable endurance and fueling.',focus:'Use easy effort and practise fueling; walk steep climbs if needed.'},
+ taper:{name:'Taper easy run',purpose:'Maintain running rhythm while reducing fatigue.',focus:'Keep it easy; resist adding distance or intensity.'},
+ return:{name:'Return-to-running easy session',purpose:'Reintroduce running gradually without demanding intensity.',focus:'Keep effort comfortable, take walk breaks as needed and stop for concerning symptoms.'}
 };
 // Variants retain the parent effort target and purpose; variation changes repetition structure, not intensity.
 const variantFamilies={cruise:[2,3,4,5,6,7,8],threshold:[1,2,3,4],vo2:[3,4,5,6,7,8,10],fartlek:[2,3,4,5,6,7,8,10],race5:[3,4,5,6,7,8,10],race10:[2,3,4,5,6],half:[1,2,3,4,5],marathon:[1,2,3,4,5],steady:[1,2,3,4],hills:[3,4,5,6]};
@@ -77,24 +77,46 @@ function chooseDays(avail,n,long,hard){
  result.push(candidates[0]);}
  return result.sort((a,b)=>a-b);
 }
-function makeSession(kind,m,a,phase,week=0){
+const bpm=x=>Number.isInteger(x)&&x>=30&&x<=250;
+function heartRateRange(zone,athlete){
+ const low=zone?.lowBpm,high=zone?.highBpm;
+ if(!bpm(low)||!bpm(high)||low>=high||(bpm(athlete.maxHR)&&high>athlete.maxHR)||(bpm(athlete.lthr)&&high>=athlete.lthr))return null;
+ return {kind:'heart_rate',lowBpm:low,highBpm:high};
+}
+function makeSession(kind,m,a,phase,week=0,recoveryMode='distance'){
  const t=workoutVariant(kind,week,m),easy=validPace(a.easyPace)?a.easyPace:null,threshold=usableThreshold(a);
  const slow=estimatePace(a);
- const aerobic=a.easyZone&&Number.isInteger(a.easyZone.lowBpm)&&Number.isInteger(a.easyZone.highBpm)&&a.easyZone.lowBpm>=30&&a.easyZone.highBpm<=250&&a.easyZone.lowBpm<a.easyZone.highBpm?{kind:'heart_rate',lowBpm:a.easyZone.lowBpm,highBpm:a.easyZone.highBpm}:easy!==null?{kind:'pace',fastSecondsPerKm:Math.max(150,easy-10),slowSecondsPerKm:Math.min(1800,easy+35)}:{kind:'open'};
- let quality={kind:'open'};
+ const easyTarget=heartRateRange(a.easyZone,a);
+ const confirmedRecovery=heartRateRange(a.recoveryZone,a);
+ const recoveryTarget=confirmedRecovery&&(!easyTarget||confirmedRecovery.highBpm<=easyTarget.highBpm)?confirmedRecovery:null;
+ const open={kind:'open'};
+ const aerobic=(kind==='recovery'?recoveryTarget:null)||easyTarget||open;
+ const recovery=recoveryTarget||easyTarget||open;
  const five=positive(a.fiveKSeconds)&&a.fiveKSeconds>=750&&a.fiveKSeconds<=6000?a.fiveKSeconds/5:null;
- if(five!==null&&['vo2','race5'].includes(kind))quality={kind:'pace',fastSecondsPerKm:Math.round(five),slowSecondsPerKm:Math.round(five+15)};
- if(threshold!==null&&['cruise','threshold','race10','half','marathon','steady'].includes(kind)){
- const offsets={cruise:[0,15],threshold:[0,15],race10:[-5,10],half:[10,30],marathon:[25,50],steady:[30,60]}[kind];
- quality={kind:'pace',fastSecondsPerKm:Math.max(150,threshold+offsets[0]),slowSecondsPerKm:threshold+offsets[1]};
- }
+ const offsets={cruise:[0,15],threshold:[0,15],race10:[-5,10],half:[10,30],marathon:[25,50],fartlek:[-5,15]};
+ const benchmarkOffsets={cruise:[15,30],threshold:[15,30],race10:[8,23],half:[25,45],marathon:[45,70],fartlek:[8,25],vo2:[0,15],race5:[0,10]};
+ const paceRange=(base,range)=>({kind:'pace',fastSecondsPerKm:Math.max(150,Math.round(base+range[0])),slowSecondsPerKm:Math.min(1800,Math.round(base+range[1]))});
+ let quality=kind==='steady'||kind==='progressive'||kind==='hills'?aerobic:open;
+ if(threshold!==null&&offsets[kind])quality=paceRange(threshold,offsets[kind]);
+ else if(five!==null&&benchmarkOffsets[kind])quality=paceRange(five,benchmarkOffsets[kind]);
+ else if(threshold!==null&&['vo2','race5'].includes(kind))quality=paceRange(threshold,[-18,-4]);
  const step=(intensity,description,meters,target)=>({kind:'step',intensity,description,duration:{kind:'distance',meters},target});
+ const recover=meters=>{
+  const limit=Math.min(120,Math.floor(meters*slow/1000));
+  const duration=()=>({kind:'time',seconds:limit});
+  if(!['time','heart_rate'].includes(recoveryMode)||limit<30)return step('recovery','Easy jog between repetitions',meters,recovery);
+  const trigger=recoveryTarget?.highBpm??easyTarget?.lowBpm;
+  const suitable=a.recovery==='normal'&&t.demanding&&bpm(trigger)&&limit>=60&&
+   (!bpm(a.restingHR)||trigger>=a.restingHR+15)&&(!easyTarget||trigger<=easyTarget.highBpm);
+  return {kind:'step',intensity:'recovery',description:'Walk or jog easily',target:recovery,
+   duration:recoveryMode==='heart_rate'&&suitable?{kind:'heart_rate',direction:'below',bpm:trigger,fallbackSeconds:limit}:duration()};
+ };
  let steps=[];
  if(kind==='strides'&&m>=4000){
   steps.push(step('warmup','Easy running before strides',m-1400,aerobic));
   for(let i=0;i<4;i++){
    steps.push(step('interval','Relaxed stride '+(i+1)+' of 4',100,{kind:'open'}));
-   if(i<3)steps.push(step('recovery','Easy jog or walk between strides',200,aerobic));
+   if(i<3)steps.push(step('recovery','Easy jog or walk between strides',200,recovery));
   }
   steps.push(step('cooldown','Easy running',400,aerobic));
  }else if(t.reps&&m>=4000){
@@ -102,7 +124,7 @@ function makeSession(kind,m,a,phase,week=0){
   if(work>=200&&(reps===1||rest>=100)){
    let remainder=m-work*reps-rest*(reps-1),warm=round(remainder*(kind==='progressive'?.88:.55));
    steps.push(step('warmup','Easy running',warm,aerobic));
-   for(let i=0;i<reps;i++){steps.push(step('interval',t.name+' · repetition '+(i+1)+' of '+reps,work,quality));if(i<reps-1)steps.push(step('recovery','Easy jog between repetitions',rest,aerobic));}
+   for(let i=0;i<reps;i++){steps.push(step('interval',t.name+' · repetition '+(i+1)+' of '+reps,work,quality));if(i<reps-1)steps.push(recover(rest));}
    steps.push(step('cooldown','Easy running',remainder-warm,aerobic));
   }
  }
@@ -111,8 +133,10 @@ function makeSession(kind,m,a,phase,week=0){
  steps.push(step('warmup','Ease into the run',warm,aerobic));
  steps.push(step('active',t.focus,m-warm-cool,aerobic));
  steps.push(step('cooldown','Relaxed running',cool,aerobic));}
- const seconds=Math.ceil(m*slow/1000);
- return {name:t.name,kind,phase,meters:m,km:m/1000,plannedMinutes:Math.ceil(seconds/60),estimatedSeconds:seconds,estimatedPaceSeconds:slow,paceEstimateOnly:easy===null,targetRpe:t.rpe,purpose:t.purpose,focus:t.focus,structuredSteps:steps};
+ const fixedMeters=steps.reduce((sum,item)=>sum+(item.duration.meters??0),0);
+ const seconds=Math.ceil(fixedMeters*slow/1000+steps.reduce((sum,item)=>sum+(item.duration.seconds??item.duration.fallbackSeconds??0),0));
+ return {name:t.name,kind,phase,meters:m,km:m/1000,...(fixedMeters!==m?{fixedMeters}:{}),plannedMinutes:Math.ceil(seconds/60),estimatedSeconds:seconds,
+  estimatedPaceSeconds:slow,paceEstimateOnly:easy===null,demanding:!!t.demanding,purpose:t.purpose,focus:t.focus,structuredSteps:steps};
 }
 function buildReturnPlan(input,base,start,available,hard,dayMinutes){
  const {athlete:a,schedule:s,weeks}=input;
@@ -127,7 +151,8 @@ function buildReturnPlan(input,base,start,available,hard,dayMinutes){
  const t=templates.return,offset=(new Date(start).getUTCDay()+6)%7;
  const warnings=['The same easy walk–run prescription repeats across the programme. Review tolerance before adding time or intensity.'];
  if(chosen.length<s.runs)warnings.push('Recovery spacing and duration limits reduced the number of sessions.');
- const step=(intensity,description,seconds)=>({kind:'step',intensity,description,duration:{kind:'time',seconds},target:{kind:'open'}});
+ const step=(intensity,description,seconds)=>({kind:'step',intensity,description,duration:{kind:'time',seconds},
+  target:(intensity==='active'?heartRateRange(a.easyZone,a):heartRateRange(a.recoveryZone,a))||{kind:'open'}});
  const plan=Array.from({length:weeks},(_,i)=>{
   const sessions=chosen.map(day=>{
    const durationLimitMinutes=dayMinutes[day]??s.weekdayMinutes;
@@ -141,7 +166,7 @@ function buildReturnPlan(input,base,start,available,hard,dayMinutes){
    const plannedMinutes=structuredSteps.reduce((total,item)=>total+item.duration.seconds,0)/60;
    const date=new Date(start+(i*7+(day-offset+7)%7)*86400000).toISOString().slice(0,10);
    return {name:'Easy walk–run',kind:'return',phase:'Return',meters:null,km:null,
-    plannedMinutes,estimatedSeconds:plannedMinutes*60,targetRpe:t.rpe,purpose:t.purpose,focus:t.focus,
+    plannedMinutes,estimatedSeconds:plannedMinutes*60,demanding:false,purpose:t.purpose,focus:t.focus,
     day,date,planWeek:i+1,durationLimitMinutes,structuredSteps};
   }).sort((a,b)=>a.date.localeCompare(b.date));
   return {week:i+1,phase:'Return',meters:null,km:null,plannedMinutes:sessions.reduce((total,item)=>total+item.plannedMinutes,0),sessions};
@@ -181,9 +206,11 @@ function generate(input={}){
  if(!validPace(a.easyPace)){
   const estimate=estimatePace(a);
   const pace=Math.floor(estimate/60)+':'+String(estimate%60).padStart(2,'0');
-  warnings.push('Duration estimates use '+pace+'/km as a planning assumption. Easy targets use effort or the supplied HR range.');
+  warnings.push('Duration estimates use '+pace+'/km as a planning assumption. Easy runs use your confirmed HR range when available.');
  }
  if(validPace(a.thresholdPace)&&usableThreshold(a)===null)warnings.push('Threshold pace is equal to or slower than easy pace. Quality sessions use effort unless a separate reliable benchmark is available.');
+ if(!heartRateRange(a.easyZone,a))warnings.push('Add a confirmed easy heart-rate range for bpm guidance on aerobic runs. Until then, keep easy runs conversational.');
+ if(input.adaptation?.intervalRecovery==='heart_rate')warnings.push('Heart-rate recovery uses a timed alternative when an eligible bpm threshold is missing or the device cannot use live HR.');
  if(!positive(a.longestKm))warnings.push('No confirmed recent long run; long-session allocation is conservative.');
  if(base.source!=='four completed weeks')warnings.push('Starting volume uses limited or athlete-confirmed history; progression is restricted.');
  if(input.targetSeconds)warnings.push('Target time is not a validated race prediction; no aspirational pace is prescribed.');
@@ -237,7 +264,7 @@ function generate(input={}){
    if(o===longSlot&&progressive&&m>=10000)kind='progressive';
    if(o===q){kind=phase==='Specific'?({'5k':'race5','10k':'race10','half-marathon':'half',marathon:'marathon',ultra:'steady'}[goal]||'cruise'):['fartlek','cruise','threshold','hills','strides'][i%5];}
    const date=new Date(st+(i*7+o.offset)*86400000).toISOString().slice(0,10);
-   return [{...makeSession(kind,m,a,phase,i),date,day:o.day,planWeek:i+1,durationLimitMinutes:durationLimits[j]}];
+   return [{...makeSession(kind,m,a,phase,i,input.adaptation?.intervalRecovery),date,day:o.day,planWeek:i+1,durationLimitMinutes:durationLimits[j]}];
   });
   const meters=sessions.reduce((x,y)=>x+y.meters,0);
   if(sessions.length<slots.length&&!warnings.includes('Some selected days could not fit a minimum 500 m session.'))warnings.push('Some selected days could not fit a minimum 500 m session.');

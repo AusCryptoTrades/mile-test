@@ -145,7 +145,7 @@ function render(host,result,{confirmMatch}={}){
  p.append(el('p',result.kind==='linked'?'Linked session: '+result.name:'No scheduled session linked. This activity still contributes to your recorded training history.','muted small'));
  row(p,'Recorded distance',result.distanceKm===null?'Unavailable':result.distanceKm.toFixed(2)+' km');
  row(p,'Recorded duration',fmtDuration(result.durationMin===null?null:result.durationMin*60));
- row(p,'Average pace (duration / distance)',fmtPace(result.pace));
+ row(p,'Average pace',fmtPace(result.pace));
  row(p,'Average HR',result.averageHR===null?'Unavailable':Math.round(result.averageHR)+' bpm');
  if(result.kind==='linked'&&!result.advanced){
   p=section('Planned vs actual');row(p,'Planned distance estimate',result.plannedKm===null?'Unavailable':result.plannedKm+' km');
@@ -153,10 +153,10 @@ function render(host,result,{confirmMatch}={}){
   p.append(el('p','Main-set adherence is not yet assessed. The stored plan distance may exclude warm-up or recovery.','muted small'));
  }
  p=section('Recorded heart rate distribution');
- if(!result.zones){p.append(el('p','Unavailable: configured HR zones and sufficiently complete timestamped HR samples are required.','muted small'))}
+ if(!result.zones){p.append(el('p','Heart-rate zones need saved ranges and enough recorded samples.','muted small'))}
  else{
   const z=result.zones;
-  p.append(el('p','Based on covered sample time, using your current saved zones; not moving-time or main-set adherence.','muted small'));
+  p.append(el('p','Share of recorded sample time in your saved zones.','muted small'));
   z.percent.forEach((v,i)=>row(p,'Zone '+(i+1),v.toFixed(1)+'%'));
   row(p,'Outside configured zones',z.outsidePercent.toFixed(1)+'%');
   row(p,'Sample-span coverage',(100*z.coverage/z.span).toFixed(1)+'%');
@@ -191,7 +191,7 @@ function render(host,result,{confirmMatch}={}){
     details.append(summary);
     for(const step of steps){
      details.append(el('h4',labels[step.intensity]+' '+(++counts[step.intensity])));
-     const planned=step.durationKind==='distance'?Math.round(step.planned)+' m':step.durationKind==='time'?fmtDuration(step.planned):'Open';
+     const planned=step.durationKind==='distance'?Math.round(step.planned)+' m':step.durationKind==='time'?fmtDuration(step.planned):root.mileRunningWorkout?.durationLabel(step.duration)||'Manual lap';
      row(details,'Planned step',planned);
      row(details,'Recorded step',Math.round(step.meters)+' m · '+fmtDuration(step.seconds));
      if(step.target?.kind==='pace'){
@@ -199,6 +199,8 @@ function render(host,result,{confirmMatch}={}){
       row(details,'Planned pace',fastSecondsPerKm===slowSecondsPerKm?fmtPace(fastSecondsPerKm):fmtPace(fastSecondsPerKm)+'–'+fmtPace(slowSecondsPerKm));
       if(step.pace!==null)row(details,'Recorded pace',fmtPace(step.pace));
      }
+     if(step.target?.kind==='heart_rate')row(details,'Target heart rate',root.mileRunningWorkout.targetLabel(step.target));
+     if(step.durationKind==='heart_rate')details.append(el('p','Recorded average HR does not confirm when the step ended.','muted small'));
      if(step.averageHR!==null)row(details,'Recorded average HR',Math.round(step.averageHR)+' bpm');
     }
     p.append(details);
@@ -220,13 +222,20 @@ function render(host,result,{confirmMatch}={}){
      candidate.distance!==null?candidate.distance.toFixed(2)+' km planned':null,
      candidate.duration!==null?(candidate.durationEstimated?'~':'')+Math.round(candidate.duration)+' min planned':null,
     ].filter(Boolean);
-    row(p,candidate.name,comparison.join(' · '));
+    const card=el('div',undefined,'m881-match-card');
+    row(card,candidate.name,comparison.join(' · '));
+    p.append(card);
     if(confirmMatch){
      const button=el('button','Link to '+candidate.name,'btn alt sm');
      button.type='button';
-     button.style.minHeight='44px';
-     button.addEventListener('click',()=>confirmMatch(candidate.id));
-     p.append(button);
+     button.classList.add('m881-match-link');
+     button.addEventListener('click',async ()=>{
+      const controls=[...card.parentElement.querySelectorAll('.m881-match-link')];
+      controls.forEach(control=>control.disabled=true);
+      try{await confirmMatch(candidate.id)}
+      finally{controls.forEach(control=>control.disabled=false)}
+     });
+     card.append(button);
     }
    }
   }else p.append(el('p','No comparable scheduled runs on this date.','muted small'));

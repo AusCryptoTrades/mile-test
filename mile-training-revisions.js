@@ -8,7 +8,7 @@
    if (className) node.className = className;
    return node;
   };
-  const section = make('section', '', 'mile35-panel');
+  const section = make('section', '', 'mile35-panel m881-revision');
   const review = make('button', 'Review recovery adjustment', 'btn alt sm');
   const content = make('div');
   const status = make('p', '', 'muted small');
@@ -35,14 +35,16 @@
     const button = make('button', 'Approve this revision', 'btn sm');
     button.type = 'button';
     status.textContent = '';
-    content.append(
-     heading,
-     make('p', 'Saved recovery check-in for ' + evidence.date + ' · ' + evidence.fatigue + '/10 self-reported fatigue.'),
-     make('p', 'Reduce the next eligible aerobic workout while retaining its prescribed effort targets.'),
-     make('p', 'Current · ' + before.km + ' km · ~' + before.plannedMinutes + ' min. ' + before.detail),
-     make('p', 'Proposed · ' + after.km + ' km · ~' + after.plannedMinutes + ' min. ' + after.detail),
-     button
-    );
+    const comparison = make('div', '', 'm881-revision-preview');
+    for (const [label, workout] of [['Current', before], ['Proposed', after]]) {
+     const card = make('div');
+     card.append(make('span', label, 'muted small'), make('strong', workout.km + ' km'), make('span', '~' + workout.plannedMinutes + ' min'));
+     comparison.append(card);
+    }
+    content.append(heading,
+     make('p', evidence.fatigue + '/10 fatigue in your ' + evidence.date + ' check-in.', 'muted small'),
+     comparison, make('p', 'Shorter run at the same targets.', 'muted small'), button);
+
     button.addEventListener('click', async () => {
      button.disabled = true;
      review.disabled = true;

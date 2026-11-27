@@ -2,18 +2,16 @@
 (function runningBuild(root){
 'use strict';
 if(!root.mileRunningPlan||typeof v41Builder!=='function')return;
-const api=root.mileRunningPlan,legacyBuild=v41Builder,legacyPick=v42PickSport,legacyMove=v42Move,legacyRegen=v42RegenerateWeek,legacyWhy=mileCoachWhyHtml,legacyCard=workoutCard;
+const prescription=root.mileRunningWorkout,api=root.mileRunningPlan,legacyBuild=v41Builder,legacyPick=v42PickSport,legacyMove=v42Move,legacyRegen=v42RegenerateWeek,legacyWhy=mileCoachWhyHtml,legacyCard=workoutCard;
 const names=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 const goals=[['fitness','General running fitness'],['endurance','Running endurance'],['first-race','First race (distance not specified)'],['personal-best','Personal best (distance not specified)'],['5k','5K'],['10k','10K'],['half-marathon','Half marathon'],['marathon','Marathon'],['ultra','Ultra running'],['return','Return to running']];
 const levels=[['beginner','Beginner'],['intermediate','Intermediate'],['experienced','Experienced'],['advanced','Advanced']];
 const sports=['Running','HYROX','Cycling','Swimming','Strength','Triathlon'];
 const settings=[['pace','Adaptive pace'],['volume','Adaptive volume'],['recovery','Recovery integration'],['missed','Missed session management'],['garmin','Garmin workout updates']];
-const defaultAdapt=()=>({mode:'automatic',priority:'Running',secondary:'',pace:true,volume:true,recovery:true,missed:true,garmin:true,notifications:'significant'});
+const defaultAdapt=()=>({mode:'automatic',priority:'Running',secondary:'',pace:true,volume:true,recovery:true,missed:true,garmin:true,notifications:'significant',intervalRecovery:'time'});
 const num=x=>x!==''&&x!==null&&x!==undefined&&Number.isFinite(Number(x))?Number(x):null;
 const parseTime=s=>{if(!s)return null;const p=String(s).trim().split(':');if(p.length<2||p.length>3||p.some(x=>!/^\d+$/.test(x))||p.slice(1).some(x=>Number(x)>=60))return null;return p.reduce((n,x)=>n*60+Number(x),0)||null};
-const paceText=s=>s==null?'':Math.floor(s/60)+':'+String(Math.round(s)%60).padStart(2,'0');
 const kmText=m=>m===null?'Distance open':(m/1000).toFixed(1)+' km';
-const durationText=seconds=>Number.isInteger(seconds/60)?seconds/60+' min':seconds+' s';
 function history(){
  const end=add(today(),-1),rows=[],seen=new Set();
  for(const a of state.activities||[]){
@@ -33,19 +31,20 @@ function form(){
  const shared=root.mileAthleteProfile?.read(),p=shared?.athlete??v45Profile();
  const pref=state.settings.trainingPreferences773?.Running||{},h=history(),ranges=p.zoneRanges;
  const zone=Array.isArray(ranges)&&ranges[1]?ranges[1]:Array.isArray(p.zoneBounds)&&p.zoneBounds.length===6?{min:p.zoneBounds[1],max:p.zoneBounds[2]}:{};
+ const recoveryZone=Array.isArray(ranges)&&ranges[0]?ranges[0]:Array.isArray(p.zoneBounds)&&p.zoneBounds.length===6?{min:p.zoneBounds[0],max:p.zoneBounds[1]}:{};
  const experience={beginner:'beginner',regular:'intermediate',experienced:'experienced',competitive:'advanced'}[p.experience];
  const fatigue=num(state.checkins?.[today()]?.fatigue),highFatigue=Number.isInteger(fatigue)&&fatigue>=7&&fatigue<=10;
  const adapt=defaultAdapt();
  if(sports.includes(shared?.primarySport))adapt.priority=shared.primarySport;
  adapt.secondary=(shared?.sports||[]).filter(sport=>sports.includes(sport)&&sport!==adapt.priority).join(', ');
- const f={owner,goal:'fitness',start:today(),weeks:'8',name:'',raceDate:'',target:'',level:pref.level||experience||'intermediate',volume:pref.volume!==''&&pref.volume!=null?String(pref.volume):h.windows[1].runs?String(Math.round(h.windows[1].km/4*10)/10):'',completeHistory:false,longest:h.windows[2].longest??'',five:p.fiveK||'',threshold:p.threshold||'',easy:'',maxHR:p.maxHR||'',lthr:p.lthr||'',restingHR:'',lowHR:zone.min||'',highHR:zone.max||'',recovery:highFatigue?'poor':'unknown',interrupted:false,injury:false,available:pref.available||[0,1,2,3,4,5,6],runs:String(pref.sessions||3),longDay:String(pref.longDay??5),weekday:'60',longMinutes:'120',dayMinutes:{},demanding:[],adapt};
+ const f={owner,goal:'fitness',start:today(),weeks:'8',name:'',raceDate:'',target:'',level:pref.level||experience||'intermediate',volume:pref.volume!==''&&pref.volume!=null?String(pref.volume):h.windows[1].runs?String(Math.round(h.windows[1].km/4*10)/10):'',completeHistory:false,longest:h.windows[2].longest??'',five:p.fiveK||'',threshold:p.threshold||'',easy:'',maxHR:p.maxHR||'',lthr:p.lthr||'',restingHR:'',lowHR:zone.min||'',highHR:zone.max||'',recoveryLowHR:recoveryZone.min||'',recoveryHighHR:recoveryZone.max||'',recovery:highFatigue?'poor':'unknown',interrupted:false,injury:false,available:pref.available||[0,1,2,3,4,5,6],runs:String(pref.sessions||3),longDay:String(pref.longDay??5),weekday:'60',longMinutes:'120',dayMinutes:{},demanding:[],adapt};
  f.sources={
   level:pref.level?'Running preference':experience?'Athlete profile experience':'Default experience selection',
   volume:pref.volume!==''&&pref.volume!=null?'Running preference':h.windows[1].runs?'Imported 28-day total divided by four':'',
   longest:h.windows[2].longest?'Longest imported run in 90 days':'',
   five:p.fiveK?'Saved athlete benchmark':'',threshold:p.threshold?'Saved athlete benchmark':'',easy:'',
   maxHR:p.maxHR?'Saved athlete profile':'',lthr:p.lthr?'Saved athlete profile':'',
-  restingHR:'',lowHR:zone.min?'Saved athlete HR zones':'',highHR:zone.max?'Saved athlete HR zones':'',
+  restingHR:'',lowHR:zone.min?'Saved athlete HR zones':'',highHR:zone.max?'Saved athlete HR zones':'',recoveryLowHR:recoveryZone.min?'Saved athlete HR zones':'',recoveryHighHR:recoveryZone.max?'Saved athlete HR zones':'',
   recovery:highFatigue?'Today’s athlete-reported fatigue check-in':'',
  };
  v42Step=0;v42Form.running88=f;return f;
@@ -60,14 +59,31 @@ function dayLimits(f){
  return '<details class="item"><summary>Day-specific limits</summary><p class="muted small">Leave a day blank to use the standard or long-run maximum.</p><div class="formgrid">'+names.map((day,index)=>field(f.dayMinutes,index,day+' maximum (min)','number','min="1" step="1"','data-m882-day-limit')).join('')+'</div></details>';
 }
 const durationOverrides=f=>Object.fromEntries(f.available.filter(day=>f.dayMinutes[day]).map(day=>[day,num(f.dayMinutes[day])]));
-const labelPace=t=>t.kind==='pace'?paceText(t.fastSecondsPerKm)+'–'+paceText(t.slowSecondsPerKm)+'/km':t.kind==='heart_rate'?t.lowBpm+'–'+t.highBpm+' bpm':'effort-based';
-function compactDetail(s){
- const steps=s.structuredSteps;
- if(s.kind==='return')return steps.map(step=>step.description+' · '+durationText(step.duration.seconds)).join(' → ');
- const group=(kind)=>steps.filter(x=>x.intensity===kind);
- const item=x=>kmText(x.duration.meters)+' · '+labelPace(x.target);
- const summarize=xs=>{if(!xs.length)return '';if(xs.every(x=>x.duration.meters===xs[0].duration.meters&&JSON.stringify(x.target)===JSON.stringify(xs[0].target)))return (xs.length>1?xs.length+' × ':'')+item(xs[0]);return xs.map(item).join(' + ')};
- return [['Warm-up',group('warmup')],['Main',steps.filter(x=>['active','interval'].includes(x.intensity))],['Recovery',group('recovery')],['Cooldown',group('cooldown')]].filter(x=>x[1].length).map(([k,x])=>k+': '+summarize(x)+(k==='Recovery'?' between repetitions':'')+'.').join(' ');
+function stepGroups(session){
+ const steps=prescription.expand(session.structuredSteps);
+ if(!steps)return [];
+ if(session.kind==='return'){
+  const describe=step=>[step.description,prescription.durationLabel(step.duration),prescription.targetLabel(step.target)].filter(Boolean).join(' · ');
+  const loops=[];
+  for(let index=1;index<steps.length-1;index+=2)loops.push(describe(steps[index])+' + '+describe(steps[index+1]));
+  const repeated=loops.every(loop=>loop===loops[0]);
+  return [['Warm-up',describe(steps[0])],['Walk–run',repeated?loops.length+' × ('+loops[0]+')':loops.join(' → ')],
+   ['Cool-down',describe(steps.at(-1))]];
+ }
+ return Object.entries(prescription.labels).flatMap(([kind,label])=>{
+  const rows=steps.filter(step=>step.intensity===kind);
+  const texts=rows.map(step=>[prescription.durationLabel(step.duration),prescription.targetLabel(step.target)].filter(Boolean).join(' · '));
+  if(!texts.length)return [];
+  return [[label,texts.every(text=>text===texts[0])?(texts.length>1?texts.length+' × ':'')+texts[0]:texts.join(' + ')]];
+ });
+}
+const compactDetail=s=>stepGroups(s).map(([label,value])=>label+': '+value+'.').join(' ');
+const sessionDistance=s=>s.fixedMeters!=null?'~'+kmText(s.meters)+' incl. recovery':kmText(s.meters);
+function sessionMarkup(w){
+ if(w.sport!=='Running'||w.structuredDetail!==w.detail)return null;
+ const groups=stepGroups(w);
+ if(!groups.length)return null;
+ return '<dl class="m882-workout-steps">'+groups.map(([k,v])=>'<div><dt>'+esc(k)+'</dt><dd>'+esc(v)+'</dd></div>').join('')+'</dl>';
 }
 function existing(f){
  const end=add(f.start,Math.max(0,Number(f.weeks)*7-1));
@@ -76,8 +92,8 @@ function existing(f){
 function input(f){
  const h=history(),other=existing(f),dayOf=w=>(new Date(w.date+'T12:00:00Z').getUTCDay()+6)%7;
  const hard=[...new Set([...f.demanding,...other.filter(w=>v43Hard(w)&&Number.isFinite(dayOf(w))).map(dayOf)])];
- const low=num(f.lowHR),high=num(f.highHR);
- return {goal:f.goal,start:f.start,weeks:Number(f.weeks),raceDate:f.raceDate||undefined,targetSeconds:parseTime(f.target),athlete:{sources:{...f.sources},level:f.level,currentKm:num(f.volume),weeklyKm:f.completeHistory?h.weeks.map(x=>x.km):undefined,longestKm:num(f.longest),fiveKSeconds:parseTime(f.five),easyPace:parseTime(f.easy),thresholdPace:parseTime(f.threshold),maxHR:num(f.maxHR),lthr:num(f.lthr),restingHR:num(f.restingHR),easyZone:low!==null&&high!==null?{lowBpm:low,highBpm:high}:undefined,recovery:f.recovery,returnMinutes:num(f.returnMinutes),interrupted:f.interrupted,injury:f.injury},schedule:{available:f.available,runs:Number(f.runs),longDay:Number(f.longDay),weekdayMinutes:num(f.weekday),longMinutes:num(f.longMinutes),dayMinutes:durationOverrides(f),demandingDays:hard},adaptation:{...f.adapt}};
+ const low=num(f.lowHR),high=num(f.highHR),recoveryLow=num(f.recoveryLowHR),recoveryHigh=num(f.recoveryHighHR);
+ return {goal:f.goal,start:f.start,weeks:Number(f.weeks),raceDate:f.raceDate||undefined,targetSeconds:parseTime(f.target),athlete:{sources:{...f.sources},level:f.level,currentKm:num(f.volume),weeklyKm:f.completeHistory?h.weeks.map(x=>x.km):undefined,longestKm:num(f.longest),fiveKSeconds:parseTime(f.five),easyPace:parseTime(f.easy),thresholdPace:parseTime(f.threshold),maxHR:num(f.maxHR),lthr:num(f.lthr),restingHR:num(f.restingHR),easyZone:low!==null&&high!==null?{lowBpm:low,highBpm:high}:undefined,recoveryZone:recoveryLow!==null&&recoveryHigh!==null?{lowBpm:recoveryLow,highBpm:recoveryHigh}:undefined,recovery:f.recovery,returnMinutes:num(f.returnMinutes),interrupted:f.interrupted,injury:f.injury},schedule:{available:f.available,runs:Number(f.runs),longDay:Number(f.longDay),weekdayMinutes:num(f.weekday),longMinutes:num(f.longMinutes),dayMinutes:durationOverrides(f),demandingDays:hard},adaptation:{...f.adapt}};
 }
 function validStage(f,step){
  if(step===0){
@@ -93,9 +109,12 @@ function validStage(f,step){
    if(!Number.isInteger(minutes)||minutes<6||minutes>20)return 'Confirm a recent comfortable walk–run duration of 6–20 minutes.';
   }else if(num(f.volume)===null||num(f.volume)<=0)return 'Confirm a positive sustainable weekly volume or choose Return to running.';
   for(const k of ['five','easy','threshold'])if(f[k]&&!parseTime(f[k]))return 'Enter valid mm:ss pace or time values.';
-  for(const k of ['maxHR','lthr','restingHR','lowHR','highHR'])if(f[k]!==''&&(!Number.isInteger(num(f[k]))||num(f[k])<30||num(f[k])>250))return 'Check heart-rate values (30–250 bpm).';
+  for(const k of ['maxHR','lthr','restingHR','lowHR','highHR','recoveryLowHR','recoveryHighHR'])if(f[k]!==''&&(!Number.isInteger(num(f[k]))||num(f[k])<30||num(f[k])>250))return 'Check heart-rate values (30–250 bpm).';
   if((f.lowHR==='' )!==(f.highHR==='')||f.lowHR!==''&&num(f.lowHR)>=num(f.highHR))return 'Enter a valid complete easy HR range, or leave both blank.';
-  if(f.maxHR!==''&&(num(f.highHR)>num(f.maxHR)||num(f.lthr)>num(f.maxHR)))return 'HR range and threshold HR must not exceed maximum HR.';
+  if((f.recoveryLowHR==='')!==(f.recoveryHighHR==='')||f.recoveryLowHR!==''&&num(f.recoveryLowHR)>=num(f.recoveryHighHR))return 'Enter both recovery HR bounds or leave both blank.';
+  if(f.recoveryHighHR!==''&&f.highHR!==''&&num(f.recoveryHighHR)>num(f.highHR))return 'The recovery HR range must stay below the easy HR ceiling.';
+  if(f.lthr!==''&&Math.max(num(f.highHR),num(f.recoveryHighHR))>=num(f.lthr))return 'Easy and recovery HR must stay below threshold HR.';
+  if(f.maxHR!==''&&(Math.max(num(f.highHR),num(f.recoveryHighHR))>num(f.maxHR)||num(f.lthr)>num(f.maxHR)))return 'HR range and threshold HR must not exceed maximum HR.';
   if(f.injury)return 'Current injury or concerning symptoms require individual review before generating a programme.';
   if(f.interrupted&&f.goal!=='return')return 'Choose Return to running after a recent interruption.';
  }
@@ -129,16 +148,17 @@ function review(f){
  const collisions=existing(f),overlappingRuns=collisions.some(w=>w.sport==='Running'&&w.status!=='done'&&!w.matchId),byDate=new Map();for(const x of collisions){const arr=byDate.get(x.date)||[];arr.push(x.name);byDate.set(x.date,arr)}
  const isReturn=result.goal==='return';
  const total=isReturn?null:result.weeks.reduce((sum,w)=>sum+w.meters,0),minutes=result.weeks.reduce((sum,w)=>sum+w.plannedMinutes,0),sessions=result.weeks.flatMap(w=>w.sessions);
+ const estimatedDistance=sessions.some(session=>session.fixedMeters!=null);
  const summary=isReturn?'~'+Math.round(minutes/60*10)/10+' h total · Easy walk–run effort':('Baseline '+result.baseline.km.toFixed(1)+' km/week ('+esc(result.baseline.source)+') · Estimated '+Math.round(minutes/60*10)/10+' h total');
- const hard=sessions.filter(x=>x.targetRpe>=6).length,hardM=sessions.flatMap(x=>x.structuredSteps).filter(x=>x.intensity==='interval').reduce((s,x)=>s+(x.duration.meters??0),0);
- return (overlappingRuns?'<p role="alert">An existing visible running programme overlaps this plan. Change dates or manage that plan before creating another running programme.</p>':'')+'<div class="mile873-review-intro"><h3>'+esc(goals.find(g=>g[0]===f.goal)?.[1])+'</h3><div class="mile873-metrics"><div><strong>'+result.weeks.length+'</strong><small>Weeks</small></div><div><strong>'+sessions.length+'</strong><small>Sessions</small></div><div><strong>'+kmText(total)+'</strong><small>Total</small></div></div><p class="muted small">'+summary+(isReturn?'':' · '+hard+' demanding runs · '+Math.round(hardM/total*100)+'% distance in prescribed quality segments (not measured HR distribution).')+'</p></div><p class="muted small"><strong>Goal feasibility:</strong> '+(result.feasibilityDetail?.status==='caution'?'Extra preparation caution.':'Review required.')+' MILE has not validated your target time or race readiness. '+esc([...new Set([...(result.feasibilityDetail?.reasons||[]),...result.warnings])].join(' '))+'</p>'+result.weeks.map(w=>'<details class="item m882-week"><summary><strong>Week '+w.week+' · '+esc(w.phase)+'</strong> · '+kmText(w.meters)+' · ~'+w.plannedMinutes+' min</summary>'+w.sessions.map(s=>'<details class="m882-session"><summary><strong>'+esc(nice(s.date))+' · '+esc(s.name)+'</strong><span>'+kmText(s.meters)+' · ~'+s.plannedMinutes+' min · RPE '+s.targetRpe+'</span></summary><p>'+esc(compactDetail(s))+'</p><p><strong>Session Purpose:</strong> '+esc(s.purpose)+'</p><p><strong>Session Focus:</strong> '+esc(s.focus)+'</p>'+(byDate.has(s.date)?'<p class="muted small">Other sessions: '+esc(byDate.get(s.date).join(', '))+'</p>':'')+'</details>').join('')+'</details>').join('')+'<p class="muted small">Other programmes remain unchanged. Adaptation preferences are saved for a later release; automatic adjustments and Garmin revisions are not active in this build.</p>';
+ const hard=sessions.filter(x=>x.demanding).length,hardM=sessions.flatMap(x=>x.structuredSteps).filter(x=>x.intensity==='interval').reduce((s,x)=>s+(x.duration.meters??0),0);
+ return (overlappingRuns?'<p role="alert">An existing visible running programme overlaps this plan. Change dates or manage that plan before creating another running programme.</p>':'')+'<div class="mile873-review-intro"><h3>'+esc(goals.find(g=>g[0]===f.goal)?.[1])+'</h3><div class="mile873-metrics"><div><strong>'+result.weeks.length+'</strong><small>Weeks</small></div><div><strong>'+sessions.length+'</strong><small>Sessions</small></div><div><strong>'+kmText(total)+'</strong><small>'+(estimatedDistance?'Planned distance est.':'Total')+'</small></div></div><p class="muted small">'+summary+(isReturn?'':' · '+hard+' demanding runs · '+Math.round(hardM/total*100)+'% distance in prescribed quality segments (not measured HR distribution).')+'</p></div><p class="muted small"><strong>Goal feasibility:</strong> '+(result.feasibilityDetail?.status==='caution'?'Extra preparation caution.':'Review required.')+' MILE has not validated your target time or race readiness. '+esc([...new Set([...(result.feasibilityDetail?.reasons||[]),...result.warnings])].join(' '))+'</p>'+result.weeks.map(w=>'<details class="item m882-week"><summary><strong>Week '+w.week+' · '+esc(w.phase)+'</strong> · '+kmText(w.meters)+' · ~'+w.plannedMinutes+' min</summary>'+w.sessions.map(s=>'<details class="m882-session"><summary><strong>'+esc(nice(s.date))+' · '+esc(s.name)+'</strong><span>'+sessionDistance(s)+' · ~'+s.plannedMinutes+' min'+'</span></summary>'+sessionMarkup({...s,sport:'Running'})+'<p><strong>Session Purpose:</strong> '+esc(s.purpose)+'</p><p><strong>Session Focus:</strong> '+esc(s.focus)+'</p>'+(byDate.has(s.date)?'<p class="muted small">Other sessions: '+esc(byDate.get(s.date).join(', '))+'</p>':'')+'</details>').join('')+'</details>').join('')+'<p class="muted small">Other programmes remain unchanged. Adaptation preferences are saved for a later release; automatic adjustments and Garmin revisions are not active in this build.</p>';
 }
 function draw(){
  const f=form(),step=Math.max(0,Math.min(4,v42Step)),h=history();let content='';
  if(step===0)content='<h2>01 · Goal & programme</h2><div class="sport-tiles">'+v41SportNames.map(x=>'<button class="sport-tile '+(x==='Running'?'selected':'')+'" onclick="v42PickSport(\''+esc(x)+'\')"><span style="font-size:22px">'+v41SportIcons[x]+'</span><strong>'+esc(x)+'</strong></button>').join('')+'</div><div class="formgrid">'+select(f,'goal','Running goal',goals)+field(f,'weeks','Programme duration (weeks)','number','min="1" max="52"')+field(f,'start','Start date','date')+field(f,'raceDate','Race date (optional)','date')+field(f,'target','Goal time (optional, hh:mm:ss)','text')+field(f,'name','Programme name (optional)')+'</div>';
- if(step===1)content='<h2>02 · Athlete fitness</h2><p class="muted small">Recorded running history through '+esc(nice(h.end))+'. Totals reflect imported records only; gaps may be missing data.</p><div class="m882-history">'+h.windows.map(x=>'<div><strong>'+x.days+' days</strong>'+(x.runs?'<span>'+x.km+' km · '+x.runs+(x.runs===1?' recorded run':' recorded runs')+'</span><small>Longest: '+x.longest+' km</small>':'<span>No runs recorded</span>')+'</div>').join('')+'</div><div class="formgrid">'+select(f,'level','Experience',levels)+(f.goal==='return'?field(f,'returnMinutes','Recent comfortable walk–run duration (min)','number','min="6" max="20"'):field(f,'volume','Confirm sustainable weekly km','number','min="0" step="0.1"'))+field(f,'longest','Longest recent run (km)','number','min="0" step="0.1"')+field(f,'five','Recent 5K time (mm:ss)')+field(f,'easy','Easy pace (mm:ss/km)')+field(f,'threshold','Threshold pace (mm:ss/km)')+field(f,'maxHR','Maximum HR (optional)','number')+field(f,'lthr','Lactate threshold HR (optional)','number')+field(f,'restingHR','Resting HR (optional)','number')+field(f,'lowHR','Easy HR lower bound','number')+field(f,'highHR','Easy HR upper bound','number')+select(f,'recovery','Current recovery',[['unknown','Not assessed'],['normal','Normal for me'],['poor','Poor recovery']])+'</div><p class="muted small">Saved athlete-profile benchmarks and preferences are prefilled when available. Imported volume and longest run are estimates you can correct. Blank values remain unknown.</p>'+check(f,'completeHistory','I confirm all four recent 7-day history windows are complete (including any zero-run weeks).')+check(f,'interrupted','Recent significant training interruption')+check(f,'injury','Current injury or concerning symptoms');
+ if(step===1)content='<h2>02 · Athlete fitness</h2><p class="muted small">Recorded running history through '+esc(nice(h.end))+'. Totals reflect imported records only; gaps may be missing data.</p><div class="m882-history">'+h.windows.map(x=>'<div><strong>'+x.days+' days</strong>'+(x.runs?'<span>'+x.km+' km · '+x.runs+(x.runs===1?' recorded run':' recorded runs')+'</span><small>Longest: '+x.longest+' km</small>':'<span>No runs recorded</span>')+'</div>').join('')+'</div><div class="formgrid">'+select(f,'level','Experience',levels)+(f.goal==='return'?field(f,'returnMinutes','Recent comfortable walk–run duration (min)','number','min="6" max="20"'):field(f,'volume','Confirm sustainable weekly km','number','min="0" step="0.1"'))+field(f,'longest','Longest recent run (km)','number','min="0" step="0.1"')+field(f,'five','Recent 5K time (mm:ss)')+field(f,'easy','Easy pace (mm:ss/km)')+field(f,'threshold','Threshold pace (mm:ss/km)')+field(f,'maxHR','Maximum HR (optional)','number')+field(f,'lthr','Lactate threshold HR (optional)','number')+field(f,'restingHR','Resting HR (optional)','number')+field(f,'lowHR','Easy HR lower bound','number')+field(f,'highHR','Easy HR upper bound','number')+field(f,'recoveryLowHR','Recovery HR lower bound (optional)','number')+field(f,'recoveryHighHR','Recovery HR upper bound (optional)','number')+select(f,'recovery','Current recovery',[['unknown','Not assessed'],['normal','Normal for me'],['poor','Poor recovery']])+'</div><p class="muted small">Saved athlete-profile benchmarks and preferences are prefilled when available. Imported volume and longest run are estimates you can correct. Blank values remain unknown.</p>'+check(f,'completeHistory','I confirm all four recent 7-day history windows are complete (including any zero-run weeks).')+check(f,'interrupted','Recent significant training interruption')+check(f,'injury','Current injury or concerning symptoms');
  if(step===2)content='<h2>03 · Training schedule</h2><div class="formgrid">'+select(f,'runs','Runs per week',names.map((_,i)=>[i+1,i+1]))+(f.goal==='return'?'':select(f,'longDay','Preferred long run',names.map((n,i)=>[i,n])))+field(f,'weekday','Standard run maximum (min)','number','min="1"')+(f.goal==='return'?'':field(f,'longMinutes','Long-run maximum (min)','number','min="1"'))+'</div><h3>Available days</h3>'+days(f,'available')+dayLimits(f)+'<h3>Demanding other-sport days</h3>'+days(f,'demanding')+'<p class="muted small">Existing visible demanding sessions are also considered. '+existing(f).length+' other scheduled sessions are in this programme period.</p>';
- if(step===3){const a=f.adapt;content='<h2>04 · Training intelligence</h2><p class="muted small">MILE Recommended is selected by default. These preferences are recorded but automatic changes are not yet enabled.</p><div class="formgrid">'+select(a,'mode','Adaptation',[['automatic','MILE Recommended · Automatic'],['manual','Manual review']]).replace('data-m882-field','data-m882-adapt')+select(a,'priority','Primary sport',sports.map(sport=>[sport,sport])).replace('data-m882-field','data-m882-adapt')+field(a,'secondary','Secondary sports / commitments').replace('data-m882-field','data-m882-adapt')+select(a,'notifications','Notifications',[['significant','Significant changes only'],['all','All changes'],['none','No adaptation alerts']]).replace('data-m882-field','data-m882-adapt')+'</div>'+settings.map(([k,l])=>check(a,k,l,'data-m882-adapt')).join('');}
+ if(step===3){const a=f.adapt;content='<h2>04 · Training intelligence</h2><p class="muted small">MILE Recommended is selected by default. These preferences are recorded but automatic changes are not yet enabled.</p><div class="formgrid">'+select(a,'mode','Adaptation',[['automatic','MILE Recommended · Automatic'],['manual','Manual review']]).replace('data-m882-field','data-m882-adapt')+select(a,'priority','Primary sport',sports.map(sport=>[sport,sport])).replace('data-m882-field','data-m882-adapt')+select(a,'intervalRecovery','Interval recovery',[['time','Timed recovery'],['heart_rate','Heart rate with timed fallback'],['distance','Distance-based recovery']]).replace('data-m882-field','data-m882-adapt')+field(a,'secondary','Secondary sports / commitments').replace('data-m882-field','data-m882-adapt')+select(a,'notifications','Notifications',[['significant','Significant changes only'],['all','All changes'],['none','No adaptation alerts']]).replace('data-m882-field','data-m882-adapt')+'</div>'+settings.map(([k,l])=>check(a,k,l,'data-m882-adapt')).join('');}
  if(step===4)content='<h2>05 · Full programme review</h2>'+review(f);
  document.getElementById('app').innerHTML='<div class="grid"><section class="card full m882-build"><div class="row between"><div><div class="eyebrow">TRAINING STUDIO</div><h2>Build your running plan</h2></div><span class="pill">STEP '+(step+1)+' OF 5</span></div><div class="v42-steps">'+[0,1,2,3,4].map(i=>'<span class="'+(i<=step?'on':'')+'"></span>').join('')+'</div>'+content+'<p data-m882-error role="status" class="muted small"></p><div class="row between" style="margin-top:16px"><button type="button" class="btn alt" data-m882-action="back" '+(step===0?'disabled':'')+'>‹ Back</button><button type="button" class="btn" data-m882-action="'+(step===4?'save':'next')+'" '+(step===4&&!api.generate(input(f)).ok?'disabled':'')+'>'+(step===4?'Create training plan':'Continue ›')+'</button></div></section><section class="card full"><h2>Existing programmes</h2><div class="list">'+state.blocks.map(x=>'<div class="item row between"><div><strong>'+esc(x.name)+'</strong><div class="muted small">'+esc(x.sport)+' · '+esc(nice(x.start))+' to '+esc(nice(x.end))+'</div></div><button class="btn alt sm" onclick="activateBlock(\''+esc(x.id)+'\')">'+(x.id===state.activeBlock?'Selected':'Select')+'</button></div>').join('')+'</div></section></div>';
 }
@@ -151,7 +171,7 @@ function create(){
  const others=existing(f);
  if(others.some(w=>w.sport==='Running'&&w.status!=='done'&&!w.matchId))return report('An existing visible running programme overlaps this plan. Change your programme dates or manage that plan before adding additional running volume.');
  if(!confirm('Create '+result.weeks.reduce((n,w)=>n+w.sessions.length,0)+' running sessions? '+others.length+' existing sessions will be preserved. No workouts will be sent to Garmin automatically.'))return;
- const id=uid(),name=f.name||'Running · '+goals.find(g=>g[0]===f.goal)[1],items=result.weeks.flatMap(w=>w.sessions.map(s=>{const detail=compactDetail(s);return {...s,id:uid(),block:id,sport:'Running',status:'planned',note:'',rpe:null,matchId:null,detail,structuredDetail:detail,runningPlanVersion:1,revision:1,whyScheduled:'Phase: '+s.phase+'.'}}));
+ const id=uid(),name=f.name||'Running · '+goals.find(g=>g[0]===f.goal)[1],items=result.weeks.flatMap(w=>w.sessions.map(s=>{const detail=compactDetail(s);return {...s,id:uid(),block:id,sport:'Running',status:'planned',note:'',matchId:null,detail,structuredDetail:detail,runningPlanVersion:2,revision:1,whyScheduled:'Phase: '+s.phase+'.'}}));
  if(!items.length)return report('No sessions to save.');
  state.blocks.push({id,name,sport:'Running',start:f.start,end:add(f.start,Number(f.weeks)*7-1),active:true,goal:f.goal,level:f.level,v42:{weeks:result.weeks.length,days:Number(f.runs),available:result.chosenDays},runningPlan:{version:1,config,baseline:result.baseline,warnings:result.warnings}});
  state.workouts.push(...items);state.activeBlock=id;calendarMonth=f.start.slice(0,7);viewDate=f.start;v42Step=0;v42Form={};save();navigate('builder');if(root.milePlanCreated)root.milePlanCreated(id);else notice('Training plan created');
@@ -163,8 +183,12 @@ v42Move=function(n){if(v42Sport!=='Running')return legacyMove.apply(this,argumen
 v41Builder=function(){return v42Sport==='Running'?draw():legacyBuild.apply(this,arguments)};
 v42PickSport=function(sp){if(sp==='Running'){v42Sport=sp;v42Step=0;v42Form={};draw();return}return legacyPick.apply(this,arguments)};
 v42RegenerateWeek=function(id,week){const b=state.blocks.find(x=>x.id===id);if(b?.runningPlan)return notice('Personalised running week adjustments are not yet available. Existing sessions are preserved.');return legacyRegen.apply(this,arguments)};
-mileCoachWhyHtml=function(w){if(!w.runningPlanVersion)return legacyWhy(w);return '<details class="mile-coach-why"><summary>Session Purpose & Focus</summary><div class="mile-coach-why-body"><strong>Session Purpose</strong><p>'+esc(w.purpose)+'</p><strong>Session Focus</strong><p>'+esc(w.focus)+'</p><strong>Intensity</strong><p>RPE '+esc(w.targetRpe)+' · ~'+esc(w.plannedMinutes)+' min estimated</p></div></details>'};
-// Legacy Calendar zone labels can be calculated from default max HR. Never show those as an athlete-specific target for a new structured run.
-workoutCard=function(w){const html=legacyCard.apply(this,arguments);if(!w.runningPlanVersion)return html;return html.replace(/<div class="v44-session-zone">[^<]*<\/div>/, '<div class="v44-session-zone">RPE '+esc(w.targetRpe)+' · ~'+esc(w.plannedMinutes)+' min estimated</div>')};
-root.mileRunningBuild={history,compactDetail};
+mileCoachWhyHtml=function(w){if(!w.runningPlanVersion)return legacyWhy(w);return '<details class="mile-coach-why"><summary>Session Purpose & Focus</summary><div class="mile-coach-why-body"><strong>Session Purpose</strong><p>'+esc(w.purpose)+'</p><strong>Session Focus</strong><p>'+esc(w.focus)+'</p></div></details>'};
+workoutCard=function(w){
+ const html=legacyCard.apply(this,arguments);
+ if(w.sport!=='Running')return html;
+ const summary=w.runningPlanVersion&&Number.isFinite(w.plannedMinutes)?'<div class="v44-session-zone">'+esc(w.fixedMeters!=null?'Estimated':'Planned')+' · ~'+esc(w.plannedMinutes)+' min</div>':'';
+ return html.replace(/<div class="v44-session-zone">[^<]*<\/div>/,summary);
+};
+root.mileRunningBuild={history,compactDetail,sessionMarkup,sessionDistance};
 })(globalThis);

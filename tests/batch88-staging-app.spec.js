@@ -100,9 +100,9 @@ test('staging Analysis requires explicit approval of the exact server revision',
 
     const review=panel.getByRole('button',{name:'Review recovery adjustment'});
     await review.click();
-    await expect(panel).toContainText('8/10 self-reported fatigue');
-    await expect(panel).toContainText('Current · 5 km');
-    await expect(panel).toContainText('Proposed · 4.5 km');
+    await expect(panel).toContainText('8/10 fatigue');
+    await expect(panel.locator('.m881-revision-preview > div').first()).toHaveText('Current5 km~30 min');
+    await expect(panel.locator('.m881-revision-preview > div').last()).toHaveText('Proposed4.5 km~27 min');
     await reviewImage(info,'04-adaptation-proposal',panel);
     expect(calls).toEqual([['mile_review_training_revision',{p_sport:'Running'}]]);
     const approve=panel.getByRole('button',{name:'Approve this revision'});
