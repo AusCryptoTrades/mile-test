@@ -19,6 +19,8 @@ jobs:
         with:
           node-version: '22'
       - run: node --test integrations/garmin/*.test.mjs
+      - run: npm install --no-save --ignore-scripts --package-lock=false @garmin/fitsdk@21.222.0
+      - run: node --test integrations/garmin/fit-binary.mjs
   registry-database:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -39,3 +41,4 @@ jobs:
         with:
           persist-credentials: false
       - run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/batch87-garmin-publications.test.sql
+      - run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/batch875-fit-jobs.test.sql
