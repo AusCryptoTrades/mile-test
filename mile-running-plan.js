@@ -15,6 +15,9 @@ const templates={
  easy:{name:'Easy aerobic run',purpose:'Build aerobic fitness with low fatigue.',focus:'Keep breathing conversational; slow down to stay within your easy effort or HR range.',rpe:3},
  recovery:{name:'Recovery run',purpose:'Maintain gentle aerobic movement without adding a demanding stimulus.',focus:'Keep effort very relaxed; shorten or skip if recovery is poor.',rpe:2},
  long:{name:'Long aerobic run',purpose:'Develop endurance and durability through sustained aerobic work.',focus:'Start gently, keep effort steady and avoid chasing pace on hills.',rpe:4},
+ progressive:{name:'Progressive long run',purpose:'Practise finishing an endurance session with controlled form.',focus:'Run the opening section easily. Increase effort gently in the final work segment only if you feel comfortable.',rpe:5,reps:1,fraction:.24},
+ hills:{name:'Controlled uphill repeats',purpose:'Practise uphill running form at controlled aerobic effort.',focus:'Use a moderate grade, keep the effort repeatable, and jog gently downhill for recovery.',rpe:6,reps:4,fraction:.24},
+ strides:{name:'Easy run with relaxed strides',purpose:'Practise quick, relaxed turnover with minimal fast volume.',focus:'Accelerate smoothly, stay relaxed and take full easy recoveries.',rpe:5,reps:4,fraction:.10},
  steady:{name:'Controlled steady run',purpose:'Build sustained aerobic endurance above easy effort.',focus:'Stay controlled, never force the pace.',rpe:5,reps:1,fraction:.55},
  cruise:{name:'Threshold cruise intervals',purpose:'Improve sustainable running speed and threshold endurance.',focus:'Keep each repetition controlled and consistent; do not chase a faster final repetition.',rpe:7,reps:4,fraction:.48},
  threshold:{name:'Continuous threshold run',purpose:'Develop sustained threshold endurance.',focus:'Finish with control; avoid racing the final segment.',rpe:7,reps:1,fraction:.40},
@@ -29,7 +32,9 @@ const templates={
  return:{name:'Return-to-running easy session',purpose:'Reintroduce running gradually without demanding intensity.',focus:'Keep effort comfortable, take walk breaks as needed and stop for concerning symptoms.',rpe:2}
 };
 // Variants retain the parent effort target and purpose; variation changes repetition structure, not intensity.
-const variantFamilies={cruise:[2,3,4,5,6,7,8],threshold:[1,2,3,4],vo2:[3,4,5,6,7,8,10],fartlek:[2,3,4,5,6,7,8,10],race5:[3,4,5,6,7,8,10],race10:[2,3,4,5,6],half:[1,2,3,4,5],marathon:[1,2,3,4,5],steady:[1,2,3,4]};
+const variantFamilies={cruise:[2,3,4,5,6,7,8],threshold:[1,2,3,4],vo2:[3,4,5,6,7,8,10],fartlek:[2,3,4,5,6,7,8,10],race5:[3,4,5,6,7,8,10],race10:[2,3,4,5,6],half:[1,2,3,4,5],marathon:[1,2,3,4,5],steady:[1,2,3,4],hills:[3,4,5,6]};
+const usableThreshold=a=>validPace(a.thresholdPace)&&(!validPace(a.easyPace)||a.thresholdPace<a.easyPace)?a.thresholdPace:null;
+const estimatePace=a=>Math.max(validPace(a.easyPace)?a.easyPace+35:540,(usableThreshold(a)??0)+60);
 function workoutVariant(kind,week,meters){
  const parent=templates[kind],choices=variantFamilies[kind];
  if(!choices)return parent;
@@ -49,6 +54,7 @@ function assessFeasibility(goal,base,days,a,targetSeconds){
   reasons.push('The goal requires a faster average pace than your recorded 5K benchmark. Review the target time against recent race results.');
  }
  if(base.source!=='four completed weeks')reasons.push('Training history is incomplete.');
+ if(reasons.length)reasons.push('Consider a later event, a shorter distance, or a completion goal based on a recent comparable race.');
  return {status:reasons.length?'caution':'review-required',reasons};
 }
 function baseline(a){
@@ -72,8 +78,8 @@ function chooseDays(avail,n,long,hard){
  return result.sort((a,b)=>a-b);
 }
 function makeSession(kind,m,a,phase,week=0){
- const t=workoutVariant(kind,week,m);let easy=validPace(a.easyPace)?a.easyPace:null,threshold=validPace(a.thresholdPace)?a.thresholdPace:null;
- const slow=easy===null?540:Math.max(easy+35,threshold===null?0:threshold+45);
+ const t=workoutVariant(kind,week,m),easy=validPace(a.easyPace)?a.easyPace:null,threshold=usableThreshold(a);
+ const slow=estimatePace(a);
  const aerobic=a.easyZone&&Number.isInteger(a.easyZone.lowBpm)&&Number.isInteger(a.easyZone.highBpm)&&a.easyZone.lowBpm>=30&&a.easyZone.highBpm<=250&&a.easyZone.lowBpm<a.easyZone.highBpm?{kind:'heart_rate',lowBpm:a.easyZone.lowBpm,highBpm:a.easyZone.highBpm}:easy!==null?{kind:'pace',fastSecondsPerKm:Math.max(150,easy-10),slowSecondsPerKm:Math.min(1800,easy+35)}:{kind:'open'};
  let quality={kind:'open'};
  const five=positive(a.fiveKSeconds)&&a.fiveKSeconds>=750&&a.fiveKSeconds<=6000?a.fiveKSeconds/5:null;
@@ -84,20 +90,27 @@ function makeSession(kind,m,a,phase,week=0){
  }
  const step=(intensity,description,meters,target)=>({kind:'step',intensity,description,duration:{kind:'distance',meters},target});
  let steps=[];
- if(t.reps&&m>=4000){
+ if(kind==='strides'&&m>=4000){
+  steps.push(step('warmup','Easy running before strides',m-1400,aerobic));
+  for(let i=0;i<4;i++){
+   steps.push(step('interval','Relaxed stride '+(i+1)+' of 4',100,{kind:'open'}));
+   if(i<3)steps.push(step('recovery','Easy jog or walk between strides',200,aerobic));
+  }
+  steps.push(step('cooldown','Easy running',400,aerobic));
+ }else if(t.reps&&m>=4000){
   let reps=t.reps,work=round(m*t.fraction/reps),rest=reps>1?Math.min(300,round(m*.12/(reps-1))):0;
   if(work>=200&&(reps===1||rest>=100)){
-   let remainder=m-work*reps-rest*(reps-1),warm=round(remainder*.55);
+   let remainder=m-work*reps-rest*(reps-1),warm=round(remainder*(kind==='progressive'?.88:.55));
    steps.push(step('warmup','Easy running',warm,aerobic));
    for(let i=0;i<reps;i++){steps.push(step('interval',t.name+' · repetition '+(i+1)+' of '+reps,work,quality));if(i<reps-1)steps.push(step('recovery','Easy jog between repetitions',rest,aerobic));}
    steps.push(step('cooldown','Easy running',remainder-warm,aerobic));
   }
  }
  if(!steps.length){if(t.reps)return makeSession('easy',m,a,phase);
- const warm=round(m*.15),cool=round(m*.1);
- if(warm>=100)steps.push(step('warmup','Ease into the run',warm,aerobic));
+ const warm=Math.max(100,round(m*.15)),cool=Math.max(100,round(m*.1));
+ steps.push(step('warmup','Ease into the run',warm,aerobic));
  steps.push(step('active',t.focus,m-warm-cool,aerobic));
- if(cool>=100)steps.push(step('cooldown','Relaxed running',cool,aerobic));}
+ steps.push(step('cooldown','Relaxed running',cool,aerobic));}
  const seconds=Math.ceil(m*slow/1000);
  return {name:t.name,kind,phase,meters:m,km:m/1000,plannedMinutes:Math.ceil(seconds/60),estimatedSeconds:seconds,estimatedPaceSeconds:slow,paceEstimateOnly:easy===null,targetRpe:t.rpe,purpose:t.purpose,focus:t.focus,structuredSteps:steps};
 }
@@ -165,7 +178,12 @@ function generate(input={}){
  if(long!==s.longDay)warnings.push('Preferred long day unavailable; alternative used.');
  const chosen=chooseDays(available,n,long,hard);
  if(hard.length)warnings.push('Demanding concurrent sport days suppress adjacent running quality; review total load.');
- if(!validPace(a.easyPace))warnings.push('Duration estimates use 9:00/km as a planning assumption only; targets remain effort-based unless a valid HR range is supplied.');
+ if(!validPace(a.easyPace)){
+  const estimate=estimatePace(a);
+  const pace=Math.floor(estimate/60)+':'+String(estimate%60).padStart(2,'0');
+  warnings.push('Duration estimates use '+pace+'/km as a planning assumption. Easy targets use effort or the supplied HR range.');
+ }
+ if(validPace(a.thresholdPace)&&usableThreshold(a)===null)warnings.push('Threshold pace is equal to or slower than easy pace. Quality sessions use effort unless a separate reliable benchmark is available.');
  if(!positive(a.longestKm))warnings.push('No confirmed recent long run; long-session allocation is conservative.');
  if(base.source!=='four completed weeks')warnings.push('Starting volume uses limited or athlete-confirmed history; progression is restricted.');
  if(input.targetSeconds)warnings.push('Target time is not a validated race prediction; no aspirational pace is prescribed.');
@@ -175,7 +193,7 @@ function generate(input={}){
  if(goalDist&&base.km<goalDist*.5)warnings.push('Current volume is low relative to event distance; goal feasibility needs review.');
  const offset=(new Date(st).getUTCDay()+6)%7;
  const ordered=chosen.map(d=>({day:d,offset:(d-offset+7)%7})).sort((a,b)=>a.offset-b.offset);
- const slow=validPace(a.easyPace)?Math.max(a.easyPace+35,validPace(a.thresholdPace)?a.thresholdPace+45:0):540;
+ const slow=estimatePace(a);
  const plan=[];let previous=round(base.km*1000),preRecovery=previous,previousPhase=null,previousLong=positive(a.longestKm)?round(a.longestKm*1000):round(previous*.25);
  const raceWeek=race===null?null:Math.floor((race-st)/604800000);
  const taperAnchor=raceWeek!==null&&raceWeek<weeks?raceWeek:null;
@@ -197,10 +215,11 @@ function generate(input={}){
   if(!slots.length)break;
   const longSlot=slots.find(o=>o.day===long&&!hard.includes(o.day))||null;
   const qualityAllowed=primary&&base.source==='four completed weeks'&&a.level!=='beginner'&&goal!=='return'&&a.recovery==='normal'&&base.km>=20&&n>=3&&!taper&&phase!=='Recovery'&&phase!=='Base';
-  const q=qualityAllowed?slots.find(o=>o!==longSlot&&!hard.some(d=>diff(o.day,d)<=1)&&(!longSlot||diff(o.day,longSlot.day)>=2)):null;
+  const progressive=qualityAllowed&&phase==='Specific'&&i%3===2&&positive(a.longestKm)&&a.longestKm>=12&&base.km>=35&&longSlot&&!hard.some(d=>diff(d,longSlot.day)<=1);
+  const q=qualityAllowed&&!progressive?slots.find(o=>o!==longSlot&&!hard.some(d=>diff(o.day,d)<=1)&&(!longSlot||diff(o.day,longSlot.day)>=2)):null;
   const durationLimits=slots.map(o=>dayMinutes[o.day]??(o===longSlot?s.longMinutes:s.weekdayMinutes));
   const capacity=slots.map((o,j)=>{let max=round(durationLimits[j]*60/slow*1000);
-   if(o===longSlot)max=Math.min(max,round(previousLong*(i===0?1:1+Math.min(ceiling,.05))),round(target*(n<=2?.55:.40)));
+   if(o===longSlot)max=Math.min(max,round(previousLong*(i===0?1:1+Math.min(ceiling,.05))),round(target*(n===1?1:n===2?.55:.40)));
    if(hard.includes(o.day))max=Math.min(max,round(target*.12));
    return Math.max(0,max)});
   const allocations=slots.map(()=>0);
@@ -215,7 +234,8 @@ function generate(input={}){
   const sessions=slots.flatMap((o,j)=>{
    const m=allocations[j];if(!m)return [];
    let kind=taper?'taper':goal==='return'?'return':hard.includes(o.day)||a.recovery==='poor'?'recovery':o===longSlot?(goal==='ultra'?'ultra':'long'):'easy';
-   if(o===q){kind=phase==='Specific'?({'5k':'race5','10k':'race10','half-marathon':'half',marathon:'marathon',ultra:'steady'}[goal]||'cruise'):(i%3===0?'fartlek':i%3===1?'cruise':'threshold');}
+   if(o===longSlot&&progressive&&m>=10000)kind='progressive';
+   if(o===q){kind=phase==='Specific'?({'5k':'race5','10k':'race10','half-marathon':'half',marathon:'marathon',ultra:'steady'}[goal]||'cruise'):['fartlek','cruise','threshold','hills','strides'][i%5];}
    const date=new Date(st+(i*7+o.offset)*86400000).toISOString().slice(0,10);
    return [{...makeSession(kind,m,a,phase,i),date,day:o.day,planWeek:i+1,durationLimitMinutes:durationLimits[j]}];
   });
