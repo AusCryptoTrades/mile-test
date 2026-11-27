@@ -83,7 +83,12 @@ test('88.2 Build saves the reviewed plan and Calendar starts the same structured
  await page.getByRole('button',{name:'Save workout',exact:true}).click();
  if(info.project.name.startsWith('mobile'))await expect(page.locator('#mile-fixed-mobile-nav')).toBeVisible();
  expect(await page.evaluate(()=>JSON.stringify(state.workouts.find(w=>w.id==='fixture-completed-run')))).toBe(original);
- await page.evaluate(()=>{window.mileV3Go('builder');v42PickSport('Running')});
+ await page.evaluate(()=>{
+  state.settings.athleteProfile={...state.settings.athleteProfile,zoneRanges:[
+   {min:105,max:119},{min:120,max:142},{min:143,max:154},{min:155,max:171},{min:172,max:180},
+  ]};
+  window.mileV3Go('builder');v42PickSport('Running');
+ });
  const build=page.locator('.m882-build');
  await expect(build).toContainText('STEP 1 OF 5');
  await build.locator('#m882-goal').selectOption('10k');
@@ -123,9 +128,9 @@ test('88.2 Build saves the reviewed plan and Calendar starts the same structured
  await build.locator('#m882-secondary').fill('HYROX on Sundays');
  await expect(build.locator('#m882-notifications')).toHaveValue('significant');
  await next();await expect(build).toContainText('STEP 5 OF 5');
- await expect(build.locator('.m882-week').first()).toContainText('50.0 km');
+ await expect(build.locator('.m882-week').first()).toContainText('50 km');
  await build.locator('.m882-week').first().locator('summary').first().click();
- await expect(build.locator('.m882-week').first().locator('.m882-session').nth(1).locator('summary')).toContainText('~35 min');
+ await expect(build.locator('.m882-week').first().locator('.m882-session').nth(1).locator('summary')).toContainText('~30 min');
  await build.locator('.m882-session').first().locator('summary').click();
  await expect(build.locator('.m882-session').first()).toContainText('Session Focus');
  const firstWeek=build.locator('.m882-week').first();
@@ -162,9 +167,9 @@ test('88.2 Build saves the reviewed plan and Calendar starts the same structured
  const sessions=page.locator('#app details.mile-v3-details').filter({has:page.getByText('Planned sessions (1)',{exact:true})});
  await sessions.locator(':scope > summary').click();
  const workout=sessions.locator('.item').filter({has:page.getByRole('heading',{name:saved.first.name,exact:true})});
- await expect(workout.locator('.v44-session-zone')).toHaveText(`Planned · ~${saved.first.plannedMinutes} min`);
+ await expect(workout.locator('.v44-session-zone')).toHaveText('~'+require('../mile-running-workout.js').time(saved.first.plannedMinutes*60));
  await expect(workout).not.toContainText(/\bRPE\b/i);
- await expect(workout.locator('.m882-workout-steps')).toContainText('120–142 bpm');
+ await expect(workout.locator('.m882-workout-steps')).toContainText('Z2 Easy aerobic · 120–142 bpm');
  expect(saved.first).not.toHaveProperty('targetRpe');
  await workout.getByText('Session Purpose & Focus',{exact:true}).click();
  await expect(workout.getByText(saved.first.purpose,{exact:true})).toBeVisible();
@@ -175,11 +180,11 @@ test('88.2 Build saves the reviewed plan and Calendar starts the same structured
  await expect(tracker.locator('#workout')).toHaveValue('planned');
  await stubTrackerGPS(tracker);
  await tracker.locator('#start').click();
- expect(saved.first.structuredSteps.length).toBeGreaterThan(1);
+ expect(saved.first.structuredSteps).toHaveLength(1);
  for(const [index,step] of saved.first.structuredSteps.entries()){
   await expect(tracker.locator('#countdown')).toHaveText(`${(step.duration.meters/1000).toFixed(2)} km`);
   await expect(tracker.locator('#blockInfo')).toContainText(`Block ${index+1} / ${saved.first.structuredSteps.length}`);
-  await expect(tracker.locator('#blockInfo')).toContainText('HR target 120–142 bpm');
+  await expect(tracker.locator('#blockInfo')).toContainText('HR target Z2 Easy aerobic · 120–142 bpm');
   await tracker.locator('#nextBlock').click();
  }
  await expect(tracker.locator('#phase')).toHaveText('WORKOUT COMPLETE');

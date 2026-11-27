@@ -204,8 +204,8 @@ test('private Analysis presents ambiguous Garmin candidates for confirmation and
   const ambiguous = await openReview('Ambiguous Garmin run');
   await expect(ambiguous).toContainText('Choose the session you completed.');
   await expect(ambiguous.locator('.mile35-datarow')).toHaveText([
-    'Morning aerobic run5.00 km · ~31 min',
-    'Steady run5.40 km · ~29 min',
+    'Morning aerobic run5 km · ~31 min',
+    'Steady run5.4 km · ~29 min',
   ]);
   await expect(ambiguous.getByRole('button',{name:'Link to Morning aerobic run',exact:true})).toHaveText('Link');
   await expect(ambiguous.getByRole('button',{name:'Link to Steady run',exact:true})).toHaveText('Link');

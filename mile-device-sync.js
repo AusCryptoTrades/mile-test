@@ -144,6 +144,7 @@
   }
   function finish(results,previous=[],unavailable=[],total=results.length+previous.length+unavailable.length){
    const confirmed=results.filter(w=>w.kind==='confirmed').length+previous.filter(w=>w.kind==='confirmed').length;
+   if(results.some(w=>w.kind==='confirmed'))root.mileRunningBeta?.mark('garmin-published');
    const pending=results.filter(w=>w.kind==='pending').length+previous.filter(w=>w.kind!=='confirmed').length;
    const notSent=Math.max(0,total-confirmed-pending);
    const all=confirmed>0&&pending===0&&notSent===0;

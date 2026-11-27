@@ -1,5 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const { generate } = require('../mile-running-plan.js');
+const prescription = require('../mile-running-workout.js');
+const continuous = new Set(['easy','recovery','long','steady','ultra','taper']);
 
 const athlete = { level: 'experienced', weeklyKm: [50, 50, 50, 50], currentKm: 50,
   longestKm: 30, fiveKSeconds: 1199, thresholdPace: 259, easyPace: 320,
@@ -66,8 +68,14 @@ test('audits 27 synthetic Running profiles week by week', async ({}, info) => {
         expect(session.plannedMinutes,name).toBeLessThanOrEqual(session.durationLimitMinutes);
         expect(session.purpose,name).toBeTruthy();
         expect(session.focus,name).toBeTruthy();
-        expect(session.structuredSteps[0].intensity,name).toBe('warmup');
-        expect(session.structuredSteps.at(-1).intensity,name).toBe('cooldown');
+        if(continuous.has(session.kind)){
+          expect(session.structuredSteps,name).toHaveLength(1);
+          expect(session.structuredSteps[0].intensity,name).toBe('active');
+          if(session.structuredSteps[0].duration.kind==='distance')expect(session.meters%1000,name).toBe(0);
+        }else{
+          expect(session.structuredSteps[0].intensity,name).toBe('warmup');
+          expect(session.structuredSteps.at(-1).intensity,name).toBe('cooldown');
+        }
         if (input.raceDate) expect(Date.parse(session.date),name).toBeLessThan(Date.parse(input.raceDate));
         const demanding = input.schedule.demandingDays;
         if (session.demanding||session.kind==='progressive'||session.kind==='strides')
@@ -79,8 +87,11 @@ test('audits 27 synthetic Running profiles week by week', async ({}, info) => {
         expect(session,name).not.toHaveProperty('targetRpe');
         if(profile.easyZone&&['easy','recovery','long','taper','ultra','progressive','steady'].includes(session.kind))
           expect(session.structuredSteps.every(s=>s.target.kind==='heart_rate'),name).toBe(true);
-        const duration = session.structuredSteps.reduce((sum,s)=>sum+(s.duration.meters??s.duration.seconds),0);
-        expect(duration,name).toBe(session.meters??session.estimatedSeconds);
+        const totals=prescription.totals(session.structuredSteps);
+        if(totals.allDistance)expect(totals.meters,name).toBe(session.meters);
+        else if(totals.allTime)expect(totals.seconds,name).toBe(session.estimatedSeconds);
+        if(session.fixedMeters!==undefined)expect(session.fixedMeters,name).toBe(totals.meters);
+        if(session.estimatedPaceSeconds)expect(session.estimatedSeconds,name).toBeLessThanOrEqual(Math.ceil(session.meters*session.estimatedPaceSeconds/1000));
       }
     }
     summary.push({name, weeks:result.weeks.map(({week,phase,km,plannedMinutes,sessions})=>

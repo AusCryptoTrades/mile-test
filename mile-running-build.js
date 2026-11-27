@@ -11,7 +11,8 @@ const settings=[['pace','Adaptive pace'],['volume','Adaptive volume'],['recovery
 const defaultAdapt=()=>({mode:'automatic',priority:'Running',secondary:'',pace:true,volume:true,recovery:true,missed:true,garmin:true,notifications:'significant',intervalRecovery:'time'});
 const num=x=>x!==''&&x!==null&&x!==undefined&&Number.isFinite(Number(x))?Number(x):null;
 const parseTime=s=>{if(!s)return null;const p=String(s).trim().split(':');if(p.length<2||p.length>3||p.some(x=>!/^\d+$/.test(x))||p.slice(1).some(x=>Number(x)>=60))return null;return p.reduce((n,x)=>n*60+Number(x),0)||null};
-const kmText=m=>m===null?'Distance open':(m/1000).toFixed(1)+' km';
+const kmText=m=>m===null?'Distance open':Number((m/1000).toFixed(3))+' km';
+const minutesText=m=>prescription.time(m*60);
 function history(){
  const end=add(today(),-1),rows=[],seen=new Set();
  for(const a of state.activities||[]){
@@ -31,13 +32,14 @@ function form(){
  const shared=root.mileAthleteProfile?.read(),p=shared?.athlete??v45Profile();
  const pref=state.settings.trainingPreferences773?.Running||{},h=history(),ranges=p.zoneRanges;
  const zone=Array.isArray(ranges)&&ranges[1]?ranges[1]:Array.isArray(p.zoneBounds)&&p.zoneBounds.length===6?{min:p.zoneBounds[1],max:p.zoneBounds[2]}:{};
- const recoveryZone=Array.isArray(ranges)&&ranges[0]?ranges[0]:Array.isArray(p.zoneBounds)&&p.zoneBounds.length===6?{min:p.zoneBounds[0],max:p.zoneBounds[1]}:{};
+ const zoneAt=index=>ranges?.[index]??(p.zoneBounds?.length===6?{min:p.zoneBounds[index],max:p.zoneBounds[index+1]}:{});
+ const recoveryZone=zoneAt(0),steadyZone=zoneAt(2);
  const experience={beginner:'beginner',regular:'intermediate',experienced:'experienced',competitive:'advanced'}[p.experience];
  const fatigue=num(state.checkins?.[today()]?.fatigue),highFatigue=Number.isInteger(fatigue)&&fatigue>=7&&fatigue<=10;
  const adapt=defaultAdapt();
  if(sports.includes(shared?.primarySport))adapt.priority=shared.primarySport;
  adapt.secondary=(shared?.sports||[]).filter(sport=>sports.includes(sport)&&sport!==adapt.priority).join(', ');
- const f={owner,goal:'fitness',start:today(),weeks:'8',name:'',raceDate:'',target:'',level:pref.level||experience||'intermediate',volume:pref.volume!==''&&pref.volume!=null?String(pref.volume):h.windows[1].runs?String(Math.round(h.windows[1].km/4*10)/10):'',completeHistory:false,longest:h.windows[2].longest??'',five:p.fiveK||'',threshold:p.threshold||'',easy:'',maxHR:p.maxHR||'',lthr:p.lthr||'',restingHR:'',lowHR:zone.min||'',highHR:zone.max||'',recoveryLowHR:recoveryZone.min||'',recoveryHighHR:recoveryZone.max||'',recovery:highFatigue?'poor':'unknown',interrupted:false,injury:false,available:pref.available||[0,1,2,3,4,5,6],runs:String(pref.sessions||3),longDay:String(pref.longDay??5),weekday:'60',longMinutes:'120',dayMinutes:{},demanding:[],adapt};
+ const f={owner,goal:'fitness',start:today(),weeks:'8',name:'',raceDate:'',target:'',level:pref.level||experience||'intermediate',volume:pref.volume!==''&&pref.volume!=null?String(pref.volume):h.windows[1].runs?String(Math.round(h.windows[1].km/4*10)/10):'',completeHistory:false,longest:h.windows[2].longest??'',five:p.fiveK||'',threshold:p.threshold||'',easy:'',maxHR:p.maxHR||'',lthr:p.lthr||'',restingHR:'',lowHR:zone.min||'',highHR:zone.max||'',recoveryLowHR:recoveryZone.min||'',recoveryHighHR:recoveryZone.max||'',savedZones:[recoveryZone,zone,steadyZone],recovery:highFatigue?'poor':'unknown',interrupted:false,injury:false,available:pref.available||[0,1,2,3,4,5,6],runs:String(pref.sessions||3),longDay:String(pref.longDay??5),weekday:'60',longMinutes:'120',dayMinutes:{},demanding:[],adapt};
  f.sources={
   level:pref.level?'Running preference':experience?'Athlete profile experience':'Default experience selection',
   volume:pref.volume!==''&&pref.volume!=null?'Running preference':h.windows[1].runs?'Imported 28-day total divided by four':'',
@@ -70,15 +72,38 @@ function stepGroups(session){
   return [['Warm-up',describe(steps[0])],['Walk–run',repeated?loops.length+' × ('+loops[0]+')':loops.join(' → ')],
    ['Cool-down',describe(steps.at(-1))]];
  }
- return Object.entries(prescription.labels).flatMap(([kind,label])=>{
-  const rows=steps.filter(step=>step.intensity===kind);
-  const texts=rows.map(step=>[prescription.durationLabel(step.duration),prescription.targetLabel(step.target)].filter(Boolean).join(' · '));
-  if(!texts.length)return [];
-  return [[label,texts.every(text=>text===texts[0])?(texts.length>1?texts.length+' × ':'')+texts[0]:texts.join(' + ')]];
- });
+ const stepText=step=>[prescription.durationLabel(step.duration),prescription.targetLabel(step.target)].filter(Boolean).join(' · ');
+ if(steps.length===1&&steps[0].intensity==='active')return [['Run',stepText(steps[0])]];
+ const warm=steps.filter(step=>step.intensity==='warmup');
+ const cool=steps.filter(step=>step.intensity==='cooldown');
+ const work=steps.filter(step=>['active','interval'].includes(step.intensity));
+ const rests=steps.filter(step=>['recovery','rest'].includes(step.intensity));
+ const summarize=items=>{
+  const texts=items.map(stepText);
+  if(!texts.length)return '';
+  return texts.every(text=>text===texts[0])?(texts.length>1?texts.length+' × ':'')+texts[0]:texts.join(' + ');
+ };
+ let main=summarize(work);
+ if(work.length>1&&work.every(step=>prescription.targetLabel(step.target)===prescription.targetLabel(work[0].target))&&
+  work.some(step=>prescription.durationLabel(step.duration)!==prescription.durationLabel(work[0].duration))){
+  main=work.map(step=>prescription.durationLabel(step.duration)).join(' → ');
+  if(prescription.targetLabel(work[0].target))main+=' · '+prescription.targetLabel(work[0].target);
+ }
+ return [['Warm-up',summarize(warm)],['Work',main],['Between reps',summarize(rests)],['Cool-down',summarize(cool)]]
+  .filter(([,value])=>value);
 }
 const compactDetail=s=>stepGroups(s).map(([label,value])=>label+': '+value+'.').join(' ');
-const sessionDistance=s=>s.fixedMeters!=null?'~'+kmText(s.meters)+' incl. recovery':kmText(s.meters);
+function sessionDistance(s){
+ const totals=prescription.totals(s.structuredSteps);
+ if(!totals||totals.allDistance)return kmText(s.meters);
+ if(!totals.meters)return 'Distance open';
+ return kmText(totals.meters)+' prescribed · ~'+kmText(s.meters)+' total';
+}
+function sessionTime(s){
+ const totals=prescription.totals(s.structuredSteps);
+ if(totals?.allTime)return prescription.time(totals.seconds)+' prescribed';
+ return '~'+minutesText(s.plannedMinutes);
+}
 function sessionMarkup(w){
  if(w.sport!=='Running'||w.structuredDetail!==w.detail)return null;
  const groups=stepGroups(w);
@@ -92,8 +117,14 @@ function existing(f){
 function input(f){
  const h=history(),other=existing(f),dayOf=w=>(new Date(w.date+'T12:00:00Z').getUTCDay()+6)%7;
  const hard=[...new Set([...f.demanding,...other.filter(w=>v43Hard(w)&&Number.isFinite(dayOf(w))).map(dayOf)])];
- const low=num(f.lowHR),high=num(f.highHR),recoveryLow=num(f.recoveryLowHR),recoveryHigh=num(f.recoveryHighHR);
- return {goal:f.goal,start:f.start,weeks:Number(f.weeks),raceDate:f.raceDate||undefined,targetSeconds:parseTime(f.target),athlete:{sources:{...f.sources},level:f.level,currentKm:num(f.volume),weeklyKm:f.completeHistory?h.weeks.map(x=>x.km):undefined,longestKm:num(f.longest),fiveKSeconds:parseTime(f.five),easyPace:parseTime(f.easy),thresholdPace:parseTime(f.threshold),maxHR:num(f.maxHR),lthr:num(f.lthr),restingHR:num(f.restingHR),easyZone:low!==null&&high!==null?{lowBpm:low,highBpm:high}:undefined,recoveryZone:recoveryLow!==null&&recoveryHigh!==null?{lowBpm:recoveryLow,highBpm:recoveryHigh}:undefined,recovery:f.recovery,returnMinutes:num(f.returnMinutes),interrupted:f.interrupted,injury:f.injury},schedule:{available:f.available,runs:Number(f.runs),longDay:Number(f.longDay),weekdayMinutes:num(f.weekday),longMinutes:num(f.longMinutes),dayMinutes:durationOverrides(f),demandingDays:hard},adaptation:{...f.adapt}};
+ const zone=(index,low,high)=>{
+  if(low===null||high===null)return undefined;
+  const saved=f.savedZones[index];
+  return {lowBpm:low,highBpm:high,...(num(saved.min)===low&&num(saved.max)===high?{zone:'Z'+(index+1)}:{})};
+ };
+ const easyZone=zone(1,num(f.lowHR),num(f.highHR)),recoveryZone=zone(0,num(f.recoveryLowHR),num(f.recoveryHighHR));
+ const steadyZone=zone(2,num(f.savedZones[2].min),num(f.savedZones[2].max));
+ return {goal:f.goal,start:f.start,weeks:Number(f.weeks),raceDate:f.raceDate||undefined,targetSeconds:parseTime(f.target),athlete:{sources:{...f.sources},level:f.level,currentKm:num(f.volume),weeklyKm:f.completeHistory?h.weeks.map(x=>x.km):undefined,longestKm:num(f.longest),fiveKSeconds:parseTime(f.five),easyPace:parseTime(f.easy),thresholdPace:parseTime(f.threshold),maxHR:num(f.maxHR),lthr:num(f.lthr),restingHR:num(f.restingHR),easyZone,recoveryZone,steadyZone,recovery:f.recovery,returnMinutes:num(f.returnMinutes),interrupted:f.interrupted,injury:f.injury},schedule:{available:f.available,runs:Number(f.runs),longDay:Number(f.longDay),weekdayMinutes:num(f.weekday),longMinutes:num(f.longMinutes),dayMinutes:durationOverrides(f),demandingDays:hard},adaptation:{...f.adapt}};
 }
 function validStage(f,step){
  if(step===0){
@@ -145,13 +176,14 @@ const previewKey=(f,config,result)=>JSON.stringify([f.owner,config,result,existi
 function review(f){
  const config=input(f),result=api.generate(config);previewToken=previewKey(f,config,result);
  if(!result.ok)return '<div class="item" role="alert">'+result.errors.map(x=>'<p>'+esc(x)+'</p>').join('')+'</div>';
+ root.mileRunningBeta?.mark('plan-reviewed');
  const collisions=existing(f),overlappingRuns=collisions.some(w=>w.sport==='Running'&&w.status!=='done'&&!w.matchId),byDate=new Map();for(const x of collisions){const arr=byDate.get(x.date)||[];arr.push(x.name);byDate.set(x.date,arr)}
  const isReturn=result.goal==='return';
  const total=isReturn?null:result.weeks.reduce((sum,w)=>sum+w.meters,0),minutes=result.weeks.reduce((sum,w)=>sum+w.plannedMinutes,0),sessions=result.weeks.flatMap(w=>w.sessions);
  const estimatedDistance=sessions.some(session=>session.fixedMeters!=null);
- const summary=isReturn?'~'+Math.round(minutes/60*10)/10+' h total · Easy walk–run effort':('Baseline '+result.baseline.km.toFixed(1)+' km/week ('+esc(result.baseline.source)+') · Estimated '+Math.round(minutes/60*10)/10+' h total');
- const hard=sessions.filter(x=>x.demanding).length,hardM=sessions.flatMap(x=>x.structuredSteps).filter(x=>x.intensity==='interval').reduce((s,x)=>s+(x.duration.meters??0),0);
- return (overlappingRuns?'<p role="alert">An existing visible running programme overlaps this plan. Change dates or manage that plan before creating another running programme.</p>':'')+'<div class="mile873-review-intro"><h3>'+esc(goals.find(g=>g[0]===f.goal)?.[1])+'</h3><div class="mile873-metrics"><div><strong>'+result.weeks.length+'</strong><small>Weeks</small></div><div><strong>'+sessions.length+'</strong><small>Sessions</small></div><div><strong>'+kmText(total)+'</strong><small>'+(estimatedDistance?'Planned distance est.':'Total')+'</small></div></div><p class="muted small">'+summary+(isReturn?'':' · '+hard+' demanding runs · '+Math.round(hardM/total*100)+'% distance in prescribed quality segments (not measured HR distribution).')+'</p></div><p class="muted small"><strong>Goal feasibility:</strong> '+(result.feasibilityDetail?.status==='caution'?'Extra preparation caution.':'Review required.')+' MILE has not validated your target time or race readiness. '+esc([...new Set([...(result.feasibilityDetail?.reasons||[]),...result.warnings])].join(' '))+'</p>'+result.weeks.map(w=>'<details class="item m882-week"><summary><strong>Week '+w.week+' · '+esc(w.phase)+'</strong> · '+kmText(w.meters)+' · ~'+w.plannedMinutes+' min</summary>'+w.sessions.map(s=>'<details class="m882-session"><summary><strong>'+esc(nice(s.date))+' · '+esc(s.name)+'</strong><span>'+sessionDistance(s)+' · ~'+s.plannedMinutes+' min'+'</span></summary>'+sessionMarkup({...s,sport:'Running'})+'<p><strong>Session Purpose:</strong> '+esc(s.purpose)+'</p><p><strong>Session Focus:</strong> '+esc(s.focus)+'</p>'+(byDate.has(s.date)?'<p class="muted small">Other sessions: '+esc(byDate.get(s.date).join(', '))+'</p>':'')+'</details>').join('')+'</details>').join('')+'<p class="muted small">Other programmes remain unchanged. Adaptation preferences are saved for a later release; automatic adjustments and Garmin revisions are not active in this build.</p>';
+ const summary=isReturn?minutesText(minutes)+' prescribed · Easy walk–run':('Baseline '+result.baseline.km.toFixed(1)+' km/week ('+esc(result.baseline.source)+') · Estimated '+minutesText(minutes)+' total');
+ const hard=sessions.filter(x=>x.demanding).length;
+ return (overlappingRuns?'<p role="alert">An existing visible running programme overlaps this plan. Change dates or manage that plan before creating another running programme.</p>':'')+'<div class="mile873-review-intro"><h3>'+esc(goals.find(g=>g[0]===f.goal)?.[1])+'</h3><div class="mile873-metrics"><div><strong>'+result.weeks.length+'</strong><small>Weeks</small></div><div><strong>'+sessions.length+'</strong><small>Sessions</small></div><div><strong>'+kmText(total)+'</strong><small>'+(estimatedDistance?'Planned distance est.':'Total')+'</small></div></div><p class="muted small">'+summary+(isReturn?'':' · '+hard+' demanding runs.')+'</p></div><p class="muted small"><strong>Goal feasibility:</strong> '+(result.feasibilityDetail?.status==='caution'?'Extra preparation caution.':'Review required.')+' MILE has not validated your target time or race readiness. '+esc([...new Set([...(result.feasibilityDetail?.reasons||[]),...result.warnings])].join(' '))+'</p>'+result.weeks.map(w=>'<details class="item m882-week"><summary><strong>Week '+w.week+' · '+esc(w.phase)+'</strong> · '+(w.sessions.some(s=>s.fixedMeters!=null)&&w.meters!==null?'~':'')+kmText(w.meters)+' · '+(w.sessions.some(s=>!prescription.totals(s.structuredSteps)?.allTime)?'~':'')+minutesText(w.plannedMinutes)+'</summary>'+w.sessions.map(s=>'<details class="m882-session"><summary><strong>'+esc(nice(s.date))+' · '+esc(s.name)+'</strong><span>'+sessionDistance(s)+' · '+sessionTime(s)+'</span></summary>'+sessionMarkup({...s,sport:'Running'})+'<p><strong>Session Purpose:</strong> '+esc(s.purpose)+'</p><p><strong>Session Focus:</strong> '+esc(s.focus)+'</p>'+(byDate.has(s.date)?'<p class="muted small">Other sessions: '+esc(byDate.get(s.date).join(', '))+'</p>':'')+'</details>').join('')+'</details>').join('')+'<p class="muted small">Other programmes remain unchanged. Adaptation preferences are saved for a later release; automatic adjustments and Garmin revisions are not active in this build.</p>';
 }
 function draw(){
  const f=form(),step=Math.max(0,Math.min(4,v42Step)),h=history();let content='';
@@ -171,10 +203,10 @@ function create(){
  const others=existing(f);
  if(others.some(w=>w.sport==='Running'&&w.status!=='done'&&!w.matchId))return report('An existing visible running programme overlaps this plan. Change your programme dates or manage that plan before adding additional running volume.');
  if(!confirm('Create '+result.weeks.reduce((n,w)=>n+w.sessions.length,0)+' running sessions? '+others.length+' existing sessions will be preserved. No workouts will be sent to Garmin automatically.'))return;
- const id=uid(),name=f.name||'Running · '+goals.find(g=>g[0]===f.goal)[1],items=result.weeks.flatMap(w=>w.sessions.map(s=>{const detail=compactDetail(s);return {...s,id:uid(),block:id,sport:'Running',status:'planned',note:'',matchId:null,detail,structuredDetail:detail,runningPlanVersion:2,revision:1,whyScheduled:'Phase: '+s.phase+'.'}}));
+ const id=uid(),name=f.name||'Running · '+goals.find(g=>g[0]===f.goal)[1],items=result.weeks.flatMap(w=>w.sessions.map(s=>{const detail=compactDetail(s);return {...s,id:uid(),block:id,sport:'Running',status:'planned',note:'',matchId:null,detail,structuredDetail:detail,runningPlanVersion:3,revision:1,whyScheduled:'Phase: '+s.phase+'.'}}));
  if(!items.length)return report('No sessions to save.');
  state.blocks.push({id,name,sport:'Running',start:f.start,end:add(f.start,Number(f.weeks)*7-1),active:true,goal:f.goal,level:f.level,v42:{weeks:result.weeks.length,days:Number(f.runs),available:result.chosenDays},runningPlan:{version:1,config,baseline:result.baseline,warnings:result.warnings}});
- state.workouts.push(...items);state.activeBlock=id;calendarMonth=f.start.slice(0,7);viewDate=f.start;v42Step=0;v42Form={};save();navigate('builder');if(root.milePlanCreated)root.milePlanCreated(id);else notice('Training plan created');
+ state.workouts.push(...items);root.mileRunningBeta?.mark('plan-created');state.activeBlock=id;calendarMonth=f.start.slice(0,7);viewDate=f.start;v42Step=0;v42Form={};save();navigate('builder');if(root.milePlanCreated)root.milePlanCreated(id);else notice('Training plan created');
 }
 document.addEventListener('input',e=>{if(e.target.closest?.('.m882-build')&&e.target.matches('[data-m882-field],[data-m882-day],[data-m882-adapt],[data-m882-day-limit]'))capture(e.target)});
 document.addEventListener('change',e=>{if(e.target.closest?.('.m882-build')&&e.target.matches('[data-m882-field],[data-m882-day],[data-m882-adapt],[data-m882-day-limit]'))capture(e.target)});
@@ -187,8 +219,8 @@ mileCoachWhyHtml=function(w){if(!w.runningPlanVersion)return legacyWhy(w);return
 workoutCard=function(w){
  const html=legacyCard.apply(this,arguments);
  if(w.sport!=='Running')return html;
- const summary=w.runningPlanVersion&&Number.isFinite(w.plannedMinutes)?'<div class="v44-session-zone">'+esc(w.fixedMeters!=null?'Estimated':'Planned')+' · ~'+esc(w.plannedMinutes)+' min</div>':'';
+ const summary=w.runningPlanVersion&&Number.isFinite(w.plannedMinutes)?'<div class="v44-session-zone">'+esc(sessionTime(w))+'</div>':'';
  return html.replace(/<div class="v44-session-zone">[^<]*<\/div>/,summary);
 };
-root.mileRunningBuild={history,compactDetail,sessionMarkup,sessionDistance};
+root.mileRunningBuild={history,compactDetail,sessionMarkup,sessionDistance,sessionTime};
 })(globalThis);

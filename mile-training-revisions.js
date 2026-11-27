@@ -30,6 +30,7 @@
      return;
     }
 
+    root.mileRunningBeta?.mark('proposal-reviewed');
     const { before, after, evidence } = proposal;
     const heading = make('h4', before.name + ' · ' + before.date);
     const button = make('button', 'Approve this revision', 'btn sm');
@@ -54,6 +55,7 @@
        p_proposal_id: proposal.id, p_approved: true
       });
       if (!['applied', 'duplicate'].includes(receipt.status)) throw Error('Revision result unavailable.');
+      root.mileRunningBeta?.mark('proposal-approved');
       status.textContent = 'Revision saved. Reload your plan before making Calendar edits.';
       content.replaceChildren();
      } catch (error) {

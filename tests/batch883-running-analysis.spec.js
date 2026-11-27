@@ -86,3 +86,27 @@ test('revision preparation preserves original and rejects unsafe or duplicate ch
  if(!r.ok||r.next.meters!==4500||r.next.revision!==2||r.history.before.meters!==5000||JSON.stringify(session)!==before)throw Error('revision integrity');
  for(const [a,b,c] of [[{...session,status:'done'},req,ctx],[session,{...req,expectedRevision:0},ctx],[session,req,{...ctx,ownerId:'other'}],[session,req,{...ctx,processedIds:['e']}],[session,{...req,approvedByAthlete:false},ctx],[{...session,matchId:'activity'},req,ctx],[{...session,kind:'cruise'},req,ctx],[session,{...req,factor:.5},ctx]])if(api.prepareRevision(a,b,c).ok)throw Error('unsafe revision accepted');
 });
+
+test('mixed time, distance and HR steps keep prescribed amounts distinct from recorded totals',()=>{
+ const {analyse}=require('../mile-running-analysis.js');
+ const step=(intensity,duration,target)=>({kind:'step',intensity,duration,target:target||{kind:'open'}});
+ const steps=[
+  step('warmup',{kind:'time',seconds:600}),
+  step('interval',{kind:'distance',meters:800},{kind:'pace',fastSecondsPerKm:245,slowSecondsPerKm:260}),
+  step('recovery',{kind:'heart_rate',direction:'below',bpm:125,fallbackSeconds:90},{kind:'heart_rate',lowBpm:110,highBpm:125,zone:'Z1'}),
+  step('cooldown',{kind:'distance',meters:1000}),
+ ];
+ const workout={id:'mixed',sport:'Running',matchId:'real-distance-shape',name:'Mixed steps',km:3.6,plannedMinutes:24,
+  detail:'mixed',structuredDetail:'mixed',structuredSteps:steps};
+ const recorded={id:'real-distance-shape',distanceKm:3.4567,durationMin:24.25};
+ const rows=[
+  {stepIndex:0,meters:1300,seconds:600},{stepIndex:1,meters:802.5,seconds:201},
+  {stepIndex:2,meters:206.7,seconds:75,averageHR:125},{stepIndex:3,meters:1147.5,seconds:579},
+ ];
+ const result=analyse(recorded,{plans:[workout],lapEvidence:{verified:true,source:'provider-step-ids',rows}});
+ expect(result).toMatchObject({distanceKm:3.4567,durationMin:24.25,plannedDistance:3.6,
+  prescribedMeters:1800,prescribedSeconds:600,totalDistanceRatio:null,totalDurationRatio:null});
+ expect(result.recoverySteps[0]).toMatchObject({durationKind:'heart_rate',duration:{direction:'below',bpm:125},
+  completionRatio:null,meters:206.7,averageHR:125});
+ expect(recorded.distanceKm).toBe(3.4567);
+});

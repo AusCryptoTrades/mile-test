@@ -23,3 +23,6 @@
 @media(max-width:780px){
  body:has(#modalRoot #wDetail) #mile-fixed-mobile-nav{display:none!important}
 }
+.m882-build .m882-week>summary,.m882-session>summary{line-height:1.4;overflow-wrap:anywhere}
+.m882-workout-steps>div{grid-template-columns:minmax(82px,24%) minmax(0,1fr)}
+.m3933-workout .m882-workout-steps{white-space:normal}

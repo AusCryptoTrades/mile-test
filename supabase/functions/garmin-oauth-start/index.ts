@@ -1,16 +1,12 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import postgres from "npm:postgres@3.4.5";
+import { garminRouting } from "../_shared/garmin-routing.mjs";
 
 // MILE Training — Garmin OAuth 2.0 PKCE start endpoint
 
-const ALLOWED_ORIGINS = new Set([
-  "https://auscryptotrades.github.io",
-  "https://app.milefitness.com.au",
-]);
-
-const CALLBACK =
-  "https://mgixvokjlytjuypzcfzz.supabase.co/functions/v1/garmin-oauth-callback";
+const routing = garminRouting(Deno.env.get("SUPABASE_URL"), Deno.env.get("MILE_GARMIN_BETA_ORIGIN"));
+const ALLOWED_ORIGINS = routing?.origins ?? new Set<string>();
 
 const GARMIN_AUTHORIZE_URL =
   "https://connect.garmin.com/partner/oauth2Confirm";
@@ -68,6 +64,7 @@ function json(
 
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get("origin");
+  if (!routing) return json({ error: "Garmin connection is unavailable in this environment" }, 503, null);
 
   // Handle browser CORS preflight.
   if (req.method === "OPTIONS") {
@@ -96,7 +93,7 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  if (origin && !ALLOWED_ORIGINS.has(origin)) {
+  if ((routing.beta && !origin) || (origin && !ALLOWED_ORIGINS.has(origin))) {
     return json(
       { error: "Origin not allowed" },
       403,
@@ -165,7 +162,7 @@ Deno.serve(async (req: Request) => {
     error,
   } = await auth.auth.getUser(bearer[1]);
 
-  if (error || !user) {
+  if (error || !user || (routing.beta && (!user.email_confirmed_at || user.is_anonymous))) {
     return json(
       { error: "Session expired; sign in again" },
       401,
@@ -175,7 +172,7 @@ Deno.serve(async (req: Request) => {
 
   // Generate cryptographically secure OAuth state
   // and PKCE verifier.
-  const state = (origin === "https://app.milefitness.com.au" ? "app." : "legacy.") + randomString();
+  const state = routing.prefix(origin) + randomString();
   const verifier = randomString();
 
   const [stateHash, challenge] = await Promise.all([
@@ -192,6 +189,10 @@ Deno.serve(async (req: Request) => {
   });
 
   try {
+    if (routing.beta) {
+      const member = await sql`select 1 from public.av_members where user_id = ${user.id}`;
+      if (!member.length) return json({ error: "MILE Staging membership required" }, 403, origin);
+    }
     await sql`
       insert into private.mile_garmin_oauth_states (
         state_hash,
@@ -223,7 +224,7 @@ Deno.serve(async (req: Request) => {
 
   url.searchParams.set("response_type", "code");
   url.searchParams.set("client_id", clientId);
-  url.searchParams.set("redirect_uri", CALLBACK);
+  url.searchParams.set("redirect_uri", routing.callback);
   url.searchParams.set("code_challenge", challenge);
   url.searchParams.set("code_challenge_method", "S256");
   url.searchParams.set("state", state);

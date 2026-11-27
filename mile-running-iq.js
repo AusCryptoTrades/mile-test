@@ -134,6 +134,7 @@ const fmtPace=n=>{if(n===null||!Number.isFinite(n))return 'Unavailable';const s=
 function fmtDuration(seconds){
  if(!Number.isFinite(seconds))return 'Unavailable';
  const total=Math.round(seconds),minutes=Math.floor(total/60),remainder=total%60;
+ if(total>=3600)return root.mileRunningWorkout?.time(total)||Math.floor(total/3600)+' h '+(minutes%60)+' min';
  if(!minutes)return remainder+' s';
  return minutes+' min'+(remainder?' '+remainder+' s':'');
 }
@@ -143,13 +144,13 @@ function render(host,result,{confirmMatch}={}){
  const row=(p,k,v)=>{const e=el('div',undefined,'mile35-datarow');e.append(el('span',k),el('strong',v));p.append(e)};
  let p=section('MILE IQ · Running analysis');
  p.append(el('p',result.kind==='linked'?'Linked session: '+result.name:'No scheduled session linked. This activity still contributes to your recorded training history.','muted small'));
- row(p,'Recorded distance',result.distanceKm===null?'Unavailable':result.distanceKm.toFixed(2)+' km');
+ row(p,'Recorded distance',result.distanceKm===null?'Unavailable':result.distanceKm+' km');
  row(p,'Recorded duration',fmtDuration(result.durationMin===null?null:result.durationMin*60));
  row(p,'Average pace',fmtPace(result.pace));
  row(p,'Average HR',result.averageHR===null?'Unavailable':Math.round(result.averageHR)+' bpm');
  if(result.kind==='linked'&&!result.advanced){
   p=section('Planned vs actual');row(p,'Planned distance estimate',result.plannedKm===null?'Unavailable':result.plannedKm+' km');
-  row(p,'Actual distance',result.distanceKm===null?'Unavailable':result.distanceKm.toFixed(2)+' km');
+  row(p,'Actual distance',result.distanceKm===null?'Unavailable':result.distanceKm+' km');
   p.append(el('p','Main-set adherence is not yet assessed. The stored plan distance may exclude warm-up or recovery.','muted small'));
  }
  p=section('Recorded heart rate distribution');
@@ -167,10 +168,12 @@ function render(host,result,{confirmMatch}={}){
   if(a.kind==='planned'){
    if(result.prescriptionRevision!==null)row(p,'Linked MILE workout revision',String(result.prescriptionRevision));
    if(result.purpose)p.append(el('p',result.purpose,'small'));
-   row(p,a.plannedDistanceSource==='structured-distance'?'Planned distance':'Planned distance estimate',a.plannedDistance===null?'Unavailable':a.plannedDistance.toFixed(2)+' km');
+   row(p,a.plannedDistanceSource==='structured-distance'?'Planned distance':'Planned distance estimate',a.plannedDistance===null?'Unavailable':root.mileRunningWorkout.distance(a.plannedDistance*1000));
    row(p,a.plannedDurationSource==='structured-time'?'Planned duration':'Planned duration estimate',fmtDuration(a.plannedDuration===null?null:a.plannedDuration*60));
+   if(a.prescribedMeters>0)row(p,'Distance in prescribed steps',root.mileRunningWorkout.distance(a.prescribedMeters));
+   if(a.prescribedSeconds>0)row(p,'Time in prescribed steps',fmtDuration(a.prescribedSeconds));
    row(p,'Recorded duration',fmtDuration(a.durationMin===null?null:a.durationMin*60));
-   row(p,'Distance completed',a.totalDistanceRatio===null?'Unavailable':Math.round(a.totalDistanceRatio*100)+'%');
+   if(a.totalDistanceRatio!==null)row(p,'Distance completed',Math.round(a.totalDistanceRatio*100)+'%');
    const execution=a.execution!=='insufficient-evidence'?a.execution.replaceAll('-',' '):a.steps?'Target execution unavailable':'Verified step alignment required';
    row(p,'Main-set execution',execution);
    if(result.heartRateChange){
@@ -193,7 +196,7 @@ function render(host,result,{confirmMatch}={}){
      details.append(el('h4',labels[step.intensity]+' '+(++counts[step.intensity])));
      const planned=step.durationKind==='distance'?Math.round(step.planned)+' m':step.durationKind==='time'?fmtDuration(step.planned):root.mileRunningWorkout?.durationLabel(step.duration)||'Manual lap';
      row(details,'Planned step',planned);
-     row(details,'Recorded step',Math.round(step.meters)+' m · '+fmtDuration(step.seconds));
+     row(details,'Recorded step',step.meters+' m · '+fmtDuration(step.seconds));
      if(step.target?.kind==='pace'){
       const {fastSecondsPerKm,slowSecondsPerKm}=step.target;
       row(details,'Planned pace',fastSecondsPerKm===slowSecondsPerKm?fmtPace(fastSecondsPerKm):fmtPace(fastSecondsPerKm)+'–'+fmtPace(slowSecondsPerKm));
@@ -219,8 +222,8 @@ function render(host,result,{confirmMatch}={}){
    p.append(el('p','Choose the session you completed.','muted small'));
    for(const candidate of result.matchReview){
     const comparison=[
-     candidate.distance!==null?candidate.distance.toFixed(2)+' km':null,
-     candidate.duration!==null?(candidate.durationEstimated?'~':'')+Math.round(candidate.duration)+' min':null,
+     candidate.distance!==null?root.mileRunningWorkout.distance(candidate.distance*1000):null,
+     candidate.duration!==null?(candidate.durationEstimated?'~':'')+root.mileRunningWorkout.time(Math.round(candidate.duration)*60):null,
     ].filter(Boolean);
     const card=el('div',undefined,'m881-match-card');
     row(card,candidate.name,comparison.join(' · '));

@@ -1,6 +1,8 @@
 const { test, expect } = require('@playwright/test');
 const { spawn } = require('node:child_process');
 const { once } = require('node:events');
+const { mkdtemp, readFile, readdir, rm } = require('node:fs/promises');
+const { tmpdir } = require('node:os');
 const path = require('node:path');
 const reviewImage = require('./overnight-review-image');
 
@@ -118,5 +120,39 @@ test('staging Analysis requires explicit approval of the exact server revision',
       'mile_review_training_revision','mile_approve_training_revision',
       'mile_review_training_revision','mile_approve_training_revision',
     ]);
+
+    await page.locator('#mile35-detail').getByRole('button',{name:/Back/}).click();
+    await page.evaluate(()=>window.mileV3Go('settings'));
+    await page.locator('[data-m771-open="connections"]').click();
+    const download = page.waitForEvent('download');
+    await page.getByRole('button',{name:'Download beta report',exact:true}).click();
+    const report=JSON.parse(await readFile(await (await download).path(),'utf8'));
+    expect(Object.keys(report).sort()).toEqual(['build','checkpoints','schema']);
+    expect(report.build).toMatch(/^[a-f0-9]{40}$/);
+    expect(report.checkpoints).toEqual(['analysis-opened','proposal-reviewed','proposal-approved']);
   });
+});
+
+
+test('portable beta export contains only the staging app and keeps reset redirects origin-relative', async()=>{
+ const temp = await mkdtemp(path.join(tmpdir(),'mile-beta-export-'));
+ try{
+  const target=path.join(temp,'preview');
+  const task=spawn(process.execPath,[path.resolve(__dirname,'../scripts/serve-running-staging.mjs'),'--output',target],{
+   env:{...process.env,MILE_STAGING_PUBLISHABLE_KEY:'sb_publishable_fixture_key'},stdio:'ignore',
+  });
+  const [code]=await once(task,'exit');
+  expect(code).toBe(0);
+  const files=await readdir(target);
+  expect(files).toContain('_headers');
+  expect(files).toContain('mile-running-beta.js');
+  for(const file of files){
+   expect(file).toMatch(/^(index\.html|_headers|mile-[a-z0-9.-]+\.(html|js|css))$/);
+   const asset=await readFile(path.join(target,file),'utf8');
+   expect(asset).not.toContain('mgixvokjlytjuypzcfzz');
+   expect(asset).not.toContain('https://app.milefitness.com.au');
+  }
+  expect(await readFile(path.join(target,'_headers'),'utf8')).toContain('connect-src '+staging);
+  expect(await readFile(path.join(target,'mile-reset-password.html'),'utf8')).toContain("new URL('/mile-reset-password.html', location.origin).href");
+ }finally{await rm(temp,{recursive:true,force:true})}
 });

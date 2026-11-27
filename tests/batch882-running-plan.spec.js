@@ -187,3 +187,37 @@ test('running targets and step endings use independently confirmed HR and pace',
  expect(uncertain.flatMap(s=>s.structuredSteps).some(s=>s.duration.kind==='time')).toBe(true);
  expect(uncertain.flatMap(s=>s.structuredSteps).some(s=>s.duration.kind==='heart_rate')).toBe(false);
 });
+
+
+test('structured variations include short, mixed and timed work without rounding distances',()=>{
+ const lib=require('../mile-running-workout.js');
+ const profile={level:'advanced',weeklyKm:[90,90,90,90],longestKm:34,easyPace:320,thresholdPace:260,
+  easyZone:{lowBpm:118,highBpm:142,zone:'Z2'},recoveryZone:{lowBpm:105,highBpm:122,zone:'Z1'},recovery:'normal'};
+ const plan=engine.generate({goal:'fitness',weeks:24,start:'2026-11-30',athlete:profile,
+  schedule:{available:[0,1,3,5,6],runs:5,longDay:5,weekdayMinutes:90,longMinutes:180},adaptation:{intervalRecovery:'heart_rate'}});
+ expect(plan.ok).toBe(true);
+ const workouts=plan.weeks.flatMap(w=>w.sessions);
+ for(const kind of ['hills','strides','fartlek','ladder','pyramid','mixed','tempo'])expect(workouts.some(s=>s.kind===kind),kind).toBe(true);
+ const work=workouts.flatMap(w=>w.structuredSteps).filter(s=>s.intensity==='interval');
+ const distances=work.filter(s=>s.duration.kind==='distance').map(s=>s.duration.meters);
+ for(const meters of [100,200,300,400,600,800])expect(distances).toContain(meters);
+ expect(work.some(s=>s.duration.kind==='time')).toBe(true);
+ const aerobic=workouts.find(w=>w.kind==='easy');
+ expect(lib.targetLabel(aerobic.structuredSteps[0].target)).toBe('Z2 Easy aerobic · 118–142 bpm');
+ expect(lib.time(71*60)).toBe('1 h 11 min');
+ const mixed=workouts.find(w=>w.kind==='ladder'&&w.structuredSteps.some(s=>s.duration.kind==='heart_rate'));
+ expect(mixed).toBeTruthy();
+ expect(lib.totals(mixed.structuredSteps)).toMatchObject({allDistance:false,allTime:false});
+ expect(mixed.fixedMeters).toEqual(lib.totals(mixed.structuredSteps).meters);
+});
+
+test('tight session limits produce a timed aerobic run without rounding up',()=>{
+ const plan=engine.generate({goal:'fitness',weeks:2,start:'2026-11-30',
+  athlete:{level:'beginner',currentKm:2,longestKm:1},schedule:{available:[0,3],runs:2,longDay:3,longMinutes:7,weekdayMinutes:7}});
+ expect(plan.ok).toBe(true);
+ for(const session of plan.weeks.flatMap(w=>w.sessions)){
+  expect(session.structuredSteps).toHaveLength(1);
+  expect(session.structuredSteps[0].duration.kind).toBe('time');
+  expect(session.plannedMinutes).toBeLessThanOrEqual(7);
+ }
+});

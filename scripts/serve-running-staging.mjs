@@ -1,11 +1,15 @@
 import { createServer } from 'node:http';
-import { readFile, readdir } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { resolve } from 'node:path';
 
 const production = 'https://mgixvokjlytjuypzcfzz.supabase.co';
 const staging = 'https://fnyfeelynaozxtftrrga.supabase.co';
 const port = Number(process.env.MILE_STAGING_PORT || 4186);
 const key = process.env.MILE_STAGING_PUBLISHABLE_KEY || '';
 const root = new URL('../', import.meta.url);
+const output = process.argv[2]==='--output' && process.argv.length===4 ? resolve(process.argv[3]) : null;
+if (process.argv.length > 2 && !output) throw new Error('Use --output DIRECTORY to create a portable staging preview.');
 
 if (!/^sb_publishable_[A-Za-z0-9_-]+$/.test(key)) {
   throw new Error('Set MILE_STAGING_PUBLISHABLE_KEY to the MILE Staging publishable key.');
@@ -15,6 +19,7 @@ if (!Number.isInteger(port) || port < 1024 || port > 65535) {
 }
 
 const origin = 'http://127.0.0.1:' + port;
+const build = execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
 const types = { html: 'text/html', js: 'text/javascript', css: 'text/css' };
 const index = await readFile(new URL('index.html', root), 'utf8');
 const productionKey = index.match(/supabaseAnon:'(sb_publishable_[A-Za-z0-9_-]+)'/)?.[1];
@@ -28,8 +33,14 @@ for (const entry of await readdir(root, { withFileTypes: true })) {
   let content = (await readFile(new URL(entry.name, root), 'utf8'))
     .replaceAll(production, staging)
     .replaceAll(productionKey, key)
-    .replaceAll('https://app.milefitness.com.au', origin);
-  if (entry.name === 'index.html') content = content.replace('<html', '<html data-mile-staging="true"');
+    .replaceAll('https://app.milefitness.com.au', output ? '' : origin);
+  if (output && entry.name === 'mile-reset-password.html') {
+    content = content.replace("REDIRECT='/mile-reset-password.html'", "REDIRECT=new URL('/mile-reset-password.html', location.origin).href");
+  }
+  if (entry.name === 'index.html') {
+    content = content.replace('<html', '<html data-mile-staging="true"')
+      .replace('</head>', '<meta name="mile-beta-build" content="'+build+'"><script src="./mile-running-beta.js" defer></script></head>');
+  }
   assets.set('/' + entry.name, content);
 }
 assets.set('/', assets.get('/index.html'));
@@ -45,7 +56,12 @@ const securityHeaders = {
   ].join('; ')
 };
 
-createServer((req, res) => {
+if (output) {
+ await mkdir(output, { recursive: false });
+ for (const [path, asset] of assets) if (path !== '/') await writeFile(resolve(output,path.slice(1)),asset,{flag:'wx'});
+ await writeFile(resolve(output,'_headers'),'/*\n'+Object.entries(securityHeaders).map(([name,value])=>'  '+name+': '+value).join('\n')+'\n',{flag:'wx'});
+ console.log('Created staging-only preview in '+output);
+} else createServer((req, res) => {
   const pathname = (req.url || '').split('?')[0];
   const asset = assets.get(pathname);
   if (req.headers.host !== '127.0.0.1:' + port || !asset || !['GET', 'HEAD'].includes(req.method)) {

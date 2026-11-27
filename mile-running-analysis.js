@@ -35,9 +35,14 @@ function align(steps,evidence){
 }
 function plannedTotals(workout){
  const steps=workout.structuredDetail===workout.detail?expand(workout.structuredSteps):null;
- const distanceExact=steps&&steps.every(x=>x.duration.kind==='distance')?steps.reduce((n,x)=>n+x.duration.meters,0)/1000:null;
- const durationExact=steps&&steps.every(x=>x.duration.kind==='time')?steps.reduce((n,x)=>n+x.duration.seconds,0)/60:null;
- return {steps,distanceExact,durationExact,distance:distanceExact??pos(workout.km),duration:durationExact??pos(workout.plannedMinutes)};
+ const totals=prescription?.totals(workout.structuredDetail===workout.detail?workout.structuredSteps:null);
+ const distanceExact=totals?.allDistance?totals.meters/1000:null;
+ const durationExact=totals?.allTime?totals.seconds/60:null;
+ const prescribedMeters=totals&&!totals.allDistance?totals.meters:0;
+ const prescribedSeconds=totals&&!totals.allTime?totals.seconds:0;
+ const estimateDistance=totals&&totals.meters===0?null:pos(workout.km);
+ return {steps,distanceExact,durationExact,prescribedMeters,prescribedSeconds,distance:distanceExact??estimateDistance,duration:durationExact??pos(workout.plannedMinutes)};
+
 }
 function analyse(activity,opts={}){
  const distance=pos(activity?.distanceKm),duration=pos(activity?.durationMin),id=activity?.id==null?null:String(activity.id);
@@ -55,7 +60,7 @@ function analyse(activity,opts={}){
   }
   return {...base,classification,stimulus,adherence:null,recovery:classification==='higher-intensity'?'Review recovery and upcoming demanding sessions.':'Consider duration and recent total load; recovery cannot be established from this activity alone.',programmeImpact:'No programme change made.'};
  }
- const {steps,distanceExact,durationExact,distance:plannedDistance,duration:plannedDuration}=plannedTotals(matched);
+ const {steps,distanceExact,durationExact,distance:plannedDistance,duration:plannedDuration,prescribedMeters,prescribedSeconds}=plannedTotals(matched);
  const aligned=confounded?null:align(steps,opts.lapEvidence);
  const main=aligned?.filter(x=>x.intensity==='active'||x.intensity==='interval')||[],recovery=aligned?.filter(x=>x.intensity==='recovery')||[];
  const comparable=main.filter(x=>x.paceStatus!==null),complete=main.filter(x=>x.completionRatio!==null);
@@ -69,7 +74,7 @@ function analyse(activity,opts={}){
  );
  const intervalPaces=comparableIntervals?intervals.map(x=>x.pace):[];
  const spread=comparableIntervals?Math.max(...intervalPaces)-Math.min(...intervalPaces):null;
- const totalDistanceRatio=plannedDistance&&distance&&(!steps||distanceExact!==null)?distance/plannedDistance:null,totalDurationRatio=plannedDuration&&duration?duration/plannedDuration:null;
+ const totalDistanceRatio=plannedDistance&&distance&&(!steps||distanceExact!==null)?distance/plannedDistance:null,totalDurationRatio=plannedDuration&&duration&&(!steps||durationExact!==null)?duration/plannedDuration:null;
  let execution='insufficient-evidence',stimulus='Main-set execution and intended physiological stimulus cannot be established from available evidence.',good=[],improve=[];
  if(confounded)improve.push('Review context before interpreting performance; no adaptation evidence generated.');
  else if(aligned&&main.length&&complete.length===main.length){
@@ -90,7 +95,7 @@ function analyse(activity,opts={}){
  const sessionType=matched.kind||'unknown';
  // Adaptation evidence is intentionally more restrictive than descriptive comparison.
  const evidence=null; // A future authenticated integration must establish comparable repeated conditions.
- return {...base,planId:matched.id,sessionName:matched.name||'Scheduled run',sessionType,plannedDistance,plannedDistanceSource:distanceExact!==null?'structured-distance':'stored-estimate',plannedDuration,plannedDurationSource:durationExact!==null?'structured-time':'stored-estimate',totalDistanceRatio,totalDurationRatio,execution,stimulus,good,improve,steps:aligned,workPace,intervalPaceSpread:spread,mainPaceCounts:comparable.length?{within:comparable.filter(x=>x.paceStatus==='within').length,faster:comparable.filter(x=>x.paceStatus==='faster').length,slower:comparable.filter(x=>x.paceStatus==='slower').length}:null,mainAverageHRCounts:hrComparable.length?{within:hrComparable.filter(x=>x.hrStatus==='within').length,above:hrComparable.filter(x=>x.hrStatus==='above').length,below:hrComparable.filter(x=>x.hrStatus==='below').length}:null,recoverySteps:recovery.length?recovery:null,adaptationEvidence:evidence,programmeImpact:'No programme change made.'};
+ return {...base,planId:matched.id,sessionName:matched.name||'Scheduled run',sessionType,plannedDistance,prescribedMeters,prescribedSeconds,plannedDistanceSource:distanceExact!==null?'structured-distance':'stored-estimate',plannedDuration,plannedDurationSource:durationExact!==null?'structured-time':'stored-estimate',totalDistanceRatio,totalDurationRatio,execution,stimulus,good,improve,steps:aligned,workPace,intervalPaceSpread:spread,mainPaceCounts:comparable.length?{within:comparable.filter(x=>x.paceStatus==='within').length,faster:comparable.filter(x=>x.paceStatus==='faster').length,slower:comparable.filter(x=>x.paceStatus==='slower').length}:null,mainAverageHRCounts:hrComparable.length?{within:hrComparable.filter(x=>x.hrStatus==='within').length,above:hrComparable.filter(x=>x.hrStatus==='above').length,below:hrComparable.filter(x=>x.hrStatus==='below').length}:null,recoverySteps:recovery.length?recovery:null,adaptationEvidence:evidence,programmeImpact:'No programme change made.'};
 }
 function propose(event,ctx={}){
  const today=date(ctx.today),id=event?.id==null?'':String(event.id),settings=ctx.settings||{};
@@ -169,11 +174,16 @@ function prepareRevision(session,request,ctx={}){
  if(!steps||!steps.every(s=>s.duration.kind==='distance'&&['warmup','active','cooldown'].includes(s.intensity)))return reject('unsupported-structure');
  const oldMeters=steps.reduce((n,s)=>n+s.duration.meters,0),factor=request.factor;
  if(!pos(factor)||factor<.8||factor>=1||!pos(session.estimatedSeconds)||!pos(session.plannedMinutes)||session.meters!==oldMeters||Math.abs(session.km*1000-oldMeters)>1)return reject('invalid-reduction');
- const revised=steps.map(s=>({...s,duration:{kind:'distance',meters:Math.floor(s.duration.meters*factor/100)*100}}));
+ const whole=session.runningPlanVersion===3;
+ if(whole&&(steps.length!==1||steps[0].intensity!=='active'||oldMeters%1000!==0))return reject('unsupported-structure');
+ const revised=steps.map(s=>({...s,duration:{kind:'distance',meters:whole?
+  Math.ceil(s.duration.meters*factor/1000-.5)*1000:Math.floor(s.duration.meters*factor/100)*100}}));
  if(revised.some(s=>s.duration.meters<100))return reject('minimum-step');
  const meters=revised.reduce((n,s)=>n+s.duration.meters,0);
  if(meters<oldMeters*.8||meters>=oldMeters)return reject('reduction-limit');
- const detail=revised.map(s=>s.intensity+': '+(s.duration.meters/1000).toFixed(1)+' km').join(' · ');
+ const detail=whole?'Run: '+prescription.distance(revised[0].duration.meters)+
+  (prescription.targetLabel(revised[0].target)?' · '+prescription.targetLabel(revised[0].target):'')+'.':
+  revised.map(s=>s.intensity+': '+Number((s.duration.meters/1000).toFixed(3))+' km').join(' · ');
  const next={...session,revision:session.revision+1,meters,km:meters/1000,estimatedSeconds:Math.ceil(session.estimatedSeconds*meters/oldMeters),plannedMinutes:Math.ceil(session.estimatedSeconds*meters/oldMeters/60),structuredSteps:revised,detail,structuredDetail:detail};
  return {ok:true,next,history:{ownerId:ctx.ownerId,sessionId:session.id,eventId:String(request.eventId),fromRevision:session.revision,toRevision:next.revision,before:JSON.parse(JSON.stringify(session)),after:JSON.parse(JSON.stringify(next)),reason:'Athlete-approved aerobic distance reduction'},requiresAtomicPersistence:true,garminAction:'review-republish'};
 }
