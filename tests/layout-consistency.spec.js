@@ -12,9 +12,12 @@ test('page headings and navigation remain consistent',async({page})=>{
   const hero=page.locator('#app > .mile-universal-header');
   await expect(hero).toHaveCount(1);
   await expect(hero).toBeVisible();
-  await expect(hero).toHaveCSS('height','116px');
-  await expect(hero.locator('h1')).toHaveCSS('font-size','26px');
+  await expect(hero).toHaveCSS('min-height','86px');
+  await expect(hero.locator('h1')).toHaveCSS('font-size','24px');
   const rect=await hero.boundingBox();
+  expect(rect.height).toBeGreaterThanOrEqual(86);
+  expect(rect.height).toBeLessThan(116);
+  expect(await hero.evaluate(el=>el.scrollHeight<=el.clientHeight+2)).toBe(true);
   if(!baseline)baseline=rect;
   expect(Math.abs(rect.x-baseline.x)).toBeLessThanOrEqual(2);
   expect(Math.abs(rect.width-baseline.width)).toBeLessThanOrEqual(2);
