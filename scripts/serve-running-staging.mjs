@@ -25,10 +25,11 @@ if (!productionKey || key === productionKey) {
 const assets = new Map();
 for (const entry of await readdir(root, { withFileTypes: true })) {
   if (!entry.isFile() || !/^(index\.html|mile-[a-z0-9.-]+\.(html|js|css))$/.test(entry.name)) continue;
-  const content = (await readFile(new URL(entry.name, root), 'utf8'))
+  let content = (await readFile(new URL(entry.name, root), 'utf8'))
     .replaceAll(production, staging)
     .replaceAll(productionKey, key)
     .replaceAll('https://app.milefitness.com.au', origin);
+  if (entry.name === 'index.html') content = content.replace('<html', '<html data-mile-staging="true"');
   assets.set('/' + entry.name, content);
 }
 assets.set('/', assets.get('/index.html'));

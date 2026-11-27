@@ -14,6 +14,8 @@ on:
       - 'supabase/tests/batch87-garmin-publications.test.sql'
       - 'supabase/migrations/*_running_workout_revisions.sql'
       - 'supabase/tests/batch88-running-revisions*.sql'
+      - 'supabase/migrations/*_training_revision_consent.sql'
+      - 'supabase/tests/batch88-training-revision-consent.test.sql'
       - '.github/workflows/mile-garmin-training.yml'
   workflow_dispatch:
 permissions:
@@ -66,3 +68,16 @@ jobs:
             -f supabase/migrations/20261127064605_running_workout_revisions.sql \
             -f supabase/tests/batch88-running-revisions.test.sql \
             -f supabase/tests/batch88-running-revisions-concurrency.test.sql
+
+      - name: Run isolated training evidence and consent regression
+        env:
+          PGHOST: 127.0.0.1
+          PGUSER: postgres
+          PGDATABASE: mile_training_consent_test
+        run: |
+          createdb "$PGDATABASE"
+          psql -v ON_ERROR_STOP=1 \
+            -f supabase/tests/batch88-running-revisions-fixtures.sql \
+            -f supabase/migrations/20261127064605_running_workout_revisions.sql \
+            -f supabase/migrations/20261127081603_training_revision_consent.sql \
+            -f supabase/tests/batch88-training-revision-consent.test.sql
