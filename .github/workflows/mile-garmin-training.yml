@@ -3,7 +3,21 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches: [main]
-    paths: ['integrations/garmin/**', 'mile-garmin-plan.js', 'mile-device-sync.js', 'tests/batch87-device-sync.spec.js', 'index.html', 'mile-garmin-diagnostic.html', 'supabase/proposals/batch87-garmin-publications.sql', 'supabase/tests/batch87-garmin-publications.test.sql', '.github/workflows/mile-garmin-training.yml']
+    paths:
+      - 'integrations/garmin/**'
+      - 'mile-garmin-plan.js'
+      - 'mile-device-sync.js'
+      - 'tests/batch87-device-sync.spec.js'
+      - 'index.html'
+      - 'mile-garmin-diagnostic.html'
+      - 'supabase/proposals/batch87-garmin-publications.sql'
+      - 'supabase/tests/batch87-garmin-publications.test.sql'
+      - 'supabase/migrations/*_running_workout_revisions.sql'
+      - 'supabase/tests/batch88-running-revisions*.sql'
+      - 'supabase/migrations/*_training_revision_consent.sql'
+      - 'supabase/migrations/*_training_revision_legacy_workout_ids.sql'
+      - 'supabase/tests/batch88-training-revision-consent.test.sql'
+      - '.github/workflows/mile-garmin-training.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -43,3 +57,29 @@ jobs:
       - run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/batch87-garmin-publications.test.sql
       - run: createdb -h localhost -U postgres mile_fit_test
       - run: psql -h localhost -U postgres -d mile_fit_test -v ON_ERROR_STOP=1 -f supabase/tests/batch875-fit-jobs.test.sql
+      - name: Run isolated running revision and Garmin claim regression
+        env:
+          PGHOST: 127.0.0.1
+          PGUSER: postgres
+          PGDATABASE: mile_running_revision_test
+        run: |
+          createdb "$PGDATABASE"
+          psql -v ON_ERROR_STOP=1 \
+            -f supabase/tests/batch88-running-revisions-fixtures.sql \
+            -f supabase/migrations/20261127064605_running_workout_revisions.sql \
+            -f supabase/tests/batch88-running-revisions.test.sql \
+            -f supabase/tests/batch88-running-revisions-concurrency.test.sql
+
+      - name: Run isolated training evidence and consent regression
+        env:
+          PGHOST: 127.0.0.1
+          PGUSER: postgres
+          PGDATABASE: mile_training_consent_test
+        run: |
+          createdb "$PGDATABASE"
+          psql -v ON_ERROR_STOP=1 \
+            -f supabase/tests/batch88-running-revisions-fixtures.sql \
+            -f supabase/migrations/20261127064605_running_workout_revisions.sql \
+            -f supabase/migrations/20261127081603_training_revision_consent.sql \
+            -f supabase/migrations/20261127082454_training_revision_legacy_workout_ids.sql \
+            -f supabase/tests/batch88-training-revision-consent.test.sql
