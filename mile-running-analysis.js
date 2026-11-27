@@ -128,9 +128,18 @@ function propose(event,ctx={}){
 // Candidate selection is advisory; only an explicit verified provider delivery link can match automatically.
 function reconcile(activity,plans,deliveries){
  if(!activity||activity.id==null||activity.sport!=='Running'||date(activity.date)===null)return {status:'invalid',candidates:[]};
- const eligible=(Array.isArray(plans)?plans:[]).filter(p=>p?.sport==='Running'&&p.id!=null&&p.date===activity.date&&p.status==='planned'&&p.matchId==null);
- const links=(Array.isArray(deliveries)?deliveries:[]).filter(d=>d?.verified===true&&same(d.providerWorkoutId,activity.providerWorkoutId)&&same(d.revision,activity.workoutRevision));
- const linked=eligible.filter(p=>links.some(d=>same(d.sessionId,p.id)&&same(d.revision,p.revision)));
+ const sessions=Array.isArray(plans)?plans:[];
+ const existing=sessions.filter(p=>same(p?.matchId,activity.id));
+ if(existing.length===1&&existing[0].id!=null)return {status:'already-linked',sessionId:existing[0].id,candidates:[]};
+ if(existing.length)return {status:'review',candidates:existing.flatMap(p=>p.id==null?[]:[p.id])};
+ const eligible=sessions.filter(p=>p?.sport==='Running'&&p.id!=null&&p.date===activity.date&&p.status==='planned'&&p.matchId==null);
+ // The publication registry stores positive decimal Garmin workout IDs and integer revisions.
+ const providerId=String(activity.providerWorkoutId??'');
+ const revision=activity.workoutRevision;
+ const links=/^[1-9][0-9]{0,14}$/.test(providerId)&&Number.isSafeInteger(revision)&&revision>=1
+  ? (Array.isArray(deliveries)?deliveries:[]).filter(d=>d?.verified===true&&same(d.providerWorkoutId,providerId)&&d.revision===revision)
+  : [];
+ const linked=eligible.filter(p=>p.revision===revision&&links.some(d=>same(d.sessionId,p.id)));
  if(links.length===1&&linked.length===1)return {status:'verified-link',sessionId:linked[0].id,candidates:[linked[0].id]};
  if(links.length)return {status:'review',candidates:linked.map(p=>p.id)};
  const candidates=eligible.filter(p=>pos(p.km)&&pos(activity.distanceKm)&&Math.abs(p.km-activity.distanceKm)/p.km<=.25).map(p=>p.id);

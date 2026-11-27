@@ -3451,7 +3451,7 @@ document.addEventListener('click',ev=>{const b=ev.target.closest('[data-m388-up]
 </style>
 <script id="mile-v395-garmin-data-reader">
 (function(){
- let loading=false,lastRead=0,failedNotice=false;
+ const readsByState=new WeakMap();
  recoverySummary=function(){const r=recoveryDay(today())||recoveryRecords().slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0],d=r?String(r.date).slice(0,10):'';return {r,d,hrv:null,rhr:recoveryNumber(r,'restingHR','restingHr','restingHeartRate'),hrv:recoveryNumber(r,'hrvMs','overnightHrv','hrv'),battery:recoveryNumber(r,'bodyBattery','bodyBatteryLevel'),batteryCharged:recoveryNumber(r,'batteryCharged'),batteryDrained:recoveryNumber(r,'batteryDrained'),stress:recoveryNumber(r,'stress','stressAverage','averageStress'),sleep:recoveryNumber(r,'sleepHours','sleep'),score:recoveryNumber(r,'sleepScore','sleepQualityScore'),status:recoveryValue(r,'hrvStatus','hrv_status'),vo2max:window.mile762.vo2(recoveryRecords())}};
  refreshFromHome=function(){return mileLoadGarminData(true)};
  const release='3.9.27';
@@ -3467,12 +3467,17 @@ document.addEventListener('click',ev=>{const b=ev.target.closest('[data-m388-up]
    ${c('Recovery history',history.length?`<div class="list">${history.slice().sort((x,y)=>String(y.date).localeCompare(String(x.date))).slice(0,14).map(x=>`<div class="item row between"><div><strong>${esc(String(x.date).slice(0,10))}</strong><div class="small muted">Sleep ${fmtSleep(recoveryNumber(x,'sleepHours','sleep'))} · Resting HR ${fmtRecovery(recoveryNumber(x,'restingHR','restingHr'),' bpm')}</div></div><div class="small muted">Score ${fmtRecovery(recoveryNumber(x,'sleepScore'))}</div></div>`).join('')}</div>`:'<div class="empty">No recovery history yet.</div>','half')}</div>`;
  }
  window.mileLoadGarminData=async function(force=false){
-   if(!v4Ready||!token||!userId||loading)return;
-   if(!force&&Date.now()-lastRead<300000)return;
-   loading=true;
+   if(!v4Ready||!token||!userId)return;
+   const owner=userId,trainingState=state;
+   const current=()=>v4Ready&&userId===owner&&state===trainingState;
+   let read=readsByState.get(trainingState);
+   if(!read){read={loading:false,lastRead:0,failedNotice:false};readsByState.set(trainingState,read)}
+   if(read.loading||(!force&&Date.now()-read.lastRead<300000))return;
+   read.loading=true;
    try{
-     const res=await fetch(MILE_GARMIN_FUNCTIONS+'garmin-data-read',{method:'GET',headers:{'Authorization':'Bearer '+token,'apikey':state.settings.supabaseAnon,'Accept':'application/json'}});
+     const res=await fetch(MILE_GARMIN_FUNCTIONS+'garmin-data-read',{method:'GET',headers:{'Authorization':'Bearer '+token,'apikey':trainingState.settings.supabaseAnon,'Accept':'application/json'}});
      const data=await res.json().catch(()=>({}));
+     if(!current())return;
      if(!res.ok||data.error)throw Error(data.error||'Garmin data read HTTP '+res.status);
      const days=new Map((state.recoveryDays||[]).map(x=>[String(x.date||x.day||'').slice(0,10),x]));
      for(const row of (data.health||[])){
@@ -3524,11 +3529,11 @@ document.addEventListener('click',ev=>{const b=ev.target.closest('[data-m388-up]
      }
      state.activities=[...acts.values()];
      if(data.latest_import)state.settings.lastGarminSync=data.latest_import;
-     localStorage.setItem(v4LocalKey(userId),JSON.stringify(state));lastRead=Date.now();failedNotice=false;
+     localStorage.setItem(v4LocalKey(owner),JSON.stringify(trainingState));read.lastRead=Date.now();read.failedNotice=false;
      if(page==='recovery'){const app=document.getElementById('app');if(app)app.innerHTML=recoveryHtml()}
      if(page==='dashboard'||page==='performance'){const app=document.getElementById('app');if(app)render()}
-   }catch(err){console.warn('MILE Garmin reader:',err.message);if(!failedNotice){failedNotice=true;const el=document.getElementById('syncStatus');if(el)el.title='Garmin dashboard reader not available: '+err.message}}
-   finally{loading=false}
+   }catch(err){if(!current())return;console.warn('MILE Garmin reader:',err.message);if(!read.failedNotice){read.failedNotice=true;const el=document.getElementById('syncStatus');if(el)el.title='Garmin dashboard reader not available: '+err.message}}
+   finally{read.loading=false}
  };
  const previousGo=window.mileV3Go;
  window.mileV3Go=function(p){if(p==='whatsnew'){document.getElementById('mileV3More')?.classList.remove('open');page='whatsnew';render();window.scrollTo(0,0);return}return previousGo(p)};

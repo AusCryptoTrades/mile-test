@@ -1,4 +1,4 @@
-const {test}=require('@playwright/test');
+const {test,expect}=require('@playwright/test');
 const api=require('../mile-running-analysis.js');
 const checks=function tests(api){
  const assert=(x,m)=>{if(!x)throw Error(m)};
@@ -42,11 +42,22 @@ const checks=function tests(api){
 test('Batch 88.3 verified planned and unplanned analysis and review rules',()=>checks(api));
 
 test('Garmin revision matching never guesses or overwrites completed sessions',()=>{
- const a={id:'a',sport:'Running',date:'2026-11-27',distanceKm:5,providerWorkoutId:'g',workoutRevision:2};
+ const a={id:'a',sport:'Running',date:'2026-11-27',distanceKm:5,providerWorkoutId:'1987265',workoutRevision:2};
  const p={id:'p',sport:'Running',date:a.date,status:'planned',km:5,revision:2};
- const d={verified:true,providerWorkoutId:'g',revision:2,sessionId:'p'};
+ const d={verified:true,providerWorkoutId:'1987265',revision:2,sessionId:'p'};
  const cases=[[[p],[],'review'],[[p],[d],'verified-link'],[[p],[d,d],'review'],[[{...p,status:'completed'}],[d],'review'],[[{...p,revision:1}],[d],'review'],[[p,{...p,id:'q'}],[],'review'],[[],[],'unplanned'],[[p],[{...d,verified:false}],'review']];
  for(const [plans,deliveries,status] of cases)if(api.reconcile(a,plans,deliveries).status!==status)throw Error('Expected '+status);
+});
+
+test('duplicate Garmin imports preserve the existing activity link',()=>{
+ const activity={id:'123456789',sport:'Running',date:'2026-11-27',distanceKm:5,providerWorkoutId:'1987265',workoutRevision:2};
+ const plan={id:'new',sport:'Running',date:activity.date,status:'planned',km:5,revision:2};
+ const delivery={verified:true,providerWorkoutId:'1987265',revision:2,sessionId:plan.id};
+ const existing={...plan,id:'previous',status:'done',matchId:123456789};
+ expect(api.reconcile(activity,[existing,plan],[delivery])).toEqual({status:'already-linked',sessionId:'previous',candidates:[]});
+ expect(api.reconcile(activity,[existing,{...existing,id:'collision'},plan],[delivery])).toEqual({status:'review',candidates:['previous','collision']});
+ expect(api.reconcile({...activity,providerWorkoutId:''},[plan],[{...delivery,providerWorkoutId:''}]).status).toBe('review');
+ expect(api.reconcile({...activity,workoutRevision:'2'},[plan],[delivery]).status).toBe('review');
 });
 
 test('revision preparation preserves original and rejects unsafe or duplicate changes',()=>{
