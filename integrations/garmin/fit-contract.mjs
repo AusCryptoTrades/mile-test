@@ -21,14 +21,17 @@ export async function readBounded(response,max=MAX_BYTES){
 export function normalizedLaps(messages,expectedStart){
  const sessions=messages?.sessionMesgs,laps=messages?.lapMesgs,ids=messages?.fileIdMesgs;
  if(!Array.isArray(ids)||ids.length!==1||ids[0].type!=='activity'||!Array.isArray(sessions)||sessions.length!==1||sessions[0].sport!=='running'||!Array.isArray(laps)||!laps.length||laps.length>1000)throw Error('FIT_NOT_SINGLE_RUNNING_ACTIVITY');
- const s=sessions[0],start=epoch(s.startTime),finish=epoch(s.timestamp);
+ const s=sessions[0],start=epoch(s.startTime),recordedFinish=epoch(s.timestamp);
+ // When a Garmin timestamp repeats the start, use explicitly recorded elapsed time.
+ const finish=start!==null&&recordedFinish===start&&finite(s.totalElapsedTime,.01,604800)?start+s.totalElapsedTime:recordedFinish;
  if(!finite(expectedStart,946684800,4102444800)||start===null||finish===null||Math.abs(start-expectedStart)>5||finish<=start||finish-start>604800)throw Error('FIT_ACTIVITY_MISMATCH');
  const steps=new Map(),dups=new Set();
  for(const w of messages.workoutStepMesgs||[]){if(!Number.isInteger(w.messageIndex)||w.messageIndex<0||w.messageIndex>1000)continue;if(steps.has(w.messageIndex))dups.add(w.messageIndex);else steps.set(w.messageIndex,w.intensity)}
  const label=v=>allowed.has(v)?v:null;
  let last=start;
  const rows=laps.map(l=>{
-  const a=epoch(l.startTime),b=epoch(l.timestamp);
+  const a=epoch(l.startTime),recordedEnd=epoch(l.timestamp);
+  const b=a!==null&&recordedEnd===a&&finite(l.totalElapsedTime,.01,86400)?a+l.totalElapsedTime:recordedEnd;
   if(a===null||b===null||a<last-1||a<start-1||b<=a||b>finish+1||!finite(l.totalTimerTime,.01,86400)||l.totalTimerTime>b-a+2||!finite(l.totalDistance,0,500000))throw Error('FIT_INVALID_LAP');
   last=b;
   const index=Number.isInteger(l.wktStepIndex)&&l.wktStepIndex>=0&&l.wktStepIndex<=1000?l.wktStepIndex:null;

@@ -70,10 +70,15 @@ async function processOne(){
     await sql.unsafe("update private.mile_fit_jobs set raw_fit=$1,encrypted_callback=null,state='downloaded',claim_id=null,error_code=null where user_id=$2 and activity_id=$3 and claim_id=$4 and state='downloading'",[Buffer.from(bytes),owner,activity,claimId]);
    }else{
     const laps=decodeActivity(new Uint8Array(j.raw_fit),Number(j.start_epoch),sdk);
+    const summaries=await sql.unsafe("select duration_seconds,distance_metres from private.mile_garmin_activities where user_id=$1 and garmin_activity_id=$2 and abs(extract(epoch from started_at)-$3::bigint)<=5",[owner,activity,j.start_epoch]);
+    if(summaries.length!==1)throw Error("FIT_SUMMARY_NOT_READY");
+    const expectedSeconds=Number(summaries[0].duration_seconds),expectedDistance=Number(summaries[0].distance_metres);
+    const actualSeconds=laps.reduce((n,l)=>n+l.durationInSeconds,0),actualDistance=laps.reduce((n,l)=>n+l.distanceInMeters,0);
+    if(!Number.isFinite(expectedSeconds)||expectedSeconds<=0||!Number.isFinite(expectedDistance)||expectedDistance<0||Math.abs(actualSeconds-expectedSeconds)>Math.max(5,expectedSeconds*.02)||Math.abs(actualDistance-expectedDistance)>Math.max(30,expectedDistance*.02))throw Error("FIT_SUMMARY_MISMATCH");
     await sql.unsafe("update private.mile_fit_jobs set laps=$1::jsonb,raw_fit=null,encrypted_callback=null,state='ready',claim_id=null,error_code=null where user_id=$2 and activity_id=$3 and claim_id=$4 and state='decoding'",[JSON.stringify(laps),owner,activity,claimId]);
    }
   }catch(e){
-   const allowed=new Set(["FIT_AUTH_REQUIRED","FIT_TOKEN_REFRESH_FAILED","FIT_URL_CONSUMED","FIT_FETCH_FAILED","FIT_TOO_LARGE","FIT_TOO_SMALL","FIT_CALLBACK_INVALID","FIT_SIZE_INVALID","FIT_INTEGRITY_INVALID","FIT_DECODE_FAILED","FIT_NOT_SINGLE_RUNNING_ACTIVITY","FIT_ACTIVITY_MISMATCH","FIT_INVALID_LAP","FIT_INCOMPLETE_LAPS"]);
+   const allowed=new Set(["FIT_SUMMARY_NOT_READY","FIT_SUMMARY_MISMATCH","FIT_AUTH_REQUIRED","FIT_TOKEN_REFRESH_FAILED","FIT_URL_CONSUMED","FIT_FETCH_FAILED","FIT_TOO_LARGE","FIT_TOO_SMALL","FIT_CALLBACK_INVALID","FIT_SIZE_INVALID","FIT_INTEGRITY_INVALID","FIT_DECODE_FAILED","FIT_NOT_SINGLE_RUNNING_ACTIVITY","FIT_ACTIVITY_MISMATCH","FIT_INVALID_LAP","FIT_INCOMPLETE_LAPS"]);
    const code=e instanceof Error&&(allowed.has(e.message)||/^FIT_HTTP_[1-5][0-9]{2}$/.test(e.message))?e.message:"FIT_PROCESS_FAILED";
    await sql.unsafe("update private.mile_fit_jobs set state='rejected',encrypted_callback=null,error_code=$1,claim_id=null where user_id=$2 and activity_id=$3 and claim_id=$4",[code,owner,activity,claimId]);
   }return true;
