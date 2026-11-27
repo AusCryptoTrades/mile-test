@@ -1658,6 +1658,21 @@ test('877 populated profile editor saves existing privacy fields and preserves u
  await page.locator('[data-m36-editprofile]').click();
  const editor=page.locator('.m877-editor');
  await expect(editor).toBeVisible();
+ await expect(editor.getByRole('heading',{name:'Edit profile',exact:true})).toHaveCount(0);
+ await expect(editor.getByRole('heading',{name:'Photos',exact:true})).toBeVisible();
+ const topSave=editor.locator('.m877-edit-head [data-m36-saveprofile]');
+ await expect(topSave).toBeVisible();
+ expect((await topSave.boundingBox()).height).toBeGreaterThanOrEqual(44);
+ expect((await topSave.locator('span').boundingBox()).height).toBeLessThanOrEqual(36);
+ for(const id of ['m363-photo','m387-cover']){
+  const link=editor.locator('label[for="'+id+'"]');
+  await expect(link).toBeVisible();
+  expect((await link.boundingBox()).height).toBeGreaterThanOrEqual(44);
+  await expect(link).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+  const [chooser]=await Promise.all([page.waitForEvent('filechooser'),link.click()]);
+  expect(await chooser.element().getAttribute('id')).toBe(id);
+ }
+ await densityCapture(page,testInfo,'8774-profile-lightweight-actions');
  await expect(page.locator('#m36-name')).toHaveValue('Fixture Runner');
  await expect(page.locator('#m37-auto-share')).not.toBeChecked();
  await expect(page.locator('#m36-private')).toBeChecked();
@@ -1701,7 +1716,11 @@ test('877 Social navigation has one Back beside Notifications on main pages and 
   const toolbar=page.locator('.m877-social-toolbar'),back=toolbar.locator('.m877-social-back'),bell=toolbar.locator('[data-m379-bell]');
   await expect(back).toHaveCount(1);await expect(bell).toBeVisible();
   await expect(page.locator('.m362-menu')).toHaveCount(0);
-  expect(Math.abs((await back.boundingBox()).y-(await bell.boundingBox()).y)).toBeLessThanOrEqual(2);
+  // Controls with different visual heights belong on the same centreline.
+  const backRect=await back.boundingBox(),bellRect=await bell.boundingBox();
+  expect(backRect.height).toBeGreaterThanOrEqual(44);
+  expect(bellRect.height).toBeGreaterThanOrEqual(44);
+  expect(Math.abs((backRect.y+backRect.height/2)-(bellRect.y+bellRect.height/2))).toBeLessThanOrEqual(2);
   await densityCapture(page,testInfo,'social-toolbar-'+tab);
   await back.click();await expect(page.locator('#m36-drawer')).toBeVisible();
   await page.evaluate(()=>window.m36CloseDrawer());

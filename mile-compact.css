@@ -387,3 +387,77 @@ html[data-mile-buttons="main"] body #app[data-m79-social="feed"] .m877-feed-tool
 html[data-mile-buttons="main"] body #app[data-m79-social="feed"] .m877-feed-tools .m37-filters{gap:3px!important}
 html[data-mile-buttons="main"] body #app[data-m79-social="feed"] .m877-feed-tools select{height:44px!important;min-height:44px!important;max-height:44px!important;font-size:12px!important;padding:4px!important;border:0!important;background:transparent!important;border-radius:5px!important;box-shadow:none!important}
 html[data-mile-buttons="main"] body #app[data-m79-social="feed"] .m877-feed-tools :is(.m877-icon,.m877-feed-info>summary){background:transparent!important;border:0!important;border-radius:7px!important}
+
+/* 87.7.4 — lightweight profile actions. The visual surface is smaller than
+   the interactive target, preserving 44px hit areas and native file inputs. */
+html[data-mile-buttons="main"] body #app .m877-editor .m8774-photos{
+ border-top:0!important;padding-top:0!important;
+}
+html[data-mile-buttons="main"] body #app .m877-editor .m8774-photos .m877-edit-head{
+ flex-wrap:nowrap!important;gap:8px!important;padding:0 0 4px!important;
+}
+html[data-mile-buttons="main"] body #app .m877-editor .m8774-photos .m877-edit-head h4{
+ margin:0!important;min-width:0;
+}
+html[data-mile-buttons="main"] body #app .m877-editor button.m8774-save[data-m36-saveprofile]{
+ display:inline-flex!important;align-items:center!important;justify-content:center!important;
+ min-width:44px!important;min-height:44px!important;height:auto!important;width:auto!important;
+ padding:0!important;margin:0!important;border:0!important;background:transparent!important;
+ box-shadow:none!important;color:var(--text)!important;
+}
+html[data-mile-buttons="main"] body #app .m877-editor button.m8774-save[data-m36-saveprofile]>span{
+ display:inline-flex;align-items:center;justify-content:center;min-height:32px;
+ padding:5px 10px;box-sizing:border-box;border-radius:7px;font-size:12px;font-weight:700;
+ line-height:1.2;background:var(--m78-primary-bg,var(--text));color:var(--m78-primary-fg,var(--bg));
+ pointer-events:none;white-space:nowrap;
+}
+html[data-mile-buttons="main"] body #app .m877-editor .m877-photo-copy label.m8774-photo-link{
+ display:inline-flex!important;align-items:center!important;justify-content:flex-start!important;
+ min-width:44px!important;min-height:44px!important;width:auto!important;padding:0 4px!important;
+ margin:0!important;border:0!important;background:transparent!important;color:var(--text)!important;
+ border-radius:4px!important;font-size:12px!important;font-weight:650!important;
+ text-decoration:underline;text-underline-offset:3px;box-shadow:none!important;cursor:pointer;
+}
+html[data-mile-buttons="main"] body #app .m877-editor .m877-cover-row .m877-photo-copy{
+ grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:8px;
+}
+html[data-mile-buttons="main"] body #app .m877-editor .m877-cover-row .m877-photo-copy strong{grid-column:1;grid-row:1}
+html[data-mile-buttons="main"] body #app .m877-editor .m877-cover-row .m877-photo-copy small{grid-column:1;grid-row:2}
+html[data-mile-buttons="main"] body #app .m877-editor .m877-cover-row label.m8774-photo-link{grid-column:2;grid-row:1/span 2}
+html[data-mile-buttons="main"] body #app .m877-editor .m877-cover-row .m387-photo-note{
+ grid-column:1/-1;font-size:11px!important;line-height:1.4;
+}
+html[data-mile-buttons="main"] body #app:has(.m877-editor) .m877-social-toolbar button.m877-social-back{
+ background:transparent!important;border:0!important;box-shadow:none!important;
+ min-height:44px!important;min-width:44px!important;padding:4px 8px!important;font-size:12px!important;
+}
+html[data-mile-buttons="main"] body #app .m877-editor .m877-bottom-save [data-m36-canceledit]{
+ background:transparent!important;border:0!important;box-shadow:none!important;font-size:12px!important;
+ min-height:44px!important;padding:4px 10px!important;
+}
+html[data-mile-buttons="main"] body #app .m877-editor .m877-photo-copy:focus-within label.m8774-photo-link,
+html[data-mile-buttons="main"] body #app .m877-editor button.m8774-save:focus-visible,
+html[data-mile-buttons="main"] body #app:has(.m877-editor) .m877-social-toolbar button.m877-social-back:focus-visible{
+ outline:2px solid var(--orange,currentColor)!important;outline-offset:2px!important;
+}
+@media(max-width:320px){
+ html[data-mile-buttons="main"] body #app .m877-editor .m877-cover-row .m877-photo-copy{grid-template-columns:1fr}
+ html[data-mile-buttons="main"] body #app .m877-editor .m877-cover-row label.m8774-photo-link{grid-column:1;grid-row:auto}
+}
+
+/* 87.7.4: shared action stylesheet can load after this one.
+   Give the toolbar its own local height token, and ensure the actual
+   button boxes share a 44px centreline on mouse and touch devices. */
+html[data-mile-buttons="main"] body #app .m362-titlebar.m877-social-toolbar{
+ align-items:center!important;--m78-height:44px;--m78-primary-height:44px;
+}
+html[data-mile-buttons="main"] body #app .m362-titlebar.m877-social-toolbar>button.m877-social-back,
+html[data-mile-buttons="main"] body #app .m362-titlebar.m877-social-toolbar>button[data-m379-bell]{
+ --m78-height:44px;--m78-primary-height:44px;
+ box-sizing:border-box!important;min-height:44px!important;height:44px!important;
+ min-width:44px!important;align-self:center!important;flex-shrink:0!important;margin-block:0!important;
+}
+html[data-mile-buttons="main"] body #app:has(.m877-editor) .m362-titlebar.m877-social-toolbar>button.m877-social-back{
+ --m78-action-bg:transparent;--m78-action-border:transparent;--m78-pad:4px 8px;
+ --m78-font:12px;background:transparent!important;border-color:transparent!important;
+}
