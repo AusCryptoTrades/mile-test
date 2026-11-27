@@ -63,7 +63,7 @@ async function openApp(page, { signedIn = false, laps = true, syncStore = null, 
 }
 
 
-test('88.2 real Build reviews exact personalised sessions and saves Calendar steps without touching existing history',async({page})=>{
+test('88.2 Build saves the reviewed plan and Calendar starts the same structured Tracker workout',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const syncStore={};await openApp(page,{signedIn:true,syncStore});
  await page.evaluate(()=>{state.workouts=[{id:'fixture-completed-run',block:state.activeBlock,date:'2026-11-10',sport:'Running',name:'Historical run',detail:'Recorded workout',km:6,status:'done',matchId:'123456789',note:'Do not change'}];window.mileV3Go('builder');v42PickSport('Running')});
@@ -85,6 +85,8 @@ test('88.2 real Build reviews exact personalised sessions and saves Calendar ste
  await build.locator('#m882-threshold').fill('4:19');
  await build.locator('#m882-maxHR').fill('180');
  await build.locator('#m882-lthr').fill('161');
+ await build.locator('#m882-lowHR').fill('120');
+ await build.locator('#m882-highHR').fill('142');
  await next();await expect(build).toContainText('STEP 3 OF 5');
  await build.locator('#v42Days').selectOption('5');
  for(const d of ['2','4'])await build.locator('[data-m882-day="available"][value="'+d+'"]').uncheck();
@@ -121,5 +123,25 @@ test('88.2 real Build reviews exact personalised sessions and saves Calendar ste
  await workout.getByText('Session Purpose & Focus',{exact:true}).click();
  await expect(workout.getByText(saved.first.purpose,{exact:true})).toBeVisible();
  await expect(workout.getByText(saved.first.focus,{exact:true})).toBeVisible();
+ await workout.getByRole('button',{name:'Start run',exact:true}).click();
+ const tracker=page.frameLocator('#mile-native-view');
+ await expect(tracker.locator('#workout')).toHaveValue('planned');
+ await tracker.locator('html').evaluate(()=>{
+  Object.defineProperty(navigator,'geolocation',{configurable:true,value:{
+   getCurrentPosition:resolve=>resolve({coords:{latitude:-38,longitude:145,accuracy:5},timestamp:Date.now()}),
+   watchPosition:()=>1,clearWatch:()=>{},
+  }});
+ });
+ await tracker.locator('#start').click();
+ expect(saved.first.structuredSteps.length).toBeGreaterThan(1);
+ for(const [index,step] of saved.first.structuredSteps.entries()){
+  await expect(tracker.locator('#countdown')).toHaveText(`${(step.duration.meters/1000).toFixed(2)} km`);
+  await expect(tracker.locator('#blockInfo')).toContainText(`Block ${index+1} / ${saved.first.structuredSteps.length}`);
+  await expect(tracker.locator('#blockInfo')).toContainText('HR target 120–142 bpm');
+  await tracker.locator('#nextBlock').click();
+ }
+ await expect(tracker.locator('#phase')).toHaveText('WORKOUT COMPLETE');
+ await tracker.locator('#finish').click();
+ await expect(tracker.locator('#resultText')).toContainText(saved.first.name);
  expect(errors).toEqual([]);
 });
