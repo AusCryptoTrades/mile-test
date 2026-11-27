@@ -138,7 +138,7 @@ html[data-mile-buttons="main"] body #mile-admin-centre .ma-card {padding:8px!imp
 html[data-mile-buttons="tracker"] body .mile-tracker-hero {
  padding:12px 14px!important;margin-bottom:10px!important;border-radius:12px!important;
 }
-html[data-mile-buttons="tracker"] body .mile-tracker-hero h1 {
+html[data-mile-buttons="tracker"] body .mile-tracker-hero:not(.m877-banner) h1 {
  font-size:28px!important;margin-block:5px!important;line-height:1.12!important;
 }
 html[data-mile-buttons="tracker"] body :is(#setup,#result).panel {
@@ -147,7 +147,7 @@ html[data-mile-buttons="tracker"] body :is(#setup,#result).panel {
 html[data-mile-buttons="tracker"] body #setup .tracker-target-head {margin-block:12px 8px!important}
 html[data-mile-buttons="tracker"] body #result .metric {padding:10px!important}
 html[data-mile-buttons="tracker"] body #result .metric b {font-size:22px!important}
-html[data-mile-buttons="sim"] body :is(#setup,#review,#results) h1 {
+html[data-mile-buttons="sim"] body :is(#setup,#review,#results) h1:not(.m877-banner h1) {
  font-size:26px!important;margin-block:5px 8px!important;
 }
 html[data-mile-buttons="sim"] body :is(#setup,#review,#results) .eyebrow {margin-top:12px!important}
@@ -156,7 +156,7 @@ html[data-mile-buttons="sim"] body #setup .stage-config {padding:10px!important;
 html[data-mile-buttons="sim"] body #results .metric {padding:10px!important}
 html[data-mile-buttons="sim"] body #results .metric strong {font-size:22px!important}
 html[data-mile-buttons="challenges"] body #root .hero {padding:14px!important;margin-bottom:10px!important}
-html[data-mile-buttons="challenges"] body #root .hero h1 {font-size:28px!important;margin-block:5px!important}
+html[data-mile-buttons="challenges"] body #root .hero:not(.m877-banner) h1 {font-size:28px!important;margin-block:5px!important}
 html[data-mile-buttons="challenges"] body #root .card {padding:12px!important;margin-block:8px!important}
 html[data-mile-buttons="challenges"] body #root .card h2 {font-size:18px!important;margin-block:8px 4px!important}
 html[data-mile-buttons="challenges"] body #challengeForm {padding:12px!important}
@@ -305,3 +305,18 @@ html[data-mile-buttons="main"] body #app .m877-feed-tools .m877-icon{font-size:2
 html[data-mile-buttons="main"] body #app .m877-editor .m877-switch:focus-within{outline:2px solid var(--orange);outline-offset:2px}
 html[data-mile-buttons="main"] body #app .m877-editor .m877-photo-copy .m877-file:focus-visible{outline:0!important}
 @media(max-width:360px){html[data-mile-buttons="main"] body #app .m877-feed-tools{flex-wrap:wrap}html[data-mile-buttons="main"] body #app .m877-feed-tools .m37-filters{flex:1 1 100%}}
+
+/* 87.7.1: the editor must win over legacy themed checkbox geometry;
+   the full label remains a 44px minimum tap target. */
+html[data-mile-buttons="main"] body #app[data-m79-social="profile"] .m877-editor .m387-checks .m388-discipline-row label.m877-discipline-label input[type="checkbox"][data-m387-discipline]{
+ box-sizing:border-box!important;width:20px!important;height:20px!important;min-width:20px!important;min-height:20px!important;max-width:20px!important;max-height:20px!important;flex:0 0 20px!important;
+}
+html[data-mile-buttons="tracker"] body section.mile-tracker-hero.m877-banner h1,
+html[data-mile-buttons="sim"] body #setup header.m877-banner h1.page-title,
+html[data-mile-buttons="challenges"] body #root section.hero.m877-banner h1{
+ font-size:24px!important;line-height:1.15!important;margin:3px 0!important;
+}
+html[data-mile-buttons="sim"] body #setup .m877-banner .page-eyebrow{display:block!important;margin:0!important}
+html.mile-in-shell[data-mile-buttons="sim"] body main{max-width:none!important;width:100%!important}
+html.mile-in-shell[data-mile-buttons="tracker"] body,
+html.mile-in-shell[data-mile-buttons="challenges"] body{max-width:none!important;width:100%!important;box-sizing:border-box!important}
