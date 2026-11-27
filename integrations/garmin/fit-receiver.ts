@@ -5,6 +5,7 @@ import * as sdk from "npm:@garmin/fitsdk@21.222.0";
 import {Buffer} from "node:buffer";
 import {notification,readBounded} from "./fit-contract.mjs";
 import {decodeActivity} from "./fit-decoder.mjs";
+import {downloadFit,getFitAccessToken} from "./fit-download.mjs";
 const DB=Deno.env.get("SUPABASE_DB_URL"),SECRET=Deno.env.get("MILE_GARMIN_WEBHOOK_SECRET");
 const BASE=Deno.env.get("SUPABASE_URL"),ANON=Deno.env.get("SUPABASE_ANON_KEY");
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization,apikey,content-type,x-client-info","Access-Control-Allow-Methods":"GET, OPTIONS","Cache-Control":"no-store","Vary":"Authorization"};
@@ -32,7 +33,7 @@ async function enqueue(items:unknown[]){
    const owners=await tx.unsafe("select user_id from private.mile_garmin_connections where garmin_user_id=$1 limit 2",[n.garminUserId]);
    if(owners.length!==1)continue;
    const owner=String(owners[0].user_id),encrypted=await seal(n.url,owner,n.activityId);
-   const rows=await tx.unsafe("insert into private.mile_fit_jobs(user_id,activity_id,garmin_user_id,summary_id,start_epoch,encrypted_callback) values($1,$2,$3,$4,$5,$6) on conflict(user_id,activity_id) do nothing returning activity_id",[owner,n.activityId,n.garminUserId,n.summaryId,n.start,encrypted]);
+   const rows=await tx.unsafe("insert into private.mile_fit_jobs(user_id,activity_id,garmin_user_id,summary_id,start_epoch,encrypted_callback) values($1,$2,$3,$4,$5,$6) on conflict(user_id,activity_id) do update set encrypted_callback=excluded.encrypted_callback,state='pending',received_at=now(),claim_id=null,claimed_at=null,error_code=null where mile_fit_jobs.state='rejected' and mile_fit_jobs.error_code='RETRY_AUTHORIZED' and mile_fit_jobs.garmin_user_id=excluded.garmin_user_id and mile_fit_jobs.start_epoch=excluded.start_epoch and mile_fit_jobs.raw_fit is null returning activity_id",[owner,n.activityId,n.garminUserId,n.summaryId,n.start,encrypted]);
    accepted+=rows.length;
   }return accepted;
  })}finally{await sql.end()}
@@ -64,17 +65,16 @@ async function processOne(){
     const url=await unseal(j.encrypted_callback,owner,activity);
     const n=notification({userId:j.garmin_user_id,activityId:activity,summaryId:j.summary_id,startTimeInSeconds:Number(j.start_epoch),fileType:"FIT",activityType:"RUNNING",callbackURL:url});
     if(!n)throw Error("FIT_CALLBACK_INVALID");
-    const res=await fetch(n.url,{redirect:"error",signal:AbortSignal.timeout(15000),headers:{Accept:"application/octet-stream"}});
-    if(res.status===410)throw Error("FIT_URL_CONSUMED");
-    const bytes=await readBounded(res);
+    const token=await getFitAccessToken(sql,owner,j.garmin_user_id,{id:Deno.env.get("GARMIN_CLIENT_ID"),secret:Deno.env.get("GARMIN_CLIENT_SECRET")});
+    const bytes=await downloadFit({userId:j.garmin_user_id,activityId:activity,summaryId:j.summary_id,startTimeInSeconds:Number(j.start_epoch),fileType:"FIT",activityType:"RUNNING",callbackURL:url},token);
     await sql.unsafe("update private.mile_fit_jobs set raw_fit=$1,encrypted_callback=null,state='downloaded',claim_id=null,error_code=null where user_id=$2 and activity_id=$3 and claim_id=$4 and state='downloading'",[Buffer.from(bytes),owner,activity,claimId]);
    }else{
     const laps=decodeActivity(new Uint8Array(j.raw_fit),Number(j.start_epoch),sdk);
     await sql.unsafe("update private.mile_fit_jobs set laps=$1::jsonb,raw_fit=null,encrypted_callback=null,state='ready',claim_id=null,error_code=null where user_id=$2 and activity_id=$3 and claim_id=$4 and state='decoding'",[JSON.stringify(laps),owner,activity,claimId]);
    }
   }catch(e){
-   const allowed=new Set(["FIT_URL_CONSUMED","FIT_FETCH_FAILED","FIT_TOO_LARGE","FIT_TOO_SMALL","FIT_CALLBACK_INVALID","FIT_SIZE_INVALID","FIT_INTEGRITY_INVALID","FIT_DECODE_FAILED","FIT_NOT_SINGLE_RUNNING_ACTIVITY","FIT_ACTIVITY_MISMATCH","FIT_INVALID_LAP","FIT_INCOMPLETE_LAPS"]);
-   const code=e instanceof Error&&allowed.has(e.message)?e.message:"FIT_PROCESS_FAILED";
+   const allowed=new Set(["FIT_AUTH_REQUIRED","FIT_TOKEN_REFRESH_FAILED","FIT_URL_CONSUMED","FIT_FETCH_FAILED","FIT_TOO_LARGE","FIT_TOO_SMALL","FIT_CALLBACK_INVALID","FIT_SIZE_INVALID","FIT_INTEGRITY_INVALID","FIT_DECODE_FAILED","FIT_NOT_SINGLE_RUNNING_ACTIVITY","FIT_ACTIVITY_MISMATCH","FIT_INVALID_LAP","FIT_INCOMPLETE_LAPS"]);
+   const code=e instanceof Error&&(allowed.has(e.message)||/^FIT_HTTP_[1-5][0-9]{2}$/.test(e.message))?e.message:"FIT_PROCESS_FAILED";
    await sql.unsafe("update private.mile_fit_jobs set state='rejected',encrypted_callback=null,error_code=$1,claim_id=null where user_id=$2 and activity_id=$3 and claim_id=$4",[code,owner,activity,claimId]);
   }return true;
  }finally{await sql.end()}
