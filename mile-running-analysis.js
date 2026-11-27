@@ -109,8 +109,8 @@ function propose(event,ctx={}){
   if(event.sessionType==='easy'||event.sessionType==='recovery')return response('no-mileage-debt','Missed easy or recovery mileage is not added to future sessions.',{action:'none',requiresApproval:false});
   return hold('missed-quality-review','Review recovery and schedule before considering a missed key session; do not automatically reschedule it.',hard);
  }
- if(settings.recovery===true&&ctx.recovery==='poor')return hold('recovery-review','Poor reported recovery warrants reviewing the next demanding session.',hard||next);
- if(event.kind==='unplanned'&&event.classification==='higher-intensity'&&event.evidenceVerified===true)return hold('unplanned-load-review','An additional demanding run may change recovery needs. Review the next demanding session.',hard||next);
+ if(settings.recovery===true&&ctx.recovery==='poor')return hold('recovery-review','Your recovery check-in suggests reviewing the effort planned for your upcoming run.',hard||next);
+ if(event.kind==='unplanned'&&event.classification==='higher-intensity'&&event.evidenceVerified===true)return hold('unplanned-load-review','An additional demanding run can affect recovery. Consider how much recovery time you have before the suggested session.',hard||next);
  if(settings.volume===true&&pos(ctx.plannedWeekKm)&&pos(ctx.actualWeekKm)&&ctx.actualWeekKm>ctx.plannedWeekKm*1.15)return hold('additional-mileage-review','Recorded weekly mileage exceeds the planned amount by more than the provisional 15% review threshold. Do not increase volume.',next);
  // Only explicit, comparable evidence from the same protocol and within 14 local days can trigger trend review.
  const evidence=event.evidence;
