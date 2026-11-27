@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const reviewImage = require('./overnight-review-image');
 
 const athletes = [
   { id: '00000000-0000-4000-8000-000000000001', email: 'first@example.test', activity: '123456789' },
@@ -142,7 +143,7 @@ test('private Garmin details are fetched again after switching athletes', async 
 });
 
 
-test('private Analysis presents ambiguous Garmin candidates for confirmation and leaves unmatched runs unplanned', async ({ page }) => {
+test('private Analysis presents ambiguous Garmin candidates for confirmation and leaves unmatched runs unplanned', async ({ page }, info) => {
   const day = '2026-11-26';
   const base = { sport: 'Running', block: 'main', date: day, status: 'planned', km: 5, plannedMinutes: 31 };
   const plans = {
@@ -207,6 +208,7 @@ test('private Analysis presents ambiguous Garmin candidates for confirmation and
   await expect(detail.getByRole('heading', { name: 'Scheduled match unresolved' })).toBeVisible();
   await expect(detail).toContainText('Running distance recorded this week14.0 km');
   await expect(detail.getByRole('heading', { name: 'Additional demanding run' })).toHaveCount(0);
+  await reviewImage(info,'03-running-match-review',ambiguous);
   await detail.getByRole('button', { name: /Back/ }).click();
 
   const unmatched = await openReview('Unmatched Garmin run');
@@ -215,4 +217,28 @@ test('private Analysis presents ambiguous Garmin candidates for confirmation and
   await expect(detail.getByRole('heading', { name: 'Additional demanding run' })).toBeVisible();
   await expect(detail).toContainText('Upcoming intervals · 2026-11-28');
   expect(writes).toEqual([]);
+});
+
+test('Garmin replay preserves recorded totals and never replaces a separate source', async ({ page }) => {
+  const existing = { id:'24681357', name:'Independent tracker run', sport:'Running', source:'MILE', date:'2026-11-26', distanceKm:3 };
+  const original = { garmin_activity_id:athletes[0].activity, activity_name:'Recorded Garmin run',
+    activity_type:'RUNNING', started_at:'2026-11-26T07:00:00Z', distance_metres:8000, duration_seconds:2400 };
+  await routeGarmin(page,{
+    activities:()=>[existing],
+    read:()=>({health:[],activities:[
+      original,
+      {...original,distance_metres:null,duration_seconds:null},
+      {...original,garmin_activity_id:existing.id,activity_name:'Source collision'},
+      {...original,garmin_activity_id:'24680000',started_at:null,raw_data:{startTimeInSeconds:'invalid'}},
+    ]}),
+  });
+  await page.goto('/');
+  await signIn(page,athletes[0]);
+  await expect.poll(()=>page.evaluate(()=>state.activities.length)).toBe(2);
+  await page.evaluate(()=>window.mileLoadGarminData(true));
+  const rows=await page.evaluate(()=>state.activities.map(({id,name,distanceKm,durationMin,source})=>({id,name,distanceKm,durationMin,source})));
+  expect(rows).toEqual([
+    {id:existing.id,name:existing.name,distanceKm:3,source:'MILE'},
+    {id:athletes[0].activity,name:original.activity_name,distanceKm:8,durationMin:40,source:'garmin-developer-api'},
+  ]);
 });

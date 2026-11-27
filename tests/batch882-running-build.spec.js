@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const reviewImage = require('./overnight-review-image');
 
 const activity = {
   id: '123456789', name: 'Fixture morning run', sport: 'Running',
@@ -71,7 +72,7 @@ async function stubTrackerGPS(tracker){
  });
 }
 
-test('88.2 Build saves the reviewed plan and Calendar starts the same structured Tracker workout',async({page,baseURL})=>{
+test('88.2 Build saves the reviewed plan and Calendar starts the same structured Tracker workout',async({page,baseURL},info)=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const syncStore={};await openApp(page,{origin:new URL(baseURL).origin,signedIn:true,syncStore});
  await page.evaluate(()=>{state.workouts=[{id:'fixture-completed-run',block:state.activeBlock,date:'2026-11-10',sport:'Running',name:'Historical run',detail:'Recorded workout',km:6,status:'done',matchId:'123456789',note:'Do not change'}];window.mileV3Go('builder');v42PickSport('Running')});
@@ -120,6 +121,8 @@ test('88.2 Build saves the reviewed plan and Calendar starts the same structured
  await expect(build.locator('.m882-week').first().locator('.m882-session').nth(1).locator('summary')).toContainText('~35 min');
  await build.locator('.m882-session').first().locator('summary').click();
  await expect(build.locator('.m882-session').first()).toContainText('Session Focus');
+ const firstWeek=build.locator('.m882-week').first();
+ await reviewImage(info,'01-running-programme-review',firstWeek);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
  page.once('dialog',d=>d.accept());
  await build.locator('[data-m882-action="save"]').click();
@@ -156,6 +159,7 @@ test('88.2 Build saves the reviewed plan and Calendar starts the same structured
  await workout.getByText('Session Purpose & Focus',{exact:true}).click();
  await expect(workout.getByText(saved.first.purpose,{exact:true})).toBeVisible();
  await expect(workout.getByText(saved.first.focus,{exact:true})).toBeVisible();
+ await reviewImage(info,'02-structured-calendar-session',workout);
  await workout.getByRole('button',{name:'Start run',exact:true}).click();
  const tracker=page.frameLocator('#mile-native-view');
  await expect(tracker.locator('#workout')).toHaveValue('planned');

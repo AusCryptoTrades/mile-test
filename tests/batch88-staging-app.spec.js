@@ -2,6 +2,7 @@ const { test, expect } = require('@playwright/test');
 const { spawn } = require('node:child_process');
 const { once } = require('node:events');
 const path = require('node:path');
+const reviewImage = require('./overnight-review-image');
 
 const staging = 'https://fnyfeelynaozxtftrrga.supabase.co';
 
@@ -102,6 +103,7 @@ test('staging Analysis requires explicit approval of the exact server revision',
     await expect(panel).toContainText('8/10 self-reported fatigue');
     await expect(panel).toContainText('Current · 5 km');
     await expect(panel).toContainText('Proposed · 4.5 km');
+    await reviewImage(info,'04-adaptation-proposal',panel);
     expect(calls).toEqual([['mile_review_training_revision',{p_sport:'Running'}]]);
     const approve=panel.getByRole('button',{name:'Approve this revision'});
     await approve.click();

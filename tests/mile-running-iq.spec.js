@@ -109,3 +109,16 @@ test('88.3 verified repetitions show planned and recorded pace and recorded reco
  ]);
  expect(await steps.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
 });
+
+test('steady heart-rate comparison uses recorded time and speed and never drives adaptation', () => {
+ const run={id:'steady',distanceKm:9,durationMin:50};
+ const workout={id:'easy',matchId:'steady',sport:'Running',kind:'easy',revision:3};
+ const samples=Array.from({length:601},(_,i)=>({t:i*5,dist:i*15,hr:i<300?135:145}));
+ const result=iq.analyse(run,{workouts:[workout],points:samples,bounds});
+ expect(result.prescriptionRevision).toBe(3);
+ expect(result.heartRateChange).toEqual({earlyBpm:135,lateBpm:145,changeBpm:10});
+ expect(iq.analyse(run,{points:samples,bounds}).heartRateChange).toBeNull();
+ expect(iq.analyse(run,{points:samples.filter((_,i)=>i<300||i>390),workouts:[workout]}).heartRateChange).toBeNull();
+ const faster=samples.map((p,i)=>({...p,dist:i<=300?p.dist:4500+(i-300)*23}));
+ expect(iq.analyse(run,{points:faster,workouts:[workout]}).heartRateChange).toBeNull();
+});

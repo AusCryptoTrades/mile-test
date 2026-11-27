@@ -29,6 +29,35 @@ function zoneDistribution(points,bounds){
  if(coverage<60||coverage/span<.9)return null;
  return {seconds,outside,coverage,span,percent:seconds.map(v=>100*v/coverage),outsidePercent:100*outside/coverage};
 }
+function steadyHeartRateChange(points, durationMin){
+ if(durationMin===null||durationMin<30||!Array.isArray(points))return null;
+ const rows=points.map(p=>({t:time(p.t),hr:finite(p.hr),dist:finite(p.dist)})).filter(p=>p.t!==null).sort((a,b)=>a.t-b.t);
+ if(rows.length<2)return null;
+ const first=rows[0].t,last=rows.at(-1).t,span=last-first;
+ if(span<durationMin*60*.9||span>durationMin*60*1.1)return null;
+ const start=first+300,end=last-300,middle=(start+end)/2;
+ const halves=[[start,middle],[middle,end]].map(([from,to])=>{
+  let seconds=0,totalHR=0,totalSpeed=0,speedSquared=0;
+  for(let i=1;i<rows.length;i++){
+   const a=rows[i-1],b=rows[i],dt=b.t-a.t,lo=Math.max(from,a.t),hi=Math.min(to,b.t);
+   if(hi<=lo||dt<=0||dt>15||!validHR(a.hr)||!validHR(b.hr)||a.dist===null||b.dist===null)continue;
+   const speed=(b.dist-a.dist)/dt;
+   if(speed<1.3||speed>7)continue;
+   const weight=hi-lo;
+   seconds+=weight;
+   totalHR+=weight*(a.hr+(b.hr-a.hr)*((lo+hi)/2-a.t)/dt);
+   totalSpeed+=weight*speed;
+   speedSquared+=weight*speed*speed;
+  }
+  if(seconds<(to-from)*.95)return null;
+  const speed=totalSpeed/seconds;
+  const variation=Math.sqrt(Math.max(0,speedSquared/seconds-speed*speed))/speed;
+  return variation<=.12?{speed,hr:totalHR/seconds}:null;
+ });
+ const [early,late]=halves;
+ if(!early||!late||Math.abs(late.speed-early.speed)/early.speed>.05)return null;
+ return {earlyBpm:Math.round(early.hr),lateBpm:Math.round(late.hr),changeBpm:Math.round(late.hr-early.hr)};
+}
 function linkedWorkout(activity,workouts){
  if(activity?.id==null)return null;
  const matches=(Array.isArray(workouts)?workouts:[]).filter(w=>w.sport==='Running'&&w.matchId!=null&&String(w.matchId)===String(activity.id));
@@ -93,6 +122,8 @@ function analyse(activity,{workouts=[],points=[],bounds=null,review=null,matchSe
  const actualWeekKm=review?review.currentRuns.filter(x=>review.weekStart<=x.date&&x.date<=review.today&&positive(x.distanceKm)!==null).reduce((sum,x)=>sum+Number(x.distanceKm),0):null;
  return {kind:match?'linked':'unlinked',name:match?String(match.name||'Scheduled run'):null,
   purpose:match?.purpose||null,
+  prescriptionRevision:Number.isSafeInteger(match?.revision)&&match.revision>=1?match.revision:null,
+  heartRateChange:['easy','recovery','long'].includes(match?.kind)?steadyHeartRateChange(points,duration):null,
   plannedKm:match?positive(match.km):null,distanceKm:distance,durationMin:duration,
   pace:distance&&duration?duration*60/distance:null,averageHR:validHR(hr)?hr:null,zones,advanced,
   recommendation:reviewRecommendation(activity,advanced,workouts,match,review,actualWeekKm,Boolean(matchReview?.evidence?.length)),
@@ -134,6 +165,7 @@ function render(host,result){
   const a=result.advanced;
   p=section(a.kind==='planned'?'Session execution':'Training contribution');
   if(a.kind==='planned'){
+   if(result.prescriptionRevision!==null)row(p,'Linked MILE workout revision',String(result.prescriptionRevision));
    if(result.purpose)p.append(el('p',result.purpose,'small'));
    row(p,a.plannedDistanceSource==='structured-distance'?'Planned distance':'Planned distance estimate',a.plannedDistance===null?'Unavailable':a.plannedDistance.toFixed(2)+' km');
    row(p,a.plannedDurationSource==='structured-time'?'Planned duration':'Planned duration estimate',fmtDuration(a.plannedDuration===null?null:a.plannedDuration*60));
@@ -141,6 +173,11 @@ function render(host,result){
    row(p,'Distance completed',a.totalDistanceRatio===null?'Unavailable':Math.round(a.totalDistanceRatio*100)+'%');
    const execution=a.execution!=='insufficient-evidence'?a.execution.replaceAll('-',' '):a.steps?'Target execution unavailable':'Verified step alignment required';
    row(p,'Main-set execution',execution);
+   if(result.heartRateChange){
+    const hr=result.heartRateChange;
+    row(p,'Heart rate at similar recorded speed',hr.earlyBpm+' → '+hr.lateBpm+' bpm');
+    p.append(el('p','Comparison omits the first and last five minutes. Terrain, conditions and sensor quality can affect heart rate. This comparison does not change the plan.','muted small'));
+   }
    if(a.workPace!==null)row(p,'Recorded pace on steps with pace targets',fmtPace(a.workPace));
    if(a.intervalPaceSpread!==null)row(p,'Pace spread between repetitions',Math.round(a.intervalPaceSpread)+' s/km');
    const labels={active:'Work step',interval:'Repetition',recovery:'Recovery'};

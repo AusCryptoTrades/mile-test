@@ -384,3 +384,34 @@ test('Batch 89 discards an in-flight token refresh when the athlete switches acc
   expect(service.users[first].profile).toBeNull();
  }finally{release();}
 });
+
+test('Running Build uses the authenticated onboarding profile as editable starting context', async ({ page }) => {
+ const service=fixture({member:true,stage:6});
+ const owner=service.users[first];
+ owner.profile={...profile,username:'rc_review_athlete',display_name:'Synthetic RC athlete',
+  primary_sport:'Triathlon',disciplines:['Triathlon','Running','Cycling']};
+ owner.document={blocks:[],workouts:[],activities:[],goals:[],settings:{athleteProfile:{experience:'experienced',fiveK:'22:30'}},
+  checkins:{'2026-11-27':{fatigue:8}}};
+ await page.clock.setFixedTime(new Date('2026-11-27T12:00:00Z'));
+ await service.bind(page);
+ await login(page);
+ await expect(page.locator('#v4Gate')).toBeHidden();
+ await page.evaluate(()=>{window.mileV3Go('builder');v42PickSport('Running')});
+ const build=page.locator('.m882-build');
+ const nextBuild=()=>build.locator('[data-m882-action="next"]').click();
+ await nextBuild();
+ await expect(build.getByLabel('Experience')).toHaveValue('experienced');
+ await expect(build.locator('[data-m882-source="level"]')).toHaveText('Athlete profile experience');
+ await expect(build.getByLabel('Recent 5K time (mm:ss)')).toHaveValue('22:30');
+ await expect(build.getByLabel('Current recovery')).toHaveValue('poor');
+ await expect(build.locator('[data-m882-source="recovery"]')).toContainText('athlete-reported fatigue');
+ await build.getByLabel('Recent 5K time (mm:ss)').fill('22:00');
+ await expect(build.locator('[data-m882-source="five"]')).toHaveText('Athlete entered');
+ await build.getByLabel('Confirm sustainable weekly km').fill('20');
+ await nextBuild();
+ await nextBuild();
+ await expect(build.getByLabel('Primary sport')).toHaveValue('Triathlon');
+ await expect(build.getByLabel('Secondary sports / commitments')).toHaveValue('Running, Cycling');
+ await nextBuild();
+ await expect(build).toContainText('Running is secondary');
+});
