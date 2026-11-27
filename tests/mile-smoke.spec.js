@@ -1583,3 +1583,37 @@ test('876 embedded exercise setup screens and challenges retain working navigati
   await expect(page.locator('#app > .mile-universal-header').getByRole('heading',{name:'Calendar'})).toBeVisible();
  }
 });
+
+test('876 activity tabs, social drawer and support forms stay usable',async({page},testInfo)=>{
+ test.setTimeout(90000);
+ await openApp(page,{signedIn:true});
+ const detail=await openActivity(page);
+ for(const tab of ['Overview','Charts','Splits','Map']){
+  await detail.getByRole('button',{name:tab,exact:true}).click();
+  await expect(detail).toBeVisible();
+  await densityCapture(page,testInfo,'activity-'+tab);
+ }
+ await detail.getByRole('button',{name:/back/i}).click();
+ await expect(detail).toHaveCount(0);
+ await page.evaluate(()=>window.m36Drawer());
+ const drawer=page.locator('#m36-drawer');
+ await expect(drawer).toBeVisible();
+ await densityCapture(page,testInfo,'social-drawer');
+ await drawer.getByRole('button',{name:'Close profile menu'}).click();
+ await expect(drawer).toHaveCount(0);
+ for(const action of ['bug','feedback']){
+  await page.evaluate(()=>window.mileV3ToggleMore());
+  await page.locator('#mile-emergency-more [data-beta5-'+action+']').click();
+  const form=page.locator('#mile-beta-feedback-overlay');
+  await expect(form).toBeVisible();
+  await densityCapture(page,testInfo,'support-'+action);
+  await form.locator('[data-beta5-close]').click();
+  await expect(form).toHaveCount(0);
+ }
+});
+test('876 auth screen maintains labels and fits the viewport',async({page},testInfo)=>{
+ await openApp(page);
+ await expect(page.getByLabel('Email address',{exact:true})).toBeVisible();
+ await expect(page.getByLabel('Password',{exact:true})).toBeVisible();
+ await densityCapture(page,testInfo,'login');
+});
