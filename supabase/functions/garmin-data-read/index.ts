@@ -50,6 +50,9 @@ Deno.serve(async (req: Request) => {
   if (typeof userId !== "string" || !userId) {
     return json({ error: "Authenticated user missing" }, 401);
   }
+  if (!authUser.email_confirmed_at || authUser.is_anonymous === true) {
+    return json({ error: "Verified MILE membership required" }, 403);
+  }
 
   const url = new URL(req.url);
   const activityId = url.searchParams.get("activityId");
@@ -59,6 +62,8 @@ Deno.serve(async (req: Request) => {
 
   const sql = postgres(DB_URL, { max: 1, idle_timeout: 2, connect_timeout: 5 });
   try {
+    const [membership] = await sql`select 1 from public.av_members where user_id = ${userId}`;
+    if (!membership) return json({ error: "Verified MILE membership required" }, 403);
     if (activityId !== null) {
       // The database lookup is ALWAYS scoped to the authenticated user.
       // Never accept user_id from the browser, and never return connection credentials.

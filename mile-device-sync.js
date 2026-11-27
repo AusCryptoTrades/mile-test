@@ -2,7 +2,9 @@
 (function(root){
  'use strict';
  const validId=id=>typeof id==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
- const eligible=(w,from,to)=>!!w&&validId(w.id)&&w.sport==='Running'&&w.status==='planned'&&!w.matchId&&typeof w.date==='string'&&w.date>=from&&w.date<=to&&Array.isArray(w.structuredSteps)&&w.structuredSteps.length>0&&w.structuredDetail===w.detail;
+ const hasHeartRateEnd=steps=>steps.some(step=>step?.duration?.kind==='heart_rate'||
+  (Array.isArray(step?.steps)&&hasHeartRateEnd(step.steps)));
+ const eligible=(w,from,to)=>!!w&&validId(w.id)&&w.sport==='Running'&&w.status==='planned'&&!w.matchId&&typeof w.date==='string'&&w.date>=from&&w.date<=to&&Array.isArray(w.structuredSteps)&&w.structuredSteps.length>0&&w.structuredDetail===w.detail&&!hasHeartRateEnd(w.structuredSteps);
  const clock=s=>{const n=Math.round(s);return Math.floor(n/60)+':'+String(n%60).padStart(2,'0')};
  const describeStep=s=>{
   if(s.type==='WorkoutRepeatStep')return s.repeatValue+' × repeat';
@@ -25,7 +27,8 @@
  if(typeof module!=='undefined'&&module.exports)module.exports={eligible,describeStep,planSessions,resultKind,compareTargets};
  if(typeof document==='undefined')return;
  const qid=id=>/^[a-zA-Z0-9_.:-]{1,128}$/.test(String(id));
- root.mileDeviceSyncButton=w=>eligible(w,today(),add(today(),14))?'<button type="button" class="btn alt sm" data-mile-device-sync="'+w.id+'">Sync to Device</button>':'';
+ root.mileDeviceSyncButton=w=>w?.sport==='Running'&&w.status==='planned'&&Array.isArray(w.structuredSteps)&&hasHeartRateEnd(w.structuredSteps)
+  ?'<span class="muted small m882-device-note">Use timed recovery for Garmin Connect sync.</span>':eligible(w,today(),add(today(),14))?'<button type="button" class="btn alt sm" data-mile-device-sync="'+w.id+'">Sync to Device</button>':'';
  root.mileDevicePlanButton=block=>block?.sport==='Running'&&qid(block.id)?'<button type="button" class="btn alt sm" data-mile-device-plan="'+block.id+'">Sync to Device</button>':'';
  const style=document.createElement('style');
  style.textContent=
@@ -141,6 +144,7 @@
   }
   function finish(results,previous=[],unavailable=[],total=results.length+previous.length+unavailable.length){
    const confirmed=results.filter(w=>w.kind==='confirmed').length+previous.filter(w=>w.kind==='confirmed').length;
+   if(results.some(w=>w.kind==='confirmed'))root.mileRunningBeta?.mark('garmin-published');
    const pending=results.filter(w=>w.kind==='pending').length+previous.filter(w=>w.kind!=='confirmed').length;
    const notSent=Math.max(0,total-confirmed-pending);
    const all=confirmed>0&&pending===0&&notSent===0;

@@ -28,3 +28,10 @@ MILE is a single-file HTML application in `index.html`. Its test site deploys fr
 
 ## User feedback
 Do not request broad manual regression testing after every commit. Report evidence-backed automated results and request only narrowly scoped real-device checks.
+
+## Release boundaries
+
+- Use synthetic accounts and fixtures. Inspect the exact migration ledger on MILE Staging `fnyfeelynaozxtftrrga`. Keep the production project `mgixvokjlytjuypzcfzz` read-only until explicit owner release approval.
+- Work on isolated branches and keep existing review branches intact. Treat hosted Auth, Storage and real Garmin validation as separate gates from mocked browser runs and isolated SQL.
+- Preserve manual consent and revision checks. Keep automated Garmin matching, adaptive decisions and republication disabled until their provider, coaching and owner approval gates pass.
+- See [design](MILE-DESIGN.md), [roadmap](MILE-ROADMAP.md), [status](MILE-STATUS.md) and the [release runbook](docs/overnight-release.md).

@@ -1,0 +1,43 @@
+.m882-build .formgrid{margin-top:12px;min-width:0}.m882-build input,.m882-build select{min-width:0;max-width:100%}.m882-check{display:flex;align-items:flex-start;gap:8px;margin:10px 0;font-size:13px}.m882-check input{flex:none}.m882-history{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}.m882-history>div{border:1px solid var(--line);padding:8px;border-radius:8px;min-width:0}.m882-history span,.m882-history small,.m882-session summary span{display:block;font-size:12px;color:var(--muted)}.m882-days{margin:8px 0 14px;display:flex;flex-wrap:wrap;gap:6px}.m882-week{margin:8px 0}.m882-session{padding:10px 0;border-top:1px solid var(--line);font-size:13px}.m882-session p{font-size:12px;line-height:1.5}.m882-build summary{cursor:pointer;overflow-wrap:anywhere}.m882-build [role=status]{margin-top:10px}.m882-build .v42-steps{display:flex}.m882-build .v42-steps span{flex:1}
+.m882-workout-steps{margin:8px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:13px}
+.m882-workout-steps>div{display:grid;grid-template-columns:minmax(66px,22%) minmax(0,1fr);gap:10px;padding:9px 10px;align-items:baseline}
+.m882-workout-steps>div+div{border-top:1px solid var(--line)}
+.m882-workout-steps dt{font-weight:700;color:var(--muted)}
+.m882-workout-steps dd{margin:0;color:var(--text,var(--orange));overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+#mile35-detail .m881-analysis-host{display:grid;gap:8px;min-width:0}
+#mile35-detail .m881-analysis-host>.mile35-panel{margin:0;padding:12px;border:1px solid var(--line);border-radius:14px}
+.m881-analysis-host .mile35-datarow{gap:10px;min-width:0}
+.m881-analysis-host .mile35-datarow>*{min-width:0;overflow-wrap:anywhere}
+.m881-analysis-host h3{font-size:15px;margin:0 0 8px}
+.m881-analysis-host p{margin:6px 0;line-height:1.4}
+.m881-analysis-host .m881-match-card{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:5px 9px;margin-top:6px}
+#mile35-detail .m881-match-card .mile35-datarow{display:grid;gap:2px;padding:0!important;border:0!important;background:none!important;text-align:left}
+#mile35-detail .m881-match-card .mile35-datarow>span{font-weight:700;color:var(--text,var(--orange))}
+#mile35-detail .m881-match-card .mile35-datarow>strong{font-size:12px;font-weight:500;text-align:left;color:var(--muted)}
+.m881-analysis-host button.m881-match-link,.m881-analysis-host .m881-revision button{min-height:44px!important;width:auto!important;padding:6px 12px!important;margin:4px 0!important;font-size:13px!important}
+.m881-revision-preview{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:8px 0}
+.m881-revision-preview div{padding:8px;border:1px solid var(--line);border-radius:9px}
+.m881-revision-preview strong,.m881-revision-preview span{display:block}
+#mile35-detail[data-running-analysis] .mile35-tabs{flex-wrap:wrap;overflow:visible!important}
+#mile35-detail[data-running-analysis] .mile35-tabs button{flex:1 0 auto!important;min-height:44px!important}
+@media(max-width:780px){
+ body:has(#modalRoot #wDetail) #mile-fixed-mobile-nav{display:none!important}
+}
+.m882-build .m882-week>summary,.m882-session>summary{line-height:1.4;overflow-wrap:anywhere}
+.m882-workout-steps>div{grid-template-columns:minmax(82px,24%) minmax(0,1fr)}
+.m3933-workout .m882-workout-steps{white-space:normal}
+.m881-quick-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:10px 0 4px}
+.m881-quick-metrics>div{padding:7px 9px;border:1px solid var(--line);border-radius:9px;min-width:0}
+.m881-quick-metrics dt{font-size:11px;color:var(--muted)}
+.m881-quick-metrics dd{margin:2px 0 0;font-size:15px;font-weight:750;overflow-wrap:anywhere}
+.m881-quick-notes>section{border-bottom:1px solid var(--line);padding:6px 0}
+.m881-quick-notes>section:last-child{border-bottom:0;padding-bottom:1px}
+.m881-quick-notes h4{margin:0;font-size:13px}
+.m881-quick-notes p{margin:2px 0 0;font-size:13px}
+#mile35-detail .m881-detailed{padding-block:0;overflow:hidden}
+.m881-detailed>summary{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:750;cursor:pointer}
+.m881-detailed>summary::after{content:'+';font-size:18px;color:var(--muted)}
+.m881-detailed[open]>summary::after{content:'−'}
+.m881-detailed>summary:focus-visible{outline:2px solid var(--accent,var(--orange));outline-offset:-2px}
+.m881-detailed>.m881-analysis,.m881-detailed-charts{margin:0 0 10px;padding:9px 0;border:0;border-top:1px solid var(--line);border-radius:0}
+.m881-detailed-charts:empty{display:none}

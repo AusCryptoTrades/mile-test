@@ -38,5 +38,16 @@ const token=localStorage.getItem('av-token')||sessionStorage.getItem('av-token')
 if(!token)return;
 const base=settings.supabaseUrl||'https://mgixvokjlytjuypzcfzz.supabase.co';
 const key=settings.supabaseAnon||'sb_publishable_gIQO8rNBD9kKQpQdky0-7w_2A55HzO8';
-fetch(base+'/rest/v1/mile_profiles?user_id=eq.'+encodeURIComponent(userId)+'&select=avatar_url,display_name,username&limit=1',{headers:{apikey:key,Authorization:'Bearer '+token}}).then(r=>r.ok?r.json():[]).then(rows=>{const profile=rows[0];if(!profile)return;const avatar=header.querySelector('.mile-header-profile .m36-avatar');const label=(profile.display_name||profile.username||'M').trim().charAt(0).toUpperCase();avatar.replaceChildren();if(profile.avatar_url&&/^https:\/\//.test(profile.avatar_url)){const img=document.createElement('img');img.src=profile.avatar_url;img.alt='Profile';img.onerror=()=>avatar.textContent=label;avatar.appendChild(img)}else avatar.textContent=label}).catch(()=>{});
+const headers={apikey:key,Authorization:'Bearer '+token};
+window.mileAvatar.configure(()=>({base,owner:userId,headers}));
+fetch(base+'/rest/v1/mile_profiles?user_id=eq.'+encodeURIComponent(userId)+'&select=avatar_url,display_name,username&limit=1',{headers})
+ .then(r=>r.ok?r.json():[]).then(rows=>{
+  const profile=rows[0];
+  if(!profile)return;
+  const avatar=header.querySelector('.mile-header-profile .m36-avatar');
+  const label=(profile.display_name||profile.username||'M').trim().charAt(0).toUpperCase();
+  avatar.innerHTML=window.mileAvatar.markup(profile.avatar_url,'Profile');
+  if(!avatar.firstChild)avatar.textContent=label;
+  else avatar.querySelector('img').onerror=()=>avatar.textContent=label;
+ }).catch(()=>{});
 })();
