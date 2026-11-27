@@ -69,6 +69,63 @@ async function openActivity(page) {
   return detail;
 }
 
+function runningReviewFixture({ matched = false, recordedDuration = 1800, sampleCount = 361 } = {}) {
+  const run = { ...activity, distanceKm: 6, durationSeconds: recordedDuration };
+  const future = { id: 'next-quality', block: 'running-review', name: 'Threshold Intervals', sport: 'Running', date: '2026-11-22', status: 'planned', targetRpe: 7, km: 10 };
+  const completed = { ...future, id: 'completed', name: 'Completed session', date: '2026-11-21', status: 'done' };
+  const foreignPlan = { ...future, id: 'other-programme', block: 'other-block', name: 'Other programme session', date: '2026-11-21' };
+  const linked = { ...future, id: 'linked', name: 'Planned aerobic run', date: '2026-11-18', status: 'done', matchId: run.id, km: 6, plannedMinutes: 34, purpose: 'Build aerobic endurance.' };
+  const block = { id: 'running-review', name: 'Running review', sport: 'Running', start: '2026-11-16', end: '2026-11-30', active: true,
+    runningPlan: { version: 1, config: { adaptation: { mode: 'automatic', pace: true, volume: true, recovery: true } } },
+  };
+  return {
+    signedIn: true,
+    syncStore: { data: {
+      activities: [run], workouts: [future, completed, foreignPlan, ...(matched ? [linked] : [])], blocks: [block], activeBlock: block.id,
+      settings: { athleteProfile: { zoneBounds: [100, 120, 140, 155, 170, 190] } },
+    } },
+    intervalFixture: { samples: Array.from({ length: sampleCount }, (_, i) => ({ timestamp: 1794985200000 + i * 5000, heartRate: 175 })) },
+  };
+}
+
+test('88.3 private Analysis reviews an upcoming session after a demanding unplanned run', async ({ page }) => {
+  await openApp(page, runningReviewFixture());
+  const persistedRequests = [];
+  page.on('request', request => {
+    if (request.method() !== 'GET' && /av_training_data|mile_apply_running_revision|garmin.*publish/.test(request.url())) persistedRequests.push(request.url());
+  });
+  const detail = await openActivity(page);
+  await detail.getByRole('button', { name: 'Analysis', exact: true }).click();
+  const review = detail.locator('section').filter({ has: page.getByRole('heading', { name: 'Adaptation review', exact: true }) });
+  await expect(review).toContainText('Additional demanding run');
+  await expect(review).toContainText('100% of covered recorded heart-rate time was in Zones 4 and 5.');
+  await expect(review).toContainText('Threshold Intervals · 2026-11-22');
+  await expect(review).toContainText('Review can start now');
+  await expect(review.getByRole('button')).toHaveCount(0);
+  await expect(detail).toContainText('Running distance recorded this week6.0 km');
+  await expect(detail).toContainText('Recorded duration30 min');
+  await expect(detail).not.toContainText('Distance completed');
+  await expect(detail.locator('.mile35-footer')).toContainText('private');
+  expect(await review.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+  expect(persistedRequests).toEqual([]);
+});
+
+test('88.3 private Analysis preserves targets for a linked run without verified steps', async ({ page }) => {
+  await openApp(page, runningReviewFixture({ matched: true, sampleCount: 14 }));
+  const detail = await openActivity(page);
+  await detail.getByRole('button', { name: 'Analysis', exact: true }).click();
+  await expect(detail).toContainText('Linked session: Planned aerobic run');
+  await expect(detail).toContainText('Build aerobic endurance.');
+  const execution = detail.locator('section').filter({ has: page.getByRole('heading', { name: 'Session execution', exact: true }) });
+  await expect(execution).toContainText('Planned duration estimate34 min');
+  await expect(execution).toContainText('Recorded duration30 min');
+  await expect(execution).toContainText('Verified step alignment required');
+  await expect(execution.locator('details')).toHaveCount(0);
+  await expect(detail).toContainText('Comparable trend unavailable');
+  await expect(detail).toContainText('Additional evidenceRequired');
+  await expect(detail).not.toContainText('Upcoming session to review');
+});
+
 test.beforeEach(async ({ page }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -957,6 +1014,31 @@ test('77.5 account details use authenticated identity and confirm cloud save',as
  await panel.locator('[data-m775-action="cloud-save"]').click();
  await expect(panel.locator('[data-m775-status]')).toHaveText('Cloud save confirmed.');
  await expect(panel.locator('[data-m775-value="cloudstatus"]')).toHaveText('Saved');
+});
+test('a running revision conflict preserves local data and the last confirmed cloud save',async ({page})=>{
+ const confirmed='2026-11-19T12:00:00Z';
+ await openApp(page,{signedIn:true,syncStore:{updated_at:confirmed,data:{activities:[activity],workouts:[{id:'stale-running-plan',revision:1,sport:'Running',status:'planned'}]}}});
+ let writes=0;
+ await page.route('**/rest/v1/av_training_data?*',async route=>{
+  if(route.request().method()!=='POST')return route.fallback();
+  writes++;
+  expect(route.request().postDataJSON().training_data.workouts).toContainEqual(
+   expect.objectContaining({id:'stale-running-plan',revision:1})
+  );
+  await route.fulfill({status:409,json:{code:'PT409',details:'mile_running_revision_conflict'}});
+ });
+ await page.evaluate(()=>window.mileV3Go('settings'));
+ await page.locator('[data-m771-open="account"]').first().click();
+ const panel=page.locator('[data-m775-account]');
+ await panel.locator('[data-m775-action="cloud-save"]').click();
+ await expect(panel.locator('[data-m775-value="cloudstatus"]')).toHaveText('Conflict');
+ await expect(panel.locator('[data-m775-status]')).toHaveText('A running workout changed in the cloud. Your edits are on this device. Export a training backup, then reload and choose the cloud copy.');
+ expect(writes).toBe(1);
+ const saved=await page.evaluate(id=>({
+  confirmed:localStorage.getItem('av-cloud-confirmed-'+id),
+  revision:JSON.parse(localStorage.getItem('av-training-v4-'+id)).workouts[0].revision
+ }),user.id);
+ expect(saved).toEqual({confirmed,revision:1});
 });
 test('77.5 connection page and safe backup export',async ({page})=>{
  await openApp(page,{signedIn:true});
