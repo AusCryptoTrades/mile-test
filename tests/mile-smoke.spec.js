@@ -13,7 +13,7 @@ const samples = Array.from({ length: 11 }, (_, i) => ({
   movingDurationInSeconds: i * 62,
 }));
 
-async function openApp(page, { signedIn = false, laps = true, syncStore = null } = {}) {
+async function openApp(page, { signedIn = false, laps = true, syncStore = null, intervalFixture = null } = {}) {
   const origin = 'http://127.0.0.1:4173';
   const backend = 'https://mgixvokjlytjuypzcfzz.supabase.co';
   await page.route('**/*', async route => {
@@ -34,10 +34,10 @@ async function openApp(page, { signedIn = false, laps = true, syncStore = null }
       if(syncStore&&route.request().method()==='POST'){const payload=route.request().postDataJSON();syncStore.data=payload.training_data;syncStore.updated_at=payload.updated_at;json=[];}else json=[{training_data:syncStore?.data||{activities:[activity]},updated_at:syncStore?.updated_at}];
     } else if (url.pathname === '/functions/v1/garmin-data-read' &&
                url.searchParams.get('activityId') === activity.id) {
-      json = { details: { raw_data: laps ? {
+      json = { details: { raw_data: intervalFixture || (laps ? {
         samples,
         lapDTOs: [{ distanceInMeters: 1000, durationInSeconds: 305 }],
-      } : { samples: [], lapDTOs: [] } } };
+      } : { samples: [], lapDTOs: [] }) } };
     } else if (url.pathname === '/rest/v1/mile_social_activities') {
       json = [{
         id: 'fixture-social-post', user_id: user.id, title: 'Fixture social run',
@@ -104,10 +104,12 @@ test('real Activity Details shows recorded laps and in-bounds charts and closes 
   await openApp(page, { signedIn: true });
   const detail = await openActivity(page);
   await detail.getByRole('button', { name: 'Splits', exact: true }).click();
-  const table=detail.locator('.m764-splits');
+  const table=detail.locator('.m875-table');
   await expect(table).toBeVisible();
-  await expect(table.getByRole('columnheader')).toHaveText(['Lap','Time','Distance','Pace /km']);
-  await expect(table.locator('tbody tr').first().getByRole('cell')).toHaveText(['1','5:05','1.00 km','5:05']);
+  await expect(table.getByRole('columnheader')).toHaveText(['Lap','Time','km','Pace','HR']);
+  await expect(table.locator('tbody tr').first().getByRole('cell')).toHaveText(['1','5:05','1.00','5:05','—']);
+  await expect(detail.locator('.m875-seg')).toHaveCount(0);
+  await expect(detail.locator('.m875-note')).toContainText('does not include verified step types');
   await detail.getByRole('button', { name: 'Charts', exact: true }).click();
   const charts = detail.locator('.mile355-chart svg');
   await expect(charts).toHaveCount(2);
@@ -1405,4 +1407,14 @@ test('86.8 recovery widgets adapt to recorded sleep and battery without inventin
  await page.evaluate(()=>window.mileV3Go('recovery'));
  await expect(page.locator('#recoveryTrends').getByRole('button',{name:'Sleep score',exact:true})).toBeVisible();
  await expect(page.locator('#recoveryTrends').getByRole('button',{name:'Body Battery',exact:true})).toBeVisible();
+});
+
+
+test('875 actual activity detail filters typed laps across all MILE themes',async({page})=>{
+ const intervalFixture={laps:[{intensity:'interval',distanceInMeters:600,durationInSeconds:180,averageHeartRateInBeatsPerMinute:150},{intensity:'recovery',distanceInMeters:0,durationInSeconds:60,averageHeartRateInBeatsPerMinute:130},{intensity:'interval',distanceInMeters:610,durationInSeconds:180,averageHeartRateInBeatsPerMinute:160}]};
+ await openApp(page,{signedIn:true,intervalFixture});const detail=await openActivity(page);
+ await detail.getByRole('button',{name:'Splits',exact:true}).click();await expect(detail.locator('.m875-table tbody tr')).toHaveCount(3);
+ await detail.getByRole('button',{name:'Run',exact:true}).click();await expect(detail.locator('.m875-table tbody tr')).toHaveCount(2);await expect(detail.locator('.m875-summary').first()).toContainText('1.21 km');
+ await detail.getByRole('button',{name:'Recovery',exact:true}).click();await expect(detail.locator('.m875-table tbody tr')).toHaveCount(1);await expect(detail.locator('.m875-summary').first()).toContainText('0.00 km');
+ for(const theme of ['forest','graphite','midnight','mono','light','sand','ice']){await page.evaluate(t=>document.documentElement.dataset.m395Theme=t,theme);await expect(detail.locator('.m875-intervals')).toBeVisible();expect(await detail.locator('.m875-intervals').evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true)}
 });

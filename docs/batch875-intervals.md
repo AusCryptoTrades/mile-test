@@ -1,0 +1,6 @@
+# Batch 87.5 — interval analysis
+Approved proof: step filters, weighted totals, pace spread, selectable repetitions, recovery HR and planned vs actual.
+Production audit: 21 detail records with startTimeInSeconds lap markers; no intensity, step types, indexes or stored file rows. Webhook v10 processes summary, detail and health notifications, not activity files.
+This slice reads explicit labels, reconstructs recorded marker metrics without classifying by speed, and offers temporary explicit athlete confirmation of strict one-to-one fixed-step matches in linked MILE plans. Open steps and mismatches stay unknown. Shared details do not use private plan lookups. No programme changes.
+FIT gate: verify account's Activity Files notification configuration and official schema/authentication in Garmin developer portal; implement isolated owner-bound retrieval with exact Garmin host/path allowlist, no redirects, size limits, redacted errors, idempotency, pinned official SDK and integrity checks. Verify real activity identity, lap boundaries and step fields. Do not claim Starter access or automatic classification until real file delivery and step content confirmed.
+References: https://developer.garmin.com/gc-developer-program/enterprise/activity-api/ and https://github.com/garmin/fit-javascript-sdk
