@@ -19,13 +19,7 @@ jobs:
         with:
           node-version: '22'
       - run: node --test integrations/garmin/*.test.mjs
-      - name: Resolve pinned FIT SDK and capture lockfile for review
-        run: |
-          npm install --no-save --ignore-scripts --package-lock=false @garmin/fitsdk@21.222.0
-          mkdir -p /tmp/mile-fit-lock
-          printf '%s\n' '{"name":"mile-fit-decoder","version":"1.0.0","private":true,"dependencies":{"@garmin/fitsdk":"21.222.0"}}' > /tmp/mile-fit-lock/package.json
-          npm install --prefix /tmp/mile-fit-lock --package-lock-only --ignore-scripts --no-audit --no-fund
-          cat /tmp/mile-fit-lock/package-lock.json
+      - run: npm ci --prefix integrations/garmin --ignore-scripts --no-audit --no-fund
       - run: node --test integrations/garmin/fit-binary.mjs
   registry-database:
     runs-on: ubuntu-24.04

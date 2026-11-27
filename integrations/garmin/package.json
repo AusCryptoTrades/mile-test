@@ -1,0 +1,8 @@
+{
+  "name": "mile-fit-decoder",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@garmin/fitsdk": "21.222.0"
+  }
+}

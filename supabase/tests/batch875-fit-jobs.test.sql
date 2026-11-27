@@ -3,10 +3,10 @@ begin;
 create schema if not exists auth;
 create schema if not exists private;
 create table auth.users(id uuid primary key);
-do $ begin
+do $$ begin
  if not exists (select 1 from pg_roles where rolname='anon') then create role anon nologin; end if;
  if not exists (select 1 from pg_roles where rolname='authenticated') then create role authenticated nologin; end if;
-end $;
+end $$;
 \ir ../proposals/batch875-fit-jobs.sql
 insert into auth.users values('00000000-0000-4000-8000-000000000001'),('00000000-0000-4000-8000-000000000002');
 insert into private.mile_fit_jobs(user_id,activity_id,garmin_user_id,summary_id,start_epoch,encrypted_callback) values
