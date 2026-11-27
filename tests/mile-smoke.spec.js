@@ -227,7 +227,7 @@ test('tracker embedded navigation', async ({ page }) => {
  await page.evaluate(() => window.mileShellOpen('tracker'));
  await expect(page.locator('#mile-native-view')).toBeVisible();
  await expect(page.locator('#mile-fixed-mobile-nav [data-mile-page="track"]')).toHaveClass(/active/);
- await expect(page.frameLocator('#mile-native-view').locator('.mile-tracker-hero')).toContainText('RUN TRACKER');
+ await expect(page.frameLocator('#mile-native-view').locator('.mile-tracker-hero')).toContainText('Run Tracker');
  await page.evaluate(() => window.mileShellNavigate('profile'));
  await expect(page.locator('#mile-native-view')).toHaveCount(0);
 });
@@ -1286,7 +1286,7 @@ test('Challenges opened from leaderboard has no stale outer banner ',async({page
  await expect(page.locator('#app > .mile-universal-header')).toContainText('Weekly Leaderboard');
  await page.evaluate(()=>window.mileOpenChallenges());
  const f=page.frameLocator('#mile-native-view');
- await expect(f.getByRole('heading',{name:'CHALLENGES.'})).toBeVisible();
+ await expect(f.getByRole('heading',{name:'Challenges',exact:true})).toBeVisible();
  await expect(page.locator('#app > .mile-universal-header')).toHaveCount(0);
  await page.waitForTimeout(400);
  await expect(page.locator('#app > .mile-universal-header')).toHaveCount(0);
@@ -1371,7 +1371,7 @@ test('86.7 chat groups dates, keeps actions accessible and fits conversation wid
  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
  await expect(last.getByRole('button',{name:'Delete for everyone'})).toBeVisible();
  await expect(last.getByRole('button',{name:'Edit',exact:true})).toBeVisible();
- await chat.getByRole('button',{name:'Back to inbox'}).click();
+ await page.locator('.m877-social-toolbar').getByRole('button',{name:'Back to inbox'}).click();
  await expect(page.locator('.m86-inbox')).toBeVisible();
 });
 test('86.5 connected devices distinguishes web availability from native permission preview',async({page})=>{
