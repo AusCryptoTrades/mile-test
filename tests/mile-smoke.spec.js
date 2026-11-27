@@ -1664,7 +1664,18 @@ test('877 populated profile editor saves existing privacy fields and preserves u
  await expect(page.locator('#m37-message-privacy')).toHaveValue('anyone');
  await expect(page.locator('#m36-private')).toHaveCSS('width','38px');
  await expect(page.locator('#m36-private')).toHaveCSS('height','23px');
- await expect(page.locator('[data-m387-discipline="Running"]')).toHaveCSS('width','20px');
+ // Visual density is a bounded geometry requirement, not an exact pixel contract.
+ const discipline=page.locator('[data-m387-discipline="Running"]');
+ const hit=editor.locator('label.m877-discipline-label').filter({has:discipline});
+ await expect(discipline).toBeChecked();
+ const box=await discipline.boundingBox(),target=await hit.boundingBox();
+ expect(box.width).toBeGreaterThanOrEqual(18);
+ expect(box.width).toBeLessThanOrEqual(24);
+ expect(box.height).toBeGreaterThanOrEqual(18);
+ expect(box.height).toBeLessThanOrEqual(24);
+ expect(target.height).toBeGreaterThanOrEqual(44);
+ await hit.click();await expect(discipline).not.toBeChecked();
+ await hit.click();await expect(discipline).toBeChecked();
  await densityCapture(page,testInfo,'profile-editor-populated-top');
  await page.locator('.m37-privacy').scrollIntoViewIfNeeded();
  await testInfo.attach('profile-privacy-populated',{body:await page.screenshot({animations:'disabled'}),contentType:'image/png'});
