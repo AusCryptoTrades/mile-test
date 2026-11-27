@@ -2706,7 +2706,7 @@ drawDetail=function(){mileDetailOriginal();let overlay=document.getElementById('
   if(!laps.length&&splits.length){html+='<p class="muted small">Calculated distance splits from recorded samples</p>'+window.mile762.splitTable([],splits,sport(a))}
   if(!laps.length&&!splits.length)html+='<div class="mile35-empty">This activity has no usable recorded lap or cumulative moving-time data. No guessed splits are displayed. MILE does not invent kilometre splits. Try syncing the activity again.</div>';
   content[0].innerHTML=html;
-  if(/run/i.test(sport(a))&&window.mileIntervals){const linked=(state.workouts||[]).filter(w=>w.matchId!=null&&String(w.matchId)===String(a.id)&&w.sport==='Running');window.mileIntervals.mount(content[0],d,laps,linked.length===1?linked[0]:null)}
+  if((/run|treadmill/i.test(sport(a))||/run|treadmill/i.test(String(a.sport||a.activityType||'')))&&window.mileIntervals){const linked=(state.workouts||[]).filter(w=>w.matchId!=null&&String(w.matchId)===String(a.id)&&w.sport==='Running');window.mileIntervals.mount(content[0],d,laps,linked.length===1?linked[0]:null)}
  }
  if(tab==='Charts'&&content.length){content[0].innerHTML='<h3>Recorded heart rate</h3>'+milePlot(points,'hr','Heart rate','bpm','#ff626b',summary);if(content[1]){let pacePoints=milePaceSeries(points,summary);content[1].innerHTML='<h3>Recorded pace</h3>'+milePlot(pacePoints,'pace','Pace','min/km','#86efb5',summary)+'<div class="muted small">Pace is derived from Garmin speed samples when available, with a distance-window fallback. Outliers are excluded.</div>'}}
  if(tab==='Map'&&content.length){content[0].innerHTML='<h3>Recorded route</h3>'+mileMapMarkup(d);mileMountMap(d)}
