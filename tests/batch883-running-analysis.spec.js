@@ -39,3 +39,11 @@ const checks=function tests(api){
  return 24;
 };
 test('Batch 88.3 verified planned and unplanned analysis and review rules',()=>checks(api));
+
+test('Garmin revision matching never guesses or overwrites completed sessions',()=>{
+ const a={id:'a',sport:'Running',date:'2026-11-27',distanceKm:5,providerWorkoutId:'g',workoutRevision:2};
+ const p={id:'p',sport:'Running',date:a.date,status:'planned',km:5,revision:2};
+ const d={verified:true,providerWorkoutId:'g',revision:2,sessionId:'p'};
+ const cases=[[[p],[],'review'],[[p],[d],'verified-link'],[[p],[d,d],'review'],[[{...p,status:'completed'}],[d],'review'],[[{...p,revision:1}],[d],'review'],[[p,{...p,id:'q'}],[],'review'],[[],[],'unplanned'],[[p],[{...d,verified:false}],'review']];
+ for(const [plans,deliveries,status] of cases)if(api.reconcile(a,plans,deliveries).status!==status)throw Error('Expected '+status);
+});
