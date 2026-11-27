@@ -9,3 +9,10 @@ Based on physical iPhone feedback following PR 133.
 - Tests added for actual profile save payload with synthetic data, in-progress changes, populated followers, compact feed and notification/back behavior, banner geometry and screenshots.
 
 Release gates: all browser projects and layout/native/Garmin/admin checks pass at final head; inspect populated profile and privacy, feed, follow requests, banner screenshots; resolve remaining visual defects and verify deployment. Physical device acceptance remains separate from browser emulation.
+
+## 87.7.2 — follow-up density and navigation
+- Tracker setup Back below banner; return to the originating main route (Social returns to feed), standalone fallback Home. Hide during active/paused/finished runs, disable while acquiring GPS; preserve finish-to-Track flow.
+- SIM setup banner above its existing Back control. Hide the setup banner during live/review/results, retain leave confirmation.
+- Flatten request tabs and feed filters, reduce Post Activity form spacing and checkbox sizes, compact notification toolbar and move its informational text behind an info disclosure. Keep all existing actions and privacy options.
+- Keep setup controls at least 44px, input font 16px for iOS, Begin Run at least 48px; no change to live metrics, recording or session progression.
+- Additional browser tests cover Back destinations, in-run guards, SIM leave confirmation, Social tabs and form controls. All final-head checks and new screenshots must be reviewed before merge.
