@@ -1643,3 +1643,123 @@ test('8762 Tracker workout selector is readable and retains native selection acr
  await select.selectOption('free');await expect(select).toHaveValue('free');
  await expect(frame.locator('#start')).toBeVisible();
 });
+
+test('877 populated profile editor saves existing privacy fields and preserves unsaved edits',async({page},testInfo)=>{
+ test.setTimeout(120000);
+ await openApp(page,{signedIn:true});
+ let profile={user_id:user.id,username:'fixture_runner',display_name:'Fixture Runner',bio:'Marathon and HYROX training',primary_sport:'Running',disciplines:['Running','HYROX','Strength'],is_private:true,is_discoverable:true,auto_share_activities:false,workout_privacy:'followers',message_privacy:'anyone'};
+ let saved=null;
+ await page.route('**/rest/v1/mile_profiles?*',async route=>{
+  if(route.request().method()==='POST'){saved=route.request().postDataJSON();profile={...profile,...saved}}
+  await route.fulfill({json:[profile],headers:{'access-control-allow-origin':'http://127.0.0.1:4173'}});
+ });
+ await page.evaluate(()=>window.m36Open('profile'));
+ await expect(page.locator('[data-m36-editprofile]')).toBeVisible();
+ await page.locator('[data-m36-editprofile]').click();
+ const editor=page.locator('.m877-editor');
+ await expect(editor).toBeVisible();
+ await expect(page.locator('#m36-name')).toHaveValue('Fixture Runner');
+ await expect(page.locator('#m37-auto-share')).not.toBeChecked();
+ await expect(page.locator('#m36-private')).toBeChecked();
+ await expect(page.locator('#m37-message-privacy')).toHaveValue('anyone');
+ await expect(page.locator('#m36-private')).toHaveCSS('width','38px');
+ await expect(page.locator('#m36-private')).toHaveCSS('height','23px');
+ await expect(page.locator('[data-m387-discipline="Running"]')).toHaveCSS('width','20px');
+ await densityCapture(page,testInfo,'profile-editor-populated-top');
+ await page.locator('.m37-privacy').scrollIntoViewIfNeeded();
+ await testInfo.attach('profile-privacy-populated',{body:await page.screenshot({animations:'disabled'}),contentType:'image/png'});
+ await page.locator('#m36-name').fill('Fixture Edited');
+ await page.locator('label.m877-switch').filter({has:page.locator('#m36-private')}).click();
+ await page.getByRole('button',{name:'Move HYROX up'}).click();
+ await page.evaluate(()=>window.m76Paint());
+ await expect(page.locator('#m36-name')).toHaveValue('Fixture Edited');
+ await expect(page.locator('#m36-private')).not.toBeChecked();
+ await expect(page.locator('[data-m387-discipline]').first()).toHaveAttribute('data-m387-discipline','HYROX');
+ await editor.getByRole('button',{name:'Save profile',exact:true}).first().click();
+ await expect.poll(()=>saved?.display_name).toBe('Fixture Edited');
+ expect(saved).toMatchObject({is_private:false,is_discoverable:true,auto_share_activities:false,workout_privacy:'followers',message_privacy:'anyone',disciplines:['HYROX','Running','Strength']});
+ await expect(editor).toHaveCount(0);
+ await expect(page.locator('[data-m36-editprofile]')).toBeVisible();
+});
+test('877 Social navigation has one Back beside Notifications on main pages and Challenges',async({page},testInfo)=>{
+ test.setTimeout(150000);
+ await openApp(page,{signedIn:true});
+ for(const tab of ['feed','profile','discover','requests','leaderboard','share','messages','notifications']){
+  await page.evaluate(t=>window.m36Open(t),tab);
+  await expect.poll(()=>page.evaluate(()=>window.m36State.loading)).toBe(false);
+  const toolbar=page.locator('.m877-social-toolbar'),back=toolbar.locator('.m877-social-back'),bell=toolbar.locator('[data-m379-bell]');
+  await expect(back).toHaveCount(1);await expect(bell).toBeVisible();
+  await expect(page.locator('.m362-menu')).toHaveCount(0);
+  expect(Math.abs((await back.boundingBox()).y-(await bell.boundingBox()).y)).toBeLessThanOrEqual(2);
+  await densityCapture(page,testInfo,'social-toolbar-'+tab);
+  await back.click();await expect(page.locator('#m36-drawer')).toBeVisible();
+  await page.evaluate(()=>window.m36CloseDrawer());
+ }
+ await page.evaluate(()=>window.mileShellOpen('challenges'));
+ const frame=page.frameLocator('#mile-native-view');
+ await frame.getByRole('button',{name:'Back to Social menu'}).click();
+ await expect(page.locator('#m36-drawer')).toBeVisible();
+ await page.evaluate(()=>window.m36CloseDrawer());
+ await frame.getByRole('button',{name:'Notifications',exact:true}).click();
+ await expect(page.locator('#mile-native-view')).toHaveCount(0);
+ await expect(page.locator('#app')).toHaveAttribute('data-m79-social','notifications');
+});
+test('877 populated Following uses compact accessible actions and expansion retains state',async({page},testInfo)=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.m36Open('requests'));
+ await expect.poll(()=>page.evaluate(()=>window.m36State.loading)).toBe(false);
+ await page.evaluate(()=>{const S=window.m36State,uid=window.m76CurrentUser();S.profiles=[{user_id:'peer1',display_name:'Fixture Long Athlete Name',username:'long_athlete',primary_sport:'Running',is_private:false},{user_id:'peer2',display_name:'Fixture Second Athlete',username:'second_athlete',primary_sport:'HYROX',is_private:true}];S.follows=[{follower_id:uid,following_id:'peer1',status:'accepted'},{follower_id:uid,following_id:'peer2',status:'accepted'}];window.m76Paint()});
+ const section=page.locator('.m877-following'),summary=section.locator(':scope > summary');
+ await expect(summary).toBeVisible();
+ expect(await summary.evaluate(el=>getComputedStyle(el,'::after').content)).toContain('+');
+ await summary.click();await expect(section).toHaveAttribute('open','');
+ expect(await summary.evaluate(el=>getComputedStyle(el,'::after').content)).toContain('−');
+ const row=section.locator('.m877-follow-row').first();
+ await expect(row.getByRole('button',{name:'View Fixture Long Athlete Name profile'})).toBeVisible();
+ await expect(row.getByRole('button',{name:'Message Fixture Long Athlete Name'})).toBeVisible();
+ expect((await row.boundingBox()).height).toBeLessThan(120);
+ await row.locator('.m877-athlete-actions summary').click();
+ await expect(row.getByRole('button',{name:'Unfollow'})).toBeVisible();
+ await densityCapture(page,testInfo,'following-populated');
+ await row.locator('.m877-athlete-actions summary').click();
+ await row.getByRole('button',{name:'View Fixture Long Athlete Name profile'}).click();
+ await expect(page.locator('.m362-profile')).toBeVisible();
+ await page.locator('.m877-social-toolbar [data-m375-back]').click();
+ await expect(page.locator('.m877-following')).toBeVisible();
+});
+test('877 compact feed retains filters, privacy explanation and populated post',async({page},testInfo)=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.m36Open('feed'));
+ await expect.poll(()=>page.evaluate(()=>window.m36State.loading)).toBe(false);
+ const tools=page.locator('.m877-feed-tools');
+ await expect(tools).toBeVisible();
+ await expect(tools.locator('#m37-feed-filter')).toBeVisible();
+ await expect(tools.locator('#m37-sport-filter')).toBeVisible();
+ await expect(page.locator('.m36-feed-card').first()).toBeVisible();
+ await tools.locator('.m877-feed-info summary').click();
+ await expect(tools.getByText('Shared workout summaries only. GPS tracks are not automatically posted.')).toBeVisible();
+ await tools.locator('.m877-feed-info summary').click();
+ await tools.locator('#m37-sport-filter').selectOption('run');
+ await expect(page.locator('.m36-feed-card').first()).toBeVisible();
+ await densityCapture(page,testInfo,'compact-feed-populated');
+});
+test('877 embedded page banners use the same compact geometry as Calendar',async({page},testInfo)=>{
+ test.setTimeout(90000);
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('calendar'));
+ const base=page.locator('#app > .mile-universal-header');
+ await expect(base).toBeVisible();
+ const target=(await base.boundingBox()).width;
+ for(const kind of ['tracker','sim','challenges']){
+  await page.evaluate(k=>window.mileShellOpen(k),kind);
+  const frame=page.frameLocator('#mile-native-view'),banner=frame.locator('.m877-banner');
+  await expect(banner).toBeVisible();await expect(banner).toHaveCSS('min-height','86px');
+  await expect(banner.locator('h1')).toHaveCSS('font-size','24px');
+  const rect=await banner.boundingBox();
+  expect(rect.height).toBeLessThan(116);
+  expect(Math.abs(rect.width-target)).toBeLessThanOrEqual(4);
+  await densityCapture(page,testInfo,'universal-banner-'+kind);
+  await page.evaluate(()=>window.mileShellNavigate('calendar'));
+  await expect(page.locator('#mile-native-view')).toHaveCount(0);
+ }
+});
