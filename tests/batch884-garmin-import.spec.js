@@ -22,7 +22,7 @@ async function signOut(page) {
   await expect(page.locator('#v4Gate')).toBeVisible();
 }
 
-async function routeGarmin(page, { activities = () => [], read = () => ({ activities: [], health: [] }) } = {}) {
+async function routeGarmin(page, { activities = () => [], plans = {}, read = () => ({ activities: [], health: [] }) } = {}) {
   const origin = new URL(test.info().project.use.baseURL).origin;
   const backend = 'https://mgixvokjlytjuypzcfzz.supabase.co';
   await page.route('**/*', async route => {
@@ -41,7 +41,7 @@ async function routeGarmin(page, { activities = () => [], read = () => ({ activi
     } else if (url.pathname === '/rest/v1/av_members') {
       json = [{ user_id: athlete.id }];
     } else if (url.pathname === '/rest/v1/av_training_data') {
-      json = [{ training_data: { activities: activities(athlete), workouts: [] } }];
+      json = [{ training_data: { activities: activities(athlete), workouts: [], ...plans } }];
     } else if (url.pathname === '/functions/v1/garmin-connection-status') {
       json = { status: 'authorised' };
     } else if (url.pathname === '/functions/v1/garmin-data-read') {
@@ -139,4 +139,80 @@ test('private Garmin details are fetched again after switching athletes', async 
     if (index === 0) await signOut(page);
   }
   expect(detailReaders).toEqual(athletes.map(athlete => athlete.id));
+});
+
+
+test('private Analysis presents ambiguous Garmin candidates for confirmation and leaves unmatched runs unplanned', async ({ page }) => {
+  const day = '2026-11-26';
+  const base = { sport: 'Running', block: 'main', date: day, status: 'planned', km: 5, plannedMinutes: 31 };
+  const plans = {
+    activeBlock: 'main',
+    settings: { athleteProfile: { zoneBounds: [100, 120, 140, 155, 170, 190] } },
+    blocks: [
+      { id: 'main', name: 'Running programme', sport: 'Running', start: '2026-11-23', end: '2026-11-29',
+        runningPlan: { config: { adaptation: { mode: 'manual', recovery: true } } } },
+      { id: 'hidden', name: 'Hidden programme', calendarVisible: false },
+    ],
+    workouts: [
+      { ...base, id: 'future', name: 'Upcoming intervals', date: '2026-11-28', targetRpe: 7 },
+      { ...base, id: 'easy', name: 'Morning aerobic run' },
+      { ...base, id: 'steady', name: 'Steady run', km: 5.4, plannedMinutes: 29 },
+      { ...base, id: 'slow', name: 'Duration outlier', plannedMinutes: 90 },
+      { ...base, id: 'distance', name: 'Distance outlier', km: 20 },
+      { ...base, id: 'hidden-run', name: 'Hidden session', block: 'hidden' },
+      { ...base, id: 'done', name: 'Completed session', status: 'done' },
+      { ...base, id: 'matched', name: 'Previously matched run', matchId: 'different-activity' },
+      { ...base, id: 'foreign-run', name: 'Foreign session', ownerId: athletes[1].id },
+      { ...base, id: 'different-sport', name: 'Cycling session', sport: 'Cycling' },
+      { ...base, id: 'different-day', name: 'Different day', date: '2026-11-25' },
+    ],
+  };
+  await routeGarmin(page, {
+    plans,
+    read(_athlete, activityId) {
+      if (activityId) {
+        const start = new Date(day+'T07:00:00Z').getTime();
+        return { detail: { samples: Array.from({ length: 361 }, (_, i) => ({ timestamp: start + i * 5000, heartRate: 175 })) } };
+      }
+      return { health: [], activities: [
+        { garmin_activity_id: '783649251', activity_name: 'Ambiguous Garmin run', activity_type: 'RUNNING', started_at: day+'T07:00:00Z', duration_seconds: 1800, distance_metres: 5000, raw_data: { startTimeLocal: day+'T07:00:00' } },
+        { garmin_activity_id: '975312468', activity_name: 'Unmatched Garmin run', activity_type: 'RUNNING', started_at: day+'T08:00:00Z', duration_seconds: 1800, distance_metres: 9000, raw_data: { startTimeLocal: day+'T08:00:00' } },
+      ] };
+    },
+  });
+  const writes = [];
+  page.on('request', request => {
+    if (request.method() !== 'GET' && /\/av_training_data|\/rest\/v1\/rpc\//.test(request.url())) writes.push(request.url());
+  });
+  await page.clock.setFixedTime(new Date(day+'T12:00:00Z'));
+  await page.goto('/');
+  await expect(page.locator('#mileSplash')).toHaveCount(0);
+  await signIn(page, athletes[0]);
+
+  async function openReview(activity) {
+    await page.getByRole('button', { name: new RegExp(activity) }).click();
+    const detail = page.locator('#mile35-detail');
+    await detail.getByRole('button', { name: 'Analysis', exact: true }).click();
+    await expect(detail).toContainText('No scheduled session linked');
+    return detail.locator('section').filter({ has: page.getByRole('heading', { name: 'Possible scheduled matches', exact: true }) });
+  }
+  const ambiguous = await openReview('Ambiguous Garmin run');
+  await expect(ambiguous).toContainText('Several scheduled runs are similar. Athlete confirmation is required');
+  await expect(ambiguous.locator('.mile35-datarow')).toHaveText([
+    'Morning aerobic run5.00 km planned · ~31 min planned',
+    'Steady run5.40 km planned · ~29 min planned',
+  ]);
+  await expect(ambiguous.getByRole('button')).toHaveCount(0);
+  const detail = page.locator('#mile35-detail');
+  await expect(detail.getByRole('heading', { name: 'Scheduled match unresolved' })).toBeVisible();
+  await expect(detail).toContainText('Running distance recorded this week14.0 km');
+  await expect(detail.getByRole('heading', { name: 'Additional demanding run' })).toHaveCount(0);
+  await detail.getByRole('button', { name: /Back/ }).click();
+
+  const unmatched = await openReview('Unmatched Garmin run');
+  await expect(unmatched).toContainText('No comparable scheduled runs on this date.');
+  await expect(unmatched.locator('.mile35-datarow')).toHaveCount(0);
+  await expect(detail.getByRole('heading', { name: 'Additional demanding run' })).toBeVisible();
+  await expect(detail).toContainText('Upcoming intervals · 2026-11-28');
+  expect(writes).toEqual([]);
 });

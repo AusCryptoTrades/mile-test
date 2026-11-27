@@ -34,7 +34,7 @@ function linkedWorkout(activity,workouts){
  const matches=(Array.isArray(workouts)?workouts:[]).filter(w=>w.sport==='Running'&&w.matchId!=null&&String(w.matchId)===String(activity.id));
  return matches.length===1?matches[0]:null;
 }
-function reviewRecommendation(activity,analysis,workouts,match,review,actualWeekKm){
+function reviewRecommendation(activity,analysis,workouts,match,review,actualWeekKm,possibleMatch){
  if(!review||!analysis)return null;
  const {today,earliest,weekStart,weekEnd,blocks,activeBlock,fatigue}=review;
  if(!/^\d{4}-\d{2}-\d{2}$/.test(activity.date)||activity.date<earliest||activity.date>today){
@@ -50,8 +50,11 @@ function reviewRecommendation(activity,analysis,workouts,match,review,actualWeek
  const reportedFatigue=finite(fatigue),poorRecovery=Number.isInteger(reportedFatigue)&&reportedFatigue>=7&&reportedFatigue<=10;
  const evidenceVerified=Boolean(analysis.zones&&analysis.durationMin&&analysis.zones.coverage>=analysis.durationMin*60*.8);
  const proposal=root.mileRunningAnalysis.propose({
-  id:analysis.activityId,kind:analysis.kind,classification:analysis.classification,evidenceVerified,evidence:analysis.adaptationEvidence,
+  id:analysis.activityId,kind:analysis.kind,classification:possibleMatch?null:analysis.classification,evidenceVerified,evidence:analysis.adaptationEvidence,
  },{today,sessions,settings:programme.runningPlan.config?.adaptation,recovery:poorRecovery?'poor':null,plannedWeekKm,actualWeekKm});
+ if(possibleMatch&&evidenceVerified&&analysis.classification==='higher-intensity'&&proposal.rule==='insufficient-evidence'){
+  return {detected:'Scheduled match unresolved',evidence:'Recorded heart rate suggests demanding training. This run also resembles a scheduled session.',reason:'Confirm the match before treating this activity as additional demanding training.',moreEvidence:true};
+ }
  const upcoming=sessions.find(w=>String(w.id)===proposal.changes[0]?.sessionId);
  let detected='Comparable trend unavailable';
  let evidence=evidenceVerified?'Recorded heart-rate samples support a description of this run. Comparable sessions are needed for a progression review.':'Verified step alignment or sufficiently complete recorded heart-rate data is needed before evaluating a comparable training trend.';
@@ -78,16 +81,21 @@ function reviewRecommendation(activity,analysis,workouts,match,review,actualWeek
   moreEvidence:proposal.rule==='settings-missing'?null:proposal.rule==='insufficient-evidence'||proposal.rule==='trend-not-established',
  };
 }
-function analyse(activity,{workouts=[],points=[],bounds=null,review=null}={}){
+function analyse(activity,{workouts=[],points=[],bounds=null,review=null,matchSessions=null}={}){
  const distance=positive(activity?.distanceKm),duration=positive(activity?.durationMin),hr=finite(activity?.averageHR);
  const match=linkedWorkout(activity,workouts),zones=zoneDistribution(points,bounds);
  const advanced=root.mileRunningAnalysis?.analyse({...activity,distanceKm:distance,durationMin:duration},{plans:workouts,zoneDistribution:zones})||null;
+ // Imported summaries have no verified Garmin publication identity.
+ const matchReview=!match&&matchSessions?root.mileRunningAnalysis?.reconcile(
+  {id:activity.id,date:activity.date,sport:'Running',distanceKm:distance,durationMin:duration},matchSessions,[]
+ ):null;
  const actualWeekKm=review?review.currentRuns.filter(x=>review.weekStart<=x.date&&x.date<=review.today&&positive(x.distanceKm)!==null).reduce((sum,x)=>sum+Number(x.distanceKm),0):null;
  return {kind:match?'linked':'unlinked',name:match?String(match.name||'Scheduled run'):null,
   purpose:match?.purpose||null,
   plannedKm:match?positive(match.km):null,distanceKm:distance,durationMin:duration,
   pace:distance&&duration?duration*60/distance:null,averageHR:validHR(hr)?hr:null,zones,advanced,
-  recommendation:reviewRecommendation(activity,advanced,workouts,match,review,actualWeekKm),
+  recommendation:reviewRecommendation(activity,advanced,workouts,match,review,actualWeekKm,Boolean(matchReview?.evidence?.length)),
+  matchReview:matchReview?.evidence??null,
   recordedWeekKm:review&&review.weekStart<=activity?.date&&activity.date<=review.today&&distance!==null?actualWeekKm:null};
 }
 const fmtPace=n=>{if(n===null||!Number.isFinite(n))return 'Unavailable';const s=Math.round(n);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')+'/km'};
@@ -133,6 +141,19 @@ function render(host,result){
   }
   p.append(el('p',a.stimulus,'muted small'));
   for(const note of [...(a.good||[]),...(a.improve||[]),...(a.cautions||[])])p.append(el('p',note,'muted small'));
+ }
+ if(result.matchReview){
+  p=section('Possible scheduled matches');
+  if(result.matchReview.length){
+   p.append(el('p',result.matchReview.length>1?'Several scheduled runs are similar. Athlete confirmation is required to link one.':'A scheduled run is similar. Athlete confirmation is required to link it.','muted small'));
+   for(const candidate of result.matchReview){
+    const comparison=[
+     candidate.distance!==null?candidate.distance.toFixed(2)+' km planned':null,
+     candidate.duration!==null?(candidate.durationEstimated?'~':'')+Math.round(candidate.duration)+' min planned':null,
+    ].filter(Boolean);
+    row(p,candidate.name,comparison.join(' · '));
+   }
+  }else p.append(el('p','No comparable scheduled runs on this date.','muted small'));
  }
  const review=result.recommendation;
  p=section(review?'Adaptation review':'Training context');

@@ -60,6 +60,22 @@ test('duplicate Garmin imports preserve the existing activity link',()=>{
  expect(api.reconcile({...activity,workoutRevision:'2'},[plan],[delivery]).status).toBe('review');
 });
 
+test('Garmin candidate evidence uses only comparable recorded totals and eligible sessions',()=>{
+ const activity={id:'123456789',sport:'Running',date:'2026-11-27',durationMin:30};
+ const session={id:'a',sport:'Running',status:'planned',date:activity.date,km:4,detail:'x',structuredDetail:'x',
+  structuredSteps:[{kind:'step',intensity:'active',duration:{kind:'time',seconds:1800}}]};
+ const options=[session,{...session,id:'completed',completedAt:activity.date},{...session,id:'duplicate'},
+  {...session,id:'duplicate',status:'done'},{...session,id:'estimate',structuredSteps:null,plannedMinutes:31},
+  {...session,id:'distant-duration',structuredSteps:null,plannedMinutes:5}];
+ const review=api.reconcile(activity,options,[]);
+ expect(review.candidates).toEqual(['a','estimate']);
+ expect(review.evidence).toEqual([
+  expect.objectContaining({id:'a',distance:null,duration:30,durationEstimated:false}),
+  expect.objectContaining({id:'estimate',distance:null,duration:31,durationEstimated:true}),
+ ]);
+ expect(api.reconcile({...activity,durationMin:null},options,[]).status).toBe('unplanned');
+});
+
 test('revision preparation preserves original and rejects unsafe or duplicate changes',()=>{
  const session={id:'p',ownerId:'u',sport:'Running',status:'planned',date:'2026-12-01',revision:1,kind:'easy',meters:5000,km:5,estimatedSeconds:1800,plannedMinutes:30,detail:'x',structuredDetail:'x',structuredSteps:[{kind:'step',intensity:'active',duration:{kind:'distance',meters:5000},target:{kind:'open'}}]};
  const req={ownerId:'u',sessionId:'p',expectedRevision:1,eventId:'e',approvedByAthlete:true,operation:'reduce-distance',factor:.9},ctx={ownerId:'u',today:'2026-11-27'};

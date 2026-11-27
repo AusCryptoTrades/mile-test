@@ -45,6 +45,12 @@ function align(steps,evidence){
   return {index:i,intensity:s.intensity,planned,quantity,completionRatio:ratio,pace,paceStatus,averageHR:h!==null&&h>=30&&h<=250?h:null,hrStatus,seconds:r.seconds,meters:r.meters,target:paceTarget(target)||hrTarget(target)?{...target}:null};
  });
 }
+function plannedTotals(workout){
+ const steps=workout.structuredDetail===workout.detail?expand(workout.structuredSteps):null;
+ const distanceExact=steps&&steps.every(x=>x.duration.kind==='distance')?steps.reduce((n,x)=>n+x.duration.meters,0)/1000:null;
+ const durationExact=steps&&steps.every(x=>x.duration.kind==='time')?steps.reduce((n,x)=>n+x.duration.seconds,0)/60:null;
+ return {steps,distanceExact,durationExact,distance:distanceExact??pos(workout.km),duration:durationExact??pos(workout.plannedMinutes)};
+}
 function analyse(activity,opts={}){
  const distance=pos(activity?.distanceKm),duration=pos(activity?.durationMin),id=activity?.id==null?null:String(activity.id);
  const matched=uniqueMatch(activity,opts.plans),zones=validatedDistribution(opts.zoneDistribution),context=opts.context||{};
@@ -61,10 +67,7 @@ function analyse(activity,opts={}){
   }
   return {...base,classification,stimulus,adherence:null,recovery:classification==='higher-intensity'?'Review recovery and upcoming demanding sessions.':'Consider duration and recent total load; recovery cannot be established from this activity alone.',programmeImpact:'No programme change made.'};
  }
- const steps=matched.structuredDetail===matched.detail?expand(matched.structuredSteps):null;
- const distanceExact=steps&&steps.every(x=>x.duration.kind==='distance')?steps.reduce((n,x)=>n+x.duration.meters,0)/1000:null;
- const durationExact=steps&&steps.every(x=>x.duration.kind==='time')?steps.reduce((n,x)=>n+x.duration.seconds,0)/60:null;
- const plannedDistance=distanceExact??pos(matched.km),plannedDuration=durationExact??pos(matched.plannedMinutes);
+ const {steps,distanceExact,durationExact,distance:plannedDistance,duration:plannedDuration}=plannedTotals(matched);
  const aligned=confounded?null:align(steps,opts.lapEvidence);
  const main=aligned?.filter(x=>x.intensity==='active'||x.intensity==='interval')||[],recovery=aligned?.filter(x=>x.intensity==='recovery')||[];
  const comparable=main.filter(x=>x.paceStatus!==null),complete=main.filter(x=>x.completionRatio!==null);
@@ -132,7 +135,10 @@ function reconcile(activity,plans,deliveries){
  const existing=sessions.filter(p=>same(p?.matchId,activity.id));
  if(existing.length===1&&existing[0].id!=null)return {status:'already-linked',sessionId:existing[0].id,candidates:[]};
  if(existing.length)return {status:'review',candidates:existing.flatMap(p=>p.id==null?[]:[p.id])};
- const eligible=sessions.filter(p=>p?.sport==='Running'&&p.id!=null&&p.date===activity.date&&p.status==='planned'&&p.matchId==null);
+ const idCounts=new Map();
+ for(const p of sessions){if(p?.id!=null){const id=String(p.id);idCounts.set(id,(idCounts.get(id)||0)+1)}}
+ const eligible=sessions.filter(p=>p?.sport==='Running'&&p.id!=null&&idCounts.get(String(p.id))===1&&
+  p.date===activity.date&&p.status==='planned'&&p.matchId==null&&p.completedAt==null);
  // The publication registry stores positive decimal Garmin workout IDs and integer revisions.
  const providerId=String(activity.providerWorkoutId??'');
  const revision=activity.workoutRevision;
@@ -142,8 +148,18 @@ function reconcile(activity,plans,deliveries){
  const linked=eligible.filter(p=>p.revision===revision&&links.some(d=>same(d.sessionId,p.id)));
  if(links.length===1&&linked.length===1)return {status:'verified-link',sessionId:linked[0].id,candidates:[linked[0].id]};
  if(links.length)return {status:'review',candidates:linked.map(p=>p.id)};
- const candidates=eligible.filter(p=>pos(p.km)&&pos(activity.distanceKm)&&Math.abs(p.km-activity.distanceKm)/p.km<=.25).map(p=>p.id);
- return {status:candidates.length?'review':'unplanned',candidates};
+ const recordedDistance=pos(activity.distanceKm),recordedDuration=pos(activity.durationMin);
+ const evidence=[];
+ for(const p of eligible){
+  const totals=plannedTotals(p);
+  const distance=recordedDistance?totals.distance:null,duration=recordedDuration?totals.duration:null;
+  if(distance===null&&duration===null)continue;
+  if(distance!==null&&Math.abs(distance-recordedDistance)/distance>.25)continue;
+  // Estimated duration includes normal pace variation and stops.
+  if(duration!==null&&Math.abs(duration-recordedDuration)/duration>.35)continue;
+  evidence.push({id:p.id,name:p.name||'Scheduled run',distance,duration,durationEstimated:totals.durationExact===null});
+ }
+ return {status:evidence.length?'review':'unplanned',candidates:evidence.map(p=>p.id),evidence};
 }
 // Pure revision preparation. Persistence must use an authenticated owner-scoped atomic compare-and-swap.
 function prepareRevision(session,request,ctx={}){
