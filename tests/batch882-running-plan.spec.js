@@ -119,3 +119,40 @@ test('per-day caps override both regular and long-run defaults', () => {
   expect(invalid.ok).toBe(false);
   expect(invalid.errors).toContain('Enter day-specific limits in whole minutes');
 });
+
+test('race feasibility uses the actual dated runway and demonstrated pace', () => {
+  const athlete = { ...completeAthlete, fiveKSeconds: 1200 };
+  const result = engine.generate({ ...planInput, goal: 'marathon', weeks: 12, raceDate: '2027-02-16', athlete, targetSeconds: 9900 });
+  expect(result.ok).toBe(true);
+  expect(result.feasibilityDetail.status).toBe('caution');
+  expect(result.feasibilityDetail.reasons).toEqual(expect.arrayContaining([
+    expect.stringContaining('78 days'),
+    expect.stringContaining('faster average pace than your recorded 5K'),
+  ]));
+  const noBenchmark = engine.generate({ ...planInput, athlete: completeAthlete, targetSeconds: 2000 });
+  expect(noBenchmark.feasibilityDetail.reasons.join(' ')).not.toContain('5K benchmark');
+});
+
+test('a confirmed walk–run return is timed, non-progressive and respects recovery days', () => {
+  const input = {
+    ...planInput, goal: 'return', weeks: 3,
+    athlete: { level: 'beginner', currentKm: 0, interrupted: true, returnMinutes: 12 },
+    schedule: { ...planInput.schedule, runs: 3, demandingDays: [6], dayMinutes: { 1: 7 } },
+  };
+  const result = engine.generate(input);
+  expect(result.ok).toBe(true);
+  expect(result.chosenDays).toEqual([1, 3]);
+  expect(result.weeks).toHaveLength(3);
+  for (const week of result.weeks) {
+    expect(week.km).toBeNull();
+    expect(week.sessions.map(session => session.plannedMinutes)).toEqual([6, 12]);
+    for (const session of week.sessions) {
+      expect(session.structuredSteps.reduce((sum, step) => sum + step.duration.seconds, 0)).toBe(session.estimatedSeconds);
+      expect(session.meters).toBeNull();
+      expect(session.structuredSteps.every(step => step.target.kind === 'open')).toBe(true);
+    }
+  }
+  expect(engine.generate({ ...input, athlete: { ...input.athlete, injury: true } }).ok).toBe(false);
+  expect(engine.generate({ ...input, athlete: { ...input.athlete, returnMinutes: undefined } }).ok).toBe(false);
+  expect(engine.generate({ ...input, goal: 'fitness' }).ok).toBe(false);
+});

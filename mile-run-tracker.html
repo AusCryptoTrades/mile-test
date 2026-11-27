@@ -64,7 +64,8 @@ function canonicalBlocks(steps, depth=0){
    if(!Number.isInteger(low)||!Number.isInteger(high)||low<30||low>high||high>250)return null;
    heartRate=(low===high?String(low):low+'–'+high)+' bpm';
   }else if(target&&target.kind!=='open')return null;
-  result.push({name:labels[step.intensity],kind,amount,pace,heartRate});
+  const name=planned?.kind==='return'&&typeof step.description==='string'?step.description:labels[step.intensity];
+  result.push({name,kind,amount,pace,heartRate});
  }
  return result;
 }

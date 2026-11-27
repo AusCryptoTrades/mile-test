@@ -37,13 +37,17 @@ function workoutVariant(kind,week,meters){
  const reps=eligible.length?eligible[week%eligible.length]:parent.reps;
  return {...parent,reps,name:parent.name+(reps>1?' · '+reps+' reps':'')};
 }
-function assessFeasibility(goal,base,weeks,raceWeek,a){
+function assessFeasibility(goal,base,days,a,targetSeconds){
  const distance=raceKm[goal],reasons=[];
+ if(goal==='return')return {status:'review-required',reasons:['Review the walk–run schedule against the duration you already tolerate.']};
  if(!distance)return {status:'review-required',reasons:['Event distance or objective requires individual review.']};
- const horizon=raceWeek===null?weeks:Math.min(weeks,raceWeek+1);
  if(base.km<distance*.5)reasons.push('Recent weekly volume is low relative to event distance.');
  if(distance>=21&&(!positive(a.longestKm)||a.longestKm<distance*.35))reasons.push('Recent long-run evidence is limited relative to event distance.');
- if(horizon<(distance>=42?12:distance>=21?8:4))reasons.push('Preparation window is short; avoid compressing training.');
+ const minimumDays=7*(distance>=42?12:distance>=21?8:4);
+ if(days<minimumDays)reasons.push('The preparation window is '+days+' days; the planning guide calls for at least '+minimumDays+' days for this distance.');
+ if(positive(targetSeconds)&&a.fiveKSeconds>=750&&a.fiveKSeconds<=6000&&targetSeconds/distance<a.fiveKSeconds/5){
+  reasons.push('The goal requires a faster average pace than your recorded 5K benchmark. Review the target time against recent race results.');
+ }
  if(base.source!=='four completed weeks')reasons.push('Training history is incomplete.');
  return {status:reasons.length?'caution':'review-required',reasons};
 }
@@ -97,6 +101,41 @@ function makeSession(kind,m,a,phase,week=0){
  const seconds=Math.ceil(m*slow/1000);
  return {name:t.name,kind,phase,meters:m,km:m/1000,plannedMinutes:Math.ceil(seconds/60),estimatedSeconds:seconds,estimatedPaceSeconds:slow,paceEstimateOnly:easy===null,targetRpe:t.rpe,purpose:t.purpose,focus:t.focus,structuredSteps:steps};
 }
+function buildReturnPlan(input,base,start,available,hard,dayMinutes){
+ const {athlete:a,schedule:s,weeks}=input;
+ const tooClose=(day,days)=>days.some(other=>diff(day,other)<=1);
+ const chosen=[];
+ for(const day of available){
+  if(chosen.length===s.runs)break;
+  if(!tooClose(day,hard)&&!tooClose(day,chosen)&&((dayMinutes[day]??s.weekdayMinutes)>=6))chosen.push(day);
+ }
+ if(!chosen.length)return {ok:false,errors:['Choose a day with at least six minutes available, away from demanding sport.'],warnings:[],baseline:base,weeks:[]};
+
+ const t=templates.return,offset=(new Date(start).getUTCDay()+6)%7;
+ const warnings=['The same easy walk–run prescription repeats across the programme. Review tolerance before adding time or intensity.'];
+ if(chosen.length<s.runs)warnings.push('Recovery spacing and duration limits reduced the number of sessions.');
+ const step=(intensity,description,seconds)=>({kind:'step',intensity,description,duration:{kind:'time',seconds},target:{kind:'open'}});
+ const plan=Array.from({length:weeks},(_,i)=>{
+  const sessions=chosen.map(day=>{
+   const durationLimitMinutes=dayMinutes[day]??s.weekdayMinutes;
+   const minutes=Math.min(durationLimitMinutes,a.returnMinutes);
+   const repeats=Math.floor((minutes-4)/2);
+   const structuredSteps=[step('warmup','Warm-up walk',120)];
+   for(let rep=0;rep<repeats;rep++){
+    structuredSteps.push(step('active','Easy jog',30),step('recovery','Walk recovery',90));
+   }
+   structuredSteps.push(step('cooldown','Cool-down walk',120));
+   const plannedMinutes=structuredSteps.reduce((total,item)=>total+item.duration.seconds,0)/60;
+   const date=new Date(start+(i*7+(day-offset+7)%7)*86400000).toISOString().slice(0,10);
+   return {name:'Easy walk–run',kind:'return',phase:'Return',meters:null,km:null,
+    plannedMinutes,estimatedSeconds:plannedMinutes*60,targetRpe:t.rpe,purpose:t.purpose,focus:t.focus,
+    day,date,planWeek:i+1,durationLimitMinutes,structuredSteps};
+  }).sort((a,b)=>a.date.localeCompare(b.date));
+  return {week:i+1,phase:'Return',meters:null,km:null,plannedMinutes:sessions.reduce((total,item)=>total+item.plannedMinutes,0),sessions};
+ });
+ return {ok:true,errors:[],warnings,baseline:base,weeks:plan,goal:'return',chosenDays:chosen,
+  feasibility:'review-required',feasibilityDetail:assessFeasibility('return',base,0,a),settings:{...input.adaptation},version:1};
+}
 function generate(input={}){
  const a=input.athlete||{},s=input.schedule||{},goal=input.goal||'fitness',weeks=input.weeks,base=baseline(a),warnings=[];
  const errors=[];
@@ -104,18 +143,24 @@ function generate(input={}){
  if(!Number.isInteger(weeks)||weeks<1||weeks>52)errors.push('Choose 1–52 weeks');
  const available=dayList(s.available),hard=dayList(s.demandingDays),n=s.runs;
  if(!Number.isInteger(n)||n<1||n>available.length)errors.push('Runs must fit available days');
- if(!positive(s.weekdayMinutes)||!positive(s.longMinutes))errors.push('Enter session duration limits');
+ if(!positive(s.weekdayMinutes)||(goal!=='return'&&!positive(s.longMinutes)))errors.push('Enter session duration limits');
  const dayMinutes=s.dayMinutes??{};
  if(typeof dayMinutes!=='object'||Array.isArray(dayMinutes)||Object.entries(dayMinutes).some(([day,minutes])=>!/^[0-6]$/.test(day)||!Number.isInteger(minutes)||minutes<1))errors.push('Enter day-specific limits in whole minutes');
- if(base.km===null||base.km<=0)errors.push('Confirm a positive sustainable starting volume before generating; zero or interrupted history requires a separately reviewed return plan');
+ if(goal==='return'){
+  if(weeks>4||n>3||input.raceDate||input.targetSeconds)errors.push('Choose up to four weeks and three sessions per week, without a race date or target.');
+  if(!Number.isInteger(a.returnMinutes)||a.returnMinutes<6||a.returnMinutes>20)errors.push('Confirm a recent comfortable walk–run duration of 6–20 minutes.');
+ }else{
+  if(base.km===null||base.km<=0)errors.push('Confirm a positive sustainable starting volume or choose Return to running.');
+  if(base.interrupted)errors.push('Choose Return to running after a recent interruption.');
+ }
  if(!Object.hasOwn(caps,a.level))errors.push('Choose experience level');
- if(base.interrupted)errors.push('Recent interruption requires a separately reviewed return plan before mileage progression');
  if(base.km>250)errors.push('High-volume programme requires individual coaching review');
  if(a.injury===true)errors.push('Training progression paused: seek appropriate review before generating');
  if(errors.length)return {ok:false,errors,warnings,baseline:base,weeks:[]};
  const start=input.start,parseDate=x=>typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x)&&Number.isFinite(Date.parse(x))&&new Date(x).toISOString().slice(0,10)===x?Date.parse(x):null;
  const st=parseDate(start),race=parseDate(input.raceDate);
  if(st===null||(input.raceDate&&(race===null||race<st)))return {ok:false,errors:['Invalid start or race date'],warnings,baseline:base,weeks:[]};
+ if(goal==='return')return buildReturnPlan(input,base,st,available,hard,dayMinutes);
  const long=available.includes(s.longDay)?s.longDay:available.find(d=>!hard.includes(d))??available[0];
  if(long!==s.longDay)warnings.push('Preferred long day unavailable; alternative used.');
  const chosen=chooseDays(available,n,long,hard);
@@ -183,7 +228,7 @@ function generate(input={}){
   previous=meters;const ls=sessions.find(x=>x.day===long&&longSlot);if(ls&&phase!=='Recovery')previousLong=ls.meters;
  }
  if(!plan.length)return {ok:false,errors:['No safe sessions fit these constraints'],warnings,baseline:base,weeks:[]};
- return {ok:true,errors:[],warnings,baseline:base,weeks:plan,goal,chosenDays:chosen,feasibility:'review-required',feasibilityDetail:assessFeasibility(goal,base,weeks,raceWeek,a),settings:{...input.adaptation},version:1};
+ return {ok:true,errors:[],warnings,baseline:base,weeks:plan,goal,chosenDays:chosen,feasibility:'review-required',feasibilityDetail:assessFeasibility(goal,base,race===null?weeks*7:Math.min(weeks*7,(race-st)/86400000),a,input.targetSeconds),settings:{...input.adaptation},version:1};
 }
 const api={generate,baseline,templates,workoutVariant,assessFeasibility};root.mileRunningPlan=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(globalThis);

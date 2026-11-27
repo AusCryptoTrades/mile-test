@@ -62,6 +62,15 @@ async function openApp(page, { origin, signedIn = false, laps = true, syncStore 
 }
 
 
+async function stubTrackerGPS(tracker){
+ await tracker.locator('html').evaluate(()=>{
+  Object.defineProperty(navigator,'geolocation',{configurable:true,value:{
+   getCurrentPosition:resolve=>resolve({coords:{latitude:-38,longitude:145,accuracy:5},timestamp:Date.now()}),
+   watchPosition:()=>1,clearWatch:()=>{},
+  }});
+ });
+}
+
 test('88.2 Build saves the reviewed plan and Calendar starts the same structured Tracker workout',async({page,baseURL})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const syncStore={};await openApp(page,{origin:new URL(baseURL).origin,signedIn:true,syncStore});
@@ -150,12 +159,7 @@ test('88.2 Build saves the reviewed plan and Calendar starts the same structured
  await workout.getByRole('button',{name:'Start run',exact:true}).click();
  const tracker=page.frameLocator('#mile-native-view');
  await expect(tracker.locator('#workout')).toHaveValue('planned');
- await tracker.locator('html').evaluate(()=>{
-  Object.defineProperty(navigator,'geolocation',{configurable:true,value:{
-   getCurrentPosition:resolve=>resolve({coords:{latitude:-38,longitude:145,accuracy:5},timestamp:Date.now()}),
-   watchPosition:()=>1,clearWatch:()=>{},
-  }});
- });
+ await stubTrackerGPS(tracker);
  await tracker.locator('#start').click();
  expect(saved.first.structuredSteps.length).toBeGreaterThan(1);
  for(const [index,step] of saved.first.structuredSteps.entries()){
@@ -168,4 +172,49 @@ test('88.2 Build saves the reviewed plan and Calendar starts the same structured
  await tracker.locator('#finish').click();
  await expect(tracker.locator('#resultText')).toContainText(saved.first.name);
  expect(errors).toEqual([]);
+});
+
+test('88.2 Return to running saves a timed prescription without a mileage estimate', async ({page,baseURL})=>{
+ const syncStore={};
+ await openApp(page,{origin:new URL(baseURL).origin,signedIn:true,syncStore});
+ await page.evaluate(()=>{state.workouts=[];window.mileV3Go('builder');v42PickSport('Running')});
+ const build=page.locator('.m882-build');
+ const next=()=>build.locator('[data-m882-action="next"]').click();
+ await build.getByLabel('Running goal').selectOption('return');
+ await build.getByLabel('Programme duration (weeks)').fill('2');
+ await build.getByLabel('Start date',{exact:true}).fill('2026-11-30');
+ await next();
+ await build.getByLabel('Recent comfortable walk–run duration (min)').fill('10');
+ await build.getByLabel('Recent significant training interruption').check();
+ await next();
+ await expect(build.getByLabel('Preferred long run')).toHaveCount(0);
+ for(const day of ['1','3','5','6'])await build.locator('[data-m882-day="available"][value="'+day+'"]').uncheck();
+ await next();
+ await next();
+ const week=build.locator('.m882-week').first();
+ await expect(week).toContainText('Distance open');
+ await week.locator(':scope > summary').click();
+ const session=week.locator('.m882-session').first();
+ await session.locator(':scope > summary').click();
+ await expect(session).toContainText('Warm-up walk · 2 min → Easy jog · 30 s → Walk recovery · 90 s');
+ page.once('dialog',dialog=>dialog.accept());
+ await build.locator('[data-m882-action="save"]').click();
+ await expect.poll(()=>syncStore.data?.workouts?.filter(w=>w.kind==='return').length).toBe(6);
+ const saved=syncStore.data.workouts.find(w=>w.kind==='return');
+ expect(saved).toMatchObject({km:null,plannedMinutes:10,estimatedSeconds:600});
+ expect(saved.structuredDetail).toBe(saved.detail);
+ expect(saved.structuredSteps.reduce((sum, step)=>sum+step.duration.seconds,0)).toBe(600);
+ await page.getByRole('button',{name:'View Calendar',exact:true}).click();
+ const sessions=page.locator('#app details.mile-v3-details').filter({has:page.getByText('Planned sessions (1)',{exact:true})});
+ await sessions.locator(':scope > summary').click();
+ await sessions.getByRole('button',{name:'Start run',exact:true}).click();
+ const tracker=page.frameLocator('#mile-native-view');
+ await expect(tracker.locator('#workout')).toHaveValue('planned');
+ await stubTrackerGPS(tracker);
+ await tracker.locator('#start').click();
+ await expect(tracker.locator('#phase')).toHaveText('WARM-UP WALK');
+ await tracker.locator('#nextBlock').click();
+ await expect(tracker.locator('#phase')).toHaveText('EASY JOG');
+ await tracker.locator('#nextBlock').click();
+ await expect(tracker.locator('#phase')).toHaveText('WALK RECOVERY');
 });
