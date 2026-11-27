@@ -40,6 +40,8 @@ async function enqueue(items:unknown[]){
 async function claim(sql:ReturnType<typeof client>){
  return await sql.begin(async tx=>{
   await tx.unsafe("select pg_advisory_xact_lock(875131)");
+  await tx.unsafe("update private.mile_fit_jobs j set state='rejected',encrypted_callback=null,raw_fit=null,laps=null,claim_id=null,error_code='CONNECTION_REVOKED' where not exists (select 1 from private.mile_garmin_connections c where c.user_id=j.user_id and c.garmin_user_id=j.garmin_user_id) and j.state not in ('rejected','expired','uncertain')");
+
   await tx.unsafe("update private.mile_fit_jobs set state='expired',encrypted_callback=null,error_code='URL_EXPIRED' where state='pending' and received_at<now()-interval '23 hours'");
   await tx.unsafe("update private.mile_fit_jobs set state='uncertain',encrypted_callback=null,error_code='DOWNLOAD_INTERRUPTED' where state='downloading' and claimed_at<now()-interval '5 minutes'");
   await tx.unsafe("update private.mile_fit_jobs set state='downloaded',claim_id=null where state='decoding' and claimed_at<now()-interval '5 minutes' and raw_fit is not null");
@@ -65,10 +67,10 @@ async function processOne(){
     const res=await fetch(n.url,{redirect:"error",signal:AbortSignal.timeout(15000),headers:{Accept:"application/octet-stream"}});
     if(res.status===410)throw Error("FIT_URL_CONSUMED");
     const bytes=await readBounded(res);
-    await sql.unsafe("update private.mile_fit_jobs set raw_fit=$1,encrypted_callback=null,state='downloaded',claim_id=null,error_code=null where user_id=$2 and activity_id=$3 and claim_id=$4",[Buffer.from(bytes),owner,activity,claimId]);
+    await sql.unsafe("update private.mile_fit_jobs set raw_fit=$1,encrypted_callback=null,state='downloaded',claim_id=null,error_code=null where user_id=$2 and activity_id=$3 and claim_id=$4 and state='downloading'",[Buffer.from(bytes),owner,activity,claimId]);
    }else{
     const laps=decodeActivity(new Uint8Array(j.raw_fit),Number(j.start_epoch),sdk);
-    await sql.unsafe("update private.mile_fit_jobs set laps=$1::jsonb,raw_fit=null,encrypted_callback=null,state='ready',claim_id=null,error_code=null where user_id=$2 and activity_id=$3 and claim_id=$4",[JSON.stringify(laps),owner,activity,claimId]);
+    await sql.unsafe("update private.mile_fit_jobs set laps=$1::jsonb,raw_fit=null,encrypted_callback=null,state='ready',claim_id=null,error_code=null where user_id=$2 and activity_id=$3 and claim_id=$4 and state='decoding'",[JSON.stringify(laps),owner,activity,claimId]);
    }
   }catch(e){
    const allowed=new Set(["FIT_URL_CONSUMED","FIT_FETCH_FAILED","FIT_TOO_LARGE","FIT_TOO_SMALL","FIT_CALLBACK_INVALID","FIT_SIZE_INVALID","FIT_INTEGRITY_INVALID","FIT_DECODE_FAILED","FIT_NOT_SINGLE_RUNNING_ACTIVITY","FIT_ACTIVITY_MISMATCH","FIT_INVALID_LAP","FIT_INCOMPLETE_LAPS"]);

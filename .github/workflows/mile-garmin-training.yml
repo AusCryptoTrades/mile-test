@@ -41,4 +41,5 @@ jobs:
         with:
           persist-credentials: false
       - run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/batch87-garmin-publications.test.sql
-      - run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/batch875-fit-jobs.test.sql
+      - run: createdb -h localhost -U postgres mile_fit_test
+      - run: psql -h localhost -U postgres -d mile_fit_test -v ON_ERROR_STOP=1 -f supabase/tests/batch875-fit-jobs.test.sql
