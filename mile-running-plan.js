@@ -29,7 +29,7 @@ const templates={
  return:{name:'Return-to-running easy session',purpose:'Reintroduce running gradually without demanding intensity.',focus:'Keep effort comfortable, take walk breaks as needed and stop for concerning symptoms.',rpe:2}
 };
 // Variants retain the parent effort target and purpose; variation changes repetition structure, not intensity.
-const variantFamilies={cruise:[3,4,5,6],threshold:[1,2,3],vo2:[4,5,6,8],fartlek:[3,4,5,6,8],race5:[4,5,6,8],race10:[2,3,4,5],half:[1,2,3],marathon:[1,2,3],steady:[1,2,3]};
+const variantFamilies={cruise:[2,3,4,5,6,7,8],threshold:[1,2,3,4],vo2:[3,4,5,6,7,8,10],fartlek:[2,3,4,5,6,7,8,10],race5:[3,4,5,6,7,8,10],race10:[2,3,4,5,6],half:[1,2,3,4,5],marathon:[1,2,3,4,5],steady:[1,2,3,4]};
 function workoutVariant(kind,week,meters){
  const parent=templates[kind],choices=variantFamilies[kind];
  if(!choices)return parent;
