@@ -176,3 +176,21 @@ html[data-mile-buttons="main"] body #m3927-detail button[data-m3927-close] {
  min-width:44px!important; min-height:44px!important;
  width:auto!important; border-radius:var(--m78-radius,9px)!important;
 }
+
+/* 87.6.2: iOS WebKit native select painted a white face over white text.
+   Keep the native picker interaction, but draw a theme-aware closed control. */
+html[data-mile-buttons="tracker"] body #setup select#workout {
+ -webkit-appearance:none!important; appearance:none!important;
+ background-color:var(--mile-panel2)!important;
+ color:var(--mile-text)!important; -webkit-text-fill-color:var(--mile-text)!important;
+ background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%)!important;
+ background-position:calc(100% - 17px) 50%,calc(100% - 12px) 50%!important;
+ background-size:5px 5px!important; background-repeat:no-repeat!important;
+ padding:10px 34px 10px 12px!important; min-height:44px!important; font-size:16px!important;
+}
+html[data-mile-buttons="tracker"] body #setup select#workout option {
+ color:var(--mile-text); background-color:var(--mile-panel2);
+}
+/* Sport filters must scroll instead of squeezing neighboring labels together. */
+html[data-mile-buttons="main"] body #app .m70-filter {gap:6px!important}
+html[data-mile-buttons="main"] body #app .m70-filter .m70-filter-button {flex:0 0 auto!important;padding-inline:8px!important}
