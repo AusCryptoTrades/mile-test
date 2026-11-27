@@ -137,7 +137,7 @@ function fmtDuration(seconds){
  if(!minutes)return remainder+' s';
  return minutes+' min'+(remainder?' '+remainder+' s':'');
 }
-function render(host,result){
+function render(host,result,{confirmMatch}={}){
  const el=(tag,txt,cls)=>{const e=document.createElement(tag);if(txt!==undefined)e.textContent=txt;if(cls)e.className=cls;return e};
  const section=(title)=>{const e=el('section',undefined,'mile35-panel m881-analysis');e.append(el('h3',title));host.append(e);return e};
  const row=(p,k,v)=>{const e=el('div',undefined,'mile35-datarow');e.append(el('span',k),el('strong',v));p.append(e)};
@@ -221,6 +221,13 @@ function render(host,result){
      candidate.duration!==null?(candidate.durationEstimated?'~':'')+Math.round(candidate.duration)+' min planned':null,
     ].filter(Boolean);
     row(p,candidate.name,comparison.join(' · '));
+    if(confirmMatch){
+     const button=el('button','Link to '+candidate.name,'btn alt sm');
+     button.type='button';
+     button.style.minHeight='44px';
+     button.addEventListener('click',()=>confirmMatch(candidate.id));
+     p.append(button);
+    }
    }
   }else p.append(el('p','No comparable scheduled runs on this date.','muted small'));
  }

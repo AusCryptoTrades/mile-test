@@ -21,6 +21,8 @@ Provide one **actual staging/sandbox** publication and the corresponding complet
 
 Remove credentials, device serials, real dates or identifiers that can identify athletes, route coordinates, unrelated records and health details. Preserve relative ordering and equality. Do not substitute a guessed field for absent provider identity. A matching date, distance or step index is insufficient for automatic linking. Keep live publishing, republication and automatic matching outside this rollout until the real contract is verified.
 
+Analysis offers an explicit athlete-confirmed link for eligible candidates in the athlete’s current schedule. The link uses the existing per-athlete training-document save. Cross-device races between independent manual edits still require a server-side compare-and-swap for matching. Existing revision compare-and-swap covers approved prescription revisions.
+
 ## Production sequence after hosted checks and explicit approval
 
 1. Decide whether to release independently with #139 or to release the approved combined head. Running requires qualified coaching and safety approval and a verified hosted Running walkthrough. Keep the staging-only revision action and all automatic features gated. Record current main, Cloudflare deployment ID, migration ledger, bucket setting, function versions and a recoverable backup. Stage and verify the compatible recovery artifact before the private bucket change.

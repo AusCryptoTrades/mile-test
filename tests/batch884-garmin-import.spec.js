@@ -183,7 +183,7 @@ test('private Analysis presents ambiguous Garmin candidates for confirmation and
   });
   const writes = [];
   page.on('request', request => {
-    if (request.method() !== 'GET' && /\/av_training_data|\/rest\/v1\/rpc\//.test(request.url())) writes.push(request.url());
+    if (request.method() !== 'GET' && /\/av_training_data|\/rest\/v1\/rpc\//.test(request.url())) writes.push(request.postDataJSON());
   });
   await page.clock.setFixedTime(new Date(day+'T12:00:00Z'));
   await page.goto('/');
@@ -203,7 +203,7 @@ test('private Analysis presents ambiguous Garmin candidates for confirmation and
     'Morning aerobic run5.00 km planned · ~31 min planned',
     'Steady run5.40 km planned · ~29 min planned',
   ]);
-  await expect(ambiguous.getByRole('button')).toHaveCount(0);
+  await expect(ambiguous.getByRole('button')).toHaveText(['Link to Morning aerobic run','Link to Steady run']);
   const detail = page.locator('#mile35-detail');
   await expect(detail.getByRole('heading', { name: 'Scheduled match unresolved' })).toBeVisible();
   await expect(detail).toContainText('Running distance recorded this week14.0 km');
@@ -216,7 +216,19 @@ test('private Analysis presents ambiguous Garmin candidates for confirmation and
   await expect(unmatched.locator('.mile35-datarow')).toHaveCount(0);
   await expect(detail.getByRole('heading', { name: 'Additional demanding run' })).toBeVisible();
   await expect(detail).toContainText('Upcoming intervals · 2026-11-28');
+  expect(await page.evaluate(()=>confirmMatch('done','783649251'))).toBe(false);
+  expect(await page.evaluate(()=>confirmMatch('foreign-run','783649251'))).toBe(false);
   expect(writes).toEqual([]);
+  await detail.getByRole('button', { name: /Back/ }).click();
+  const choices = await openReview('Ambiguous Garmin run');
+  await choices.getByRole('button', { name: 'Link to Morning aerobic run', exact: true }).click();
+  await expect(detail).toContainText('Linked session: Morning aerobic run');
+  await expect.poll(()=>writes.length).toBe(1);
+  const saved=writes[0].training_data.workouts;
+  expect(saved.find(w=>w.id==='easy')).toMatchObject({status:'done',matchId:'783649251'});
+  expect(saved.find(w=>w.id==='steady')).toMatchObject({status:'planned'});
+  expect(await page.evaluate(()=>confirmMatch('steady','783649251'))).toBe(false);
+  expect(writes).toHaveLength(1);
 });
 
 test('Garmin replay preserves recorded totals and never replaces a separate source', async ({ page }) => {
