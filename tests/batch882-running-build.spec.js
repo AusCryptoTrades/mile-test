@@ -123,6 +123,7 @@ test('88.2 Build saves the reviewed plan and Calendar starts the same structured
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
  await build.locator('[data-m882-day="demanding"][value="6"]').check();
  await next();await expect(build).toContainText('STEP 4 OF 5');
+ await expect(build.getByRole('heading',{name:'04 · MILE Intelligence'})).toBeVisible();
  await expect(build.locator('#m882-mode')).toHaveValue('automatic');
  await expect(build.locator('[data-m882-adapt="pace"]')).toBeChecked();
  await build.locator('#m882-secondary').fill('HYROX on Sundays');

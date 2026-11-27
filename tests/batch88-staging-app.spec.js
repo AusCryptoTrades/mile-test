@@ -98,7 +98,7 @@ test('staging Analysis requires explicit approval of the exact server revision',
     await page.locator('#v4Gate [onclick*="v4SkipGarmin"]').click();
     await page.getByRole('button',{name:/Fixture recovery activity/i}).click();
     await page.getByRole('button',{name:'Analysis',exact:true}).click();
-    const panel=page.locator('.mile35-panel').filter({has:page.getByRole('heading',{name:'Workout revision',exact:true})});
+    const panel=page.locator('.mile35-panel').filter({has:page.getByRole('heading',{name:'MILE Intelligence · Workout adjustment',exact:true})});
     await expect(panel.getByRole('button',{name:'Approve this revision'})).toHaveCount(0);
     expect(calls).toEqual([]);
 

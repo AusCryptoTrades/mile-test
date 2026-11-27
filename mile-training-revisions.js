@@ -14,7 +14,7 @@
   const status = make('p', '', 'muted small');
   review.type = 'button';
   status.setAttribute('role', 'status');
-  section.append(make('h3', 'Workout revision'), review, status, content);
+  section.append(make('h3', 'MILE Intelligence · Workout adjustment'), review, status, content);
   host.append(section);
 
   review.addEventListener('click', async () => {
