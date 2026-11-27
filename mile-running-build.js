@@ -2,7 +2,7 @@
 (function runningBuild(root){
 'use strict';
 if(!root.mileRunningPlan||typeof v41Builder!=='function')return;
-const api=root.mileRunningPlan,legacyBuild=v41Builder,legacyPick=v42PickSport,legacyMove=v42Move,legacyRegen=v42RegenerateWeek,legacyWhy=mileCoachWhyHtml;
+const api=root.mileRunningPlan,legacyBuild=v41Builder,legacyPick=v42PickSport,legacyMove=v42Move,legacyRegen=v42RegenerateWeek,legacyWhy=mileCoachWhyHtml,legacyCard=workoutCard;
 const names=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 const goals=[['fitness','General running fitness'],['endurance','Running endurance'],['first-race','First race (distance not specified)'],['personal-best','Personal best (distance not specified)'],['5k','5K'],['10k','10K'],['half-marathon','Half marathon'],['marathon','Marathon'],['ultra','Ultra running'],['return','Return to running']];
 const levels=[['beginner','Beginner'],['intermediate','Intermediate'],['experienced','Experienced'],['advanced','Advanced']];
@@ -123,5 +123,7 @@ v41Builder=function(){return v42Sport==='Running'?draw():legacyBuild.apply(this,
 v42PickSport=function(sp){if(sp==='Running'){v42Sport=sp;v42Step=0;v42Form={};draw();return}return legacyPick.apply(this,arguments)};
 v42RegenerateWeek=function(id,week){const b=state.blocks.find(x=>x.id===id);if(b?.runningPlan)return notice('Personalised running week adjustments are not yet available. Existing sessions are preserved.');return legacyRegen.apply(this,arguments)};
 mileCoachWhyHtml=function(w){if(!w.runningPlanVersion)return legacyWhy(w);return '<details class="mile-coach-why"><summary>Session Purpose & Focus</summary><div class="mile-coach-why-body"><strong>Session Purpose</strong><p>'+esc(w.purpose)+'</p><strong>Session Focus</strong><p>'+esc(w.focus)+'</p><strong>Intensity</strong><p>RPE '+esc(w.targetRpe)+' · ~'+esc(w.plannedMinutes)+' min estimated</p></div></details>'};
+// Legacy Calendar zone labels can be calculated from default max HR. Never show those as an athlete-specific target for a new structured run.
+workoutCard=function(w){const html=legacyCard.apply(this,arguments);if(!w.runningPlanVersion)return html;return html.replace(/<div class="v44-session-zone">[^<]*<\/div>/, '<div class="v44-session-zone">RPE '+esc(w.targetRpe)+' · ~'+esc(w.plannedMinutes)+' min estimated</div>')};
 root.mileRunningBuild={history,compactDetail};
 })(globalThis);

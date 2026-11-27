@@ -66,7 +66,8 @@ async function openApp(page, { signedIn = false, laps = true, syncStore = null, 
 test('88.2 real Build reviews exact personalised sessions and saves Calendar steps without touching existing history',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const syncStore={};await openApp(page,{signedIn:true,syncStore});
- await page.evaluate(()=>{state.workouts=[];window.mileV3Go('builder');v42PickSport('Running')});
+ await page.evaluate(()=>{state.workouts=[{id:'fixture-completed-run',block:state.activeBlock,date:'2026-11-19',sport:'Running',name:'Historical run',detail:'Recorded workout',km:6,status:'done',matchId:'123456789',note:'Do not change'}];window.mileV3Go('builder');v42PickSport('Running')});
+ const original=await page.evaluate(()=>JSON.stringify(state.workouts.find(w=>w.id==='fixture-completed-run')));
  const build=page.locator('.m882-build');
  await expect(build).toContainText('STEP 1 OF 5');
  await build.locator('#m882-goal').selectOption('10k');
@@ -100,6 +101,7 @@ test('88.2 real Build reviews exact personalised sessions and saves Calendar ste
  await build.locator('[data-m882-action="save"]').click();
  await expect.poll(()=>page.evaluate(()=>state.blocks.some(b=>b.runningPlan?.version===1))).toBe(true);
  const saved=await page.evaluate(()=>{const b=state.blocks.find(x=>x.runningPlan?.version===1);const w=state.workouts.filter(x=>x.block===b.id&&x.planWeek===1);return {total:w.reduce((sum,x)=>sum+x.meters,0),steps:w.every(x=>x.structuredSteps.reduce((sum,s)=>sum+s.duration.meters,0)===x.meters&&x.structuredDetail===x.detail),focus:w.every(x=>!!x.focus),dates:w.map(x=>x.date),id:w[0].id}});
+ expect(await page.evaluate(()=>JSON.stringify(state.workouts.find(w=>w.id==='fixture-completed-run')))).toBe(original);
  expect(saved.total).toBe(50000);expect(saved.steps).toBe(true);expect(saved.focus).toBe(true);
  expect(saved.dates).toEqual(['2026-11-30','2026-12-01','2026-12-03','2026-12-05','2026-12-06']);
  await expect.poll(()=>syncStore.data?.workouts?.some(w=>w.id===saved.id)).toBe(true);
@@ -107,6 +109,7 @@ test('88.2 real Build reviews exact personalised sessions and saves Calendar ste
  await page.getByRole('button',{name:'View Calendar',exact:true}).click();
  await page.evaluate(()=>{viewDate='2026-11-30';calendarMonth='2026-11';render()});
  await expect(page.getByText('Session Purpose & Focus',{exact:true}).first()).toBeVisible();
+ await expect(page.locator('.v44-session-zone').filter({hasText:'RPE'}).first()).toBeVisible();
  await page.getByText('Session Purpose & Focus',{exact:true}).first().click();
  await expect(page.getByText('Session Focus',{exact:true}).first()).toBeVisible();
  expect(errors).toEqual([]);
