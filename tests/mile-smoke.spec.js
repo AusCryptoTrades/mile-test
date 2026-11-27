@@ -1763,3 +1763,74 @@ test('877 embedded page banners use the same compact geometry as Calendar',async
   await expect(page.locator('#mile-native-view')).toHaveCount(0);
  }
 });
+
+test('8772 Tracker setup Back returns to origin and stays hidden during a run',async({page},testInfo)=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>{window.mileV3Go('calendar');window.mileShellOpen('tracker')});
+ const frame=page.frameLocator('#mile-native-view'),banner=frame.locator('.m877-banner'),back=frame.locator('#trackerSetupBack');
+ await expect(back).toBeVisible();
+ const b=await banner.boundingBox(),r=await back.boundingBox();
+ expect(r.y).toBeGreaterThanOrEqual(b.y+b.height-1);
+ expect(r.y-b.y-b.height).toBeLessThan(20);
+ expect((await frame.locator('#workout').boundingBox()).height).toBe(44);
+ expect((await frame.locator('#start').boundingBox()).height).toBeGreaterThanOrEqual(48);
+ await densityCapture(page,testInfo,'8772-tracker-setup');
+ await back.click();await expect(page.locator('#mile-native-view')).toHaveCount(0);
+ await expect(page.locator('#app > .mile-universal-header').getByRole('heading',{name:'Calendar'})).toBeVisible();
+ await page.evaluate(()=>window.mileShellOpen('tracker'));
+ await frame.locator('html').evaluate(()=>{Object.defineProperty(navigator,'geolocation',{configurable:true,value:{getCurrentPosition:resolve=>resolve({coords:{latitude:-38,longitude:145,accuracy:5},timestamp:Date.now()}),watchPosition:()=>1,clearWatch:()=>{}}})});
+ await frame.locator('#start').click();await expect(back).toBeHidden();await expect(frame.locator('#finish')).toBeVisible();
+ await frame.locator('#finish').click();await expect(frame.locator('#backToTrack')).toBeVisible();
+});
+test('8772 SIM Back is below its banner and unfinished session confirmation is retained',async({page},testInfo)=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileShellOpen('sim'));
+ const frame=page.frameLocator('#mile-native-view'),banner=frame.locator('#simSetupBanner'),back=frame.locator('#backToRaceLab');
+ await expect(back).toBeVisible();
+ const b=await banner.boundingBox(),r=await back.boundingBox();
+ expect(r.y).toBeGreaterThanOrEqual(b.y+b.height-1);
+ expect(r.y-b.y-b.height).toBeLessThan(20);
+ await densityCapture(page,testInfo,'8772-sim-setup');
+ await back.click();await expect(page.locator('#mile-native-view')).toHaveCount(0);
+ await expect(page.locator('#app > .mile-universal-header').getByRole('heading',{name:'Race Lab'})).toBeVisible();
+ await page.evaluate(()=>window.mileShellOpen('sim'));
+ await frame.locator('#start').click();await expect(frame.locator('#tap')).toBeVisible();
+ await expect(banner).toBeHidden();
+ await back.click();await expect(frame.locator('#leaveModal')).toBeVisible();
+ await frame.locator('#stay').click();await expect(frame.locator('#tap')).toBeVisible();
+});
+test('8772 Social secondary controls remain compact and functional',async({page},testInfo)=>{
+ test.setTimeout(90000);
+ await openApp(page,{signedIn:true});
+ for(const tab of ['share','requests','notifications','feed']){
+  await page.evaluate(t=>window.m36Open(t),tab);
+  await expect.poll(()=>page.evaluate(()=>window.m36State.loading)).toBe(false);
+  if(tab==='share'){
+   const editor=page.locator('.m8772-post');
+   await expect(editor.locator('#m36-activity')).toBeVisible();
+   await expect(editor.locator('#m36-activity')).toHaveCSS('height','44px');
+   await editor.locator('input[name="m383-mode"][value="manual"]').check();
+   await expect(editor.locator('#m383-manual-fields')).toBeVisible();
+   await densityCapture(page,testInfo,'8772-post-manual');
+   await editor.locator('input[name="m383-mode"][value="garmin"]').check();
+  }else if(tab==='requests'){
+   const received=page.locator('[data-m79-requests="received"]'),sent=page.locator('[data-m79-requests="sent"]');
+   await expect(received).toHaveCSS('height','44px');
+   await sent.click();await expect(sent).toHaveAttribute('aria-pressed','true');
+  }else if(tab==='notifications'){
+   const tools=page.locator('.m8772-notification-tools');
+   await expect(tools.locator('[data-m381-settings]')).toBeVisible();
+   await expect(tools.locator('[data-m379-readall]')).toBeVisible();
+   await expect(tools.locator('[data-m384-clearall]')).toBeVisible();
+   await tools.locator('summary').click();await expect(tools.getByText(/In-app alerts/)).toBeVisible();
+   await tools.locator('summary').click();
+   await densityCapture(page,testInfo,'8772-notifications');
+   await page.locator('[data-m380-requests]').click();await expect(page.locator('.m79-segments')).toBeVisible();
+  }else{
+   await expect(page.locator('#m37-feed-filter')).toHaveCSS('height','44px');
+   await page.locator('#m37-sport-filter').selectOption('run');
+   await expect(page.locator('#m37-sport-filter')).toHaveValue('run');
+  }
+  await densityCapture(page,testInfo,'8772-'+tab);
+ }
+});
