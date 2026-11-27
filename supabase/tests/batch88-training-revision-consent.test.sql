@@ -160,3 +160,25 @@ begin
 end;
 $$;
 reset role;
+
+-- Restored legacy plans may still use non-UUID Calendar IDs.
+update public.av_training_data dst
+set training_data=jsonb_set(src.training_data,'{workouts}',jsonb_build_array(
+  (src.training_data#>'{workouts,0}') || '{"id":"legacy-calendar-run","revision":1}'
+))
+from public.av_training_data src
+where dst.user_id='00000000-0000-4000-8000-000000000002'
+  and src.user_id='00000000-0000-4000-8000-000000000001';
+set role authenticated;
+set request.jwt.claim.sub='00000000-0000-4000-8000-000000000002';
+do $$
+declare proposal jsonb;
+begin
+  proposal:=public.mile_review_training_revision('Running');
+  if proposal#>>'{before,id}' is distinct from 'legacy-calendar-run'
+    or public.mile_approve_training_revision((proposal->>'id')::uuid,true)->>'status' is distinct from 'applied' then
+    raise exception 'A legacy text Calendar ID could not be approved';
+  end if;
+end;
+$$;
+reset role;
