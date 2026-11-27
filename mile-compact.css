@@ -265,11 +265,11 @@ html[data-mile-buttons="main"] body #app .m86-discover-empty{padding:12px 4px!im
 html[data-mile-buttons="main"] body #app .m79-segments,html[data-mile-buttons="main"] body :is(#mile35-detail,#m3927-detail) .m875-filter{box-shadow:none!important}
 html[data-mile-buttons="main"] body #app .m79-segments button,html[data-mile-buttons="main"] body :is(#mile35-detail,#m3927-detail) .m875-tabs button{box-shadow:none!important}
 /* Native details: plus/minus ONLY for expansion; menu/info disclosures retain their icon. */
-html[data-mile-buttons] body :is(#app,#mile35-detail,#m3927-detail,#m3932-detail,#mile-admin-centre,#setup,#root) details:not(.m877-feed-info,.m877-athlete-actions)>summary{list-style:none!important;position:relative!important;padding-inline-end:30px!important;cursor:pointer;min-height:44px;box-sizing:border-box}
+html[data-mile-buttons] body :is(#app,#mile35-detail,#m3927-detail,#m3932-detail,#mile-admin-centre,#setup,#root) details:not(.m877-feed-info,.m877-athlete-actions,.m8772-notification-info)>summary{list-style:none!important;position:relative!important;padding-inline-end:30px!important;cursor:pointer;min-height:44px;box-sizing:border-box}
 html[data-mile-buttons] body :is(#app,#mile35-detail,#m3927-detail,#m3932-detail,#mile-admin-centre,#setup,#root) details>summary::-webkit-details-marker{display:none!important}
 html[data-mile-buttons] body :is(#app,#mile35-detail,#m3927-detail,#m3932-detail,#mile-admin-centre,#setup,#root) details>summary::marker{content:""!important}
 html[data-mile-buttons] body :is(#app,#mile35-detail,#m3927-detail,#m3932-detail,#mile-admin-centre,#setup,#root) details:not(.m877-feed-info,.m877-athlete-actions)>summary::after{content:"+"!important;position:absolute!important;right:8px!important;top:50%!important;transform:translateY(-50%)!important;font-size:19px!important;font-weight:500!important;line-height:1!important;color:currentColor!important;pointer-events:none}
-html[data-mile-buttons] body :is(#app,#mile35-detail,#m3927-detail,#m3932-detail,#mile-admin-centre,#setup,#root) details[open]:not(.m877-feed-info,.m877-athlete-actions)>summary::after{content:"−"!important}
+html[data-mile-buttons] body :is(#app,#mile35-detail,#m3927-detail,#m3932-detail,#mile-admin-centre,#setup,#root) details[open]:not(.m877-feed-info,.m877-athlete-actions,.m8772-notification-info)>summary::after{content:"−"!important}
 html[data-mile-buttons] body :is(.m877-feed-info,.m877-athlete-actions)>summary::after{content:none!important}
 html[data-mile-buttons] body summary:focus-visible{outline:2px solid var(--orange,currentColor);outline-offset:2px}
 /* Shared banner geometry and mountain silhouette for embedded tools. */
@@ -312,11 +312,11 @@ html[data-mile-buttons="main"] body #app[data-m79-social="profile"] .m877-editor
  box-sizing:border-box!important;width:20px!important;height:20px!important;min-width:20px!important;min-height:20px!important;max-width:20px!important;max-height:20px!important;flex:0 0 20px!important;
 }
 html[data-mile-buttons="tracker"] body section.mile-tracker-hero.m877-banner h1,
-html[data-mile-buttons="sim"] body #setup header.m877-banner h1.page-title,
+html[data-mile-buttons="sim"] body #simSetupBanner.m877-banner h1.page-title,
 html[data-mile-buttons="challenges"] body #root section.hero.m877-banner h1{
  font-size:24px!important;line-height:1.15!important;margin:3px 0!important;
 }
-html[data-mile-buttons="sim"] body #setup .m877-banner .page-eyebrow{display:block!important;margin:0!important}
+html[data-mile-buttons="sim"] body #simSetupBanner.m877-banner .page-eyebrow{display:block!important;margin:0!important}
 html.mile-in-shell[data-mile-buttons="sim"] body main{max-width:none!important;width:100%!important}
 html.mile-in-shell[data-mile-buttons="tracker"] body,
 html.mile-in-shell[data-mile-buttons="challenges"] body{max-width:none!important;width:100%!important;box-sizing:border-box!important}
@@ -330,3 +330,60 @@ html[data-mile-buttons="main"] body #app .m877-follow-row .m877-athlete-actions[
  width:max-content!important;min-width:92px!important;max-width:none!important;padding:8px 12px!important;white-space:nowrap!important;overflow-wrap:normal!important;word-break:normal!important;
 }
 html[data-mile-buttons="sim"][data-embedded] body main{max-width:none!important;padding-inline:0!important;padding-top:0!important}
+
+/* 87.7.2 — compact secondary controls; do not shrink exercise timing or primary start buttons. */
+html[data-mile-buttons="tracker"] body #trackerSetupNav.m8772-exercise-back,
+html[data-mile-buttons="sim"] body main>.m8772-exercise-back{
+ display:flex!important;align-items:center!important;justify-content:flex-start!important;min-height:44px!important;margin:0 0 6px!important;padding:0!important;
+}
+html[data-mile-buttons="tracker"] body #trackerSetupNav.hide{display:none!important}
+html[data-mile-buttons="tracker"] body #trackerSetupBack,
+html[data-mile-buttons="sim"] body #backToRaceLab{
+ min-width:44px!important;min-height:44px!important;width:auto!important;margin:0!important;padding:5px 10px!important;
+ font-size:13px!important;font-weight:650!important;border-radius:9px!important;box-shadow:none!important;
+}
+html[data-mile-buttons="tracker"] body #trackerSetupBack{background:var(--mile-panel)!important;color:var(--mile-text)!important;border:1px solid var(--mile-line)!important}
+html[data-mile-buttons="sim"] body main:has(>#setup[style*="display: none"])>#simSetupBanner,
+html[data-mile-buttons="sim"] body main:has(>#setup[style*="display:none"])>#simSetupBanner{display:none!important}
+html[data-mile-buttons="tracker"] body #setup.panel{padding:10px 12px!important;margin:6px 0 10px!important}
+html[data-mile-buttons="tracker"] body #setup label{font-size:12px!important;line-height:1.4!important;margin:6px 0 4px!important}
+html[data-mile-buttons="tracker"] body #setup :is(select#workout,input#target){box-sizing:border-box!important;height:44px!important;min-height:44px!important;padding-block:7px!important;font-size:16px!important;border-radius:9px!important}
+html[data-mile-buttons="tracker"] body #setup>p.muted{font-size:12px!important;line-height:1.4!important;margin:8px 0 2px!important}
+html[data-mile-buttons="tracker"] body #start{min-height:48px!important}
+/* Post editor retains 16px input text for iOS focus and 44px tappable controls. */
+html[data-mile-buttons="main"] body #app[data-m79-social="share"] .m8772-post{padding:10px 12px!important;margin-block:6px!important}
+html[data-mile-buttons="main"] body #app[data-m79-social="share"] .m8772-post>p{font-size:12px!important;line-height:1.4!important;margin:0 0 8px!important}
+html[data-mile-buttons="main"] body #app[data-m79-social="share"] .m8772-post .m36-fields{display:grid!important;gap:8px!important;margin:0!important}
+html[data-mile-buttons="main"] body #app[data-m79-social="share"] .m8772-post .m36-fields label{font-size:12px!important;line-height:1.4!important;margin:0!important;gap:4px!important}
+html[data-mile-buttons="main"] body #app[data-m79-social="share"] .m8772-post :is(input:not([type=radio]),select,textarea){box-sizing:border-box!important;min-height:44px!important;margin:3px 0 0!important;padding:7px 9px!important;font-size:16px!important;border-radius:8px!important}
+html[data-mile-buttons="main"] body #app[data-m79-social="share"] .m8772-post select{height:44px!important}
+html[data-mile-buttons="main"] body #app[data-m79-social="share"] .m8772-post textarea#m36-caption{min-height:68px!important;height:68px!important}
+html[data-mile-buttons="main"] body #app[data-m79-social="share"] .m8772-post .m383-mode{gap:4px!important}
+html[data-mile-buttons="main"] body #app[data-m79-social="share"] .m8772-post .m383-mode label{display:flex!important;align-items:center!important;justify-content:center!important;min-height:44px!important;padding:4px 6px!important;border-radius:8px!important}
+html[data-mile-buttons="main"] body #app[data-m79-social="share"] .m8772-post .m383-mode input[type=radio]{width:16px!important;height:16px!important;min-width:16px!important;min-height:16px!important;max-width:16px!important;margin:0!important;padding:0!important;flex:none!important;accent-color:var(--text)}
+html[data-mile-buttons="main"] body #app[data-m79-social="share"] .m8772-post #m383-manual-fields:not([hidden]){display:grid!important;gap:8px!important}
+html[data-mile-buttons="main"] body #app[data-m79-social="share"] .m8772-post .m36-actions{margin:8px 0!important;gap:6px!important}
+html[data-mile-buttons="main"] body #app[data-m79-social="share"] .m8772-post [data-m36-publish]{min-height:44px!important;padding:6px 12px!important;font-size:13px!important}
+/* Flat tabs: no chunky selected cards; keep 44px tap areas. */
+html[data-mile-buttons="main"] body #app[data-m79-social="requests"] .m79-segments{padding:0!important;gap:0!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;background:transparent!important;margin-bottom:6px!important}
+html[data-mile-buttons="main"] body #app[data-m79-social="requests"] .m79-segments button{min-height:44px!important;height:44px!important;padding:4px 6px!important;border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;background:transparent!important;font-size:12px!important;color:var(--muted)!important;box-shadow:none!important}
+html[data-mile-buttons="main"] body #app[data-m79-social="requests"] .m79-segments button[aria-pressed=true]{border-bottom-color:var(--text)!important;color:var(--text)!important;font-weight:750!important}
+html[data-mile-buttons="main"] body #app[data-m79-social="requests"] .m79-panel{padding:10px 12px!important;margin-block:6px!important}
+html[data-mile-buttons="main"] body #app[data-m79-social="requests"] .m79-empty{padding:8px 4px!important}
+html[data-mile-buttons="main"] body #app[data-m79-social="requests"] .m79-empty small{margin-top:3px!important}
+/* Notification actions remain directly reachable, with the explanatory copy on demand. */
+html[data-mile-buttons="main"] body #app[data-m79-social="notifications"] .m8772-notifications{padding:10px 12px!important;margin-block:6px!important}
+html[data-mile-buttons="main"] body #app .m8772-notification-tools{display:flex;align-items:center;gap:4px;position:relative;margin:0 0 4px}
+html[data-mile-buttons="main"] body #app .m8772-notification-tools .m36-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));flex:1;min-width:0;gap:4px!important;margin:0!important}
+html[data-mile-buttons="main"] body #app .m8772-notification-tools .m36-actions button{min-height:44px!important;width:100%!important;min-width:0!important;font-size:12px!important;padding:4px 3px!important;line-height:1.2!important;margin:0!important;border-radius:7px!important;background:transparent!important;color:var(--text)!important;border:0!important;box-shadow:none!important}
+html[data-mile-buttons="main"] body #app .m8772-notification-tools button:disabled{opacity:.45!important}
+html[data-mile-buttons="main"] body #app .m8772-notification-info>summary{display:grid!important;place-items:center;min-width:44px;min-height:44px;font-size:19px;list-style:none;cursor:pointer;color:var(--text)}
+html[data-mile-buttons="main"] body #app .m8772-notification-info>summary::after{content:none!important}
+html[data-mile-buttons="main"] body #app .m8772-notification-info[open]>p{position:absolute;z-index:10;right:0;top:44px;max-width:260px;padding:10px;margin:0;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:9px;font-size:12px;line-height:1.4}
+html[data-mile-buttons="main"] body #app .m8772-notifications .m8772-request-link{display:flex!important;align-items:center;justify-content:space-between;min-height:44px!important;width:100%!important;margin:0 0 6px!important;padding:4px 0!important;background:transparent!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;color:var(--text)!important;font-size:13px!important}
+html[data-mile-buttons="main"] body #app .m8772-notifications .m8772-request-link span{color:var(--muted)}
+/* Feed filters look like a toolbar, rather than a row of heavy boxes. */
+html[data-mile-buttons="main"] body #app[data-m79-social="feed"] .m877-feed-tools{gap:3px!important;margin-bottom:6px!important}
+html[data-mile-buttons="main"] body #app[data-m79-social="feed"] .m877-feed-tools .m37-filters{gap:3px!important}
+html[data-mile-buttons="main"] body #app[data-m79-social="feed"] .m877-feed-tools select{height:44px!important;min-height:44px!important;max-height:44px!important;font-size:12px!important;padding:4px!important;border:0!important;background:transparent!important;border-radius:5px!important;box-shadow:none!important}
+html[data-mile-buttons="main"] body #app[data-m79-social="feed"] .m877-feed-tools :is(.m877-icon,.m877-feed-info>summary){background:transparent!important;border:0!important;border-radius:7px!important}
