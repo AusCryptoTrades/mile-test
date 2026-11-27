@@ -116,8 +116,11 @@ test('88.3 private Analysis preserves targets for a linked run without verified 
   await detail.getByRole('button', { name: 'Analysis', exact: true }).click();
   await expect(detail).toContainText('Linked session: Planned aerobic run');
   await expect(detail).toContainText('Build aerobic endurance.');
-  await expect(detail).toContainText('Planned duration estimate34 min');
-  await expect(detail).toContainText('Verified step alignment required');
+  const execution = detail.locator('section').filter({ has: page.getByRole('heading', { name: 'Session execution', exact: true }) });
+  await expect(execution).toContainText('Planned duration estimate34 min');
+  await expect(execution).toContainText('Recorded duration30 min');
+  await expect(execution).toContainText('Verified step alignment required');
+  await expect(execution.locator('details')).toHaveCount(0);
   await expect(detail).toContainText('Comparable trend unavailable');
   await expect(detail).toContainText('Additional evidenceRequired');
   await expect(detail).not.toContainText('Upcoming session to review');

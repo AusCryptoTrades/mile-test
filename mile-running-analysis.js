@@ -42,7 +42,7 @@ function align(steps,evidence){
   const ratio=quantity!==null&&planned!==null?quantity/planned:null;
   let paceStatus=null;if(paceTarget(target)&&pace!==null)paceStatus=pace<target.fastSecondsPerKm?'faster':pace>target.slowSecondsPerKm?'slower':'within';
   const h=finite(r.averageHR),hrStatus=hrTarget(target)&&h!==null&&h>=30&&h<=250?h<target.lowBpm?'below':h>target.highBpm?'above':'within':null;
-  return {index:i,intensity:s.intensity,planned,quantity,completionRatio:ratio,pace,paceStatus,averageHR:h!==null&&h>=30&&h<=250?h:null,hrStatus,seconds:r.seconds,meters:r.meters,target:paceTarget(target)||hrTarget(target)?{...target}:null};
+  return {index:i,intensity:s.intensity,durationKind:s.duration.kind,planned,quantity,completionRatio:ratio,pace,paceStatus,averageHR:h!==null&&h>=30&&h<=250?h:null,hrStatus,seconds:r.seconds,meters:r.meters,target:paceTarget(target)||hrTarget(target)?{...target}:null};
  });
 }
 function plannedTotals(workout){
@@ -73,7 +73,14 @@ function analyse(activity,opts={}){
  const comparable=main.filter(x=>x.paceStatus!==null),complete=main.filter(x=>x.completionRatio!==null);
  const hrComparable=main.filter(x=>x.hrStatus!==null);
  const workPace=comparable.length&&comparable.every(x=>x.meters>0)?comparable.reduce((n,x)=>n+x.seconds,0)*1000/comparable.reduce((n,x)=>n+x.meters,0):null;
- const workPaces=comparable.map(x=>x.pace),spread=workPaces.length>=2?Math.max(...workPaces)-Math.min(...workPaces):null;
+ const intervals=main.filter(x=>x.intensity==='interval'),first=intervals[0];
+ const comparableIntervals=intervals.length>=2&&intervals.every(x=>
+  x.paceStatus!==null&&x.durationKind===first.durationKind&&x.planned===first.planned&&
+  x.target.fastSecondsPerKm===first.target?.fastSecondsPerKm&&x.target.slowSecondsPerKm===first.target?.slowSecondsPerKm&&
+  x.completionRatio>=.95&&x.completionRatio<=1.10
+ );
+ const intervalPaces=comparableIntervals?intervals.map(x=>x.pace):[];
+ const spread=comparableIntervals?Math.max(...intervalPaces)-Math.min(...intervalPaces):null;
  const totalDistanceRatio=plannedDistance&&distance?distance/plannedDistance:null,totalDurationRatio=plannedDuration&&duration?duration/plannedDuration:null;
  let execution='insufficient-evidence',stimulus='Main-set execution and intended physiological stimulus cannot be established from available evidence.',good=[],improve=[];
  if(confounded)improve.push('Review context before interpreting performance; no adaptation evidence generated.');

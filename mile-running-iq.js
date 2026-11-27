@@ -81,10 +81,11 @@ function reviewRecommendation(activity,analysis,workouts,match,review,actualWeek
   moreEvidence:proposal.rule==='settings-missing'?null:proposal.rule==='insufficient-evidence'||proposal.rule==='trend-not-established',
  };
 }
-function analyse(activity,{workouts=[],points=[],bounds=null,review=null,matchSessions=null}={}){
+function analyse(activity,{workouts=[],points=[],bounds=null,review=null,matchSessions=null,lapEvidence=null}={}){
  const distance=positive(activity?.distanceKm),duration=positive(activity?.durationMin),hr=finite(activity?.averageHR);
  const match=linkedWorkout(activity,workouts),zones=zoneDistribution(points,bounds);
- const advanced=root.mileRunningAnalysis?.analyse({...activity,distanceKm:distance,durationMin:duration},{plans:workouts,zoneDistribution:zones})||null;
+ // Verified alignment must be supplied separately from the raw activity data.
+ const advanced=root.mileRunningAnalysis?.analyse({...activity,distanceKm:distance,durationMin:duration},{plans:workouts,zoneDistribution:zones,lapEvidence})||null;
  // Imported summaries have no verified Garmin publication identity.
  const matchReview=!match&&matchSessions?root.mileRunningAnalysis?.reconcile(
   {id:activity.id,date:activity.date,sport:'Running',distanceKm:distance,durationMin:duration},matchSessions,[]
@@ -99,6 +100,12 @@ function analyse(activity,{workouts=[],points=[],bounds=null,review=null,matchSe
   recordedWeekKm:review&&review.weekStart<=activity?.date&&activity.date<=review.today&&distance!==null?actualWeekKm:null};
 }
 const fmtPace=n=>{if(n===null||!Number.isFinite(n))return 'Unavailable';const s=Math.round(n);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')+'/km'};
+function fmtDuration(seconds){
+ if(!Number.isFinite(seconds))return 'Unavailable';
+ const total=Math.round(seconds),minutes=Math.floor(total/60),remainder=total%60;
+ if(!minutes)return remainder+' s';
+ return minutes+' min'+(remainder?' '+remainder+' s':'');
+}
 function render(host,result){
  const el=(tag,txt,cls)=>{const e=document.createElement(tag);if(txt!==undefined)e.textContent=txt;if(cls)e.className=cls;return e};
  const section=(title)=>{const e=el('section',undefined,'mile35-panel m881-analysis');e.append(el('h3',title));host.append(e);return e};
@@ -106,7 +113,7 @@ function render(host,result){
  let p=section('MILE IQ · Running analysis');
  p.append(el('p',result.kind==='linked'?'Linked session: '+result.name:'No scheduled session linked. This activity still contributes to your recorded training history.','muted small'));
  row(p,'Recorded distance',result.distanceKm===null?'Unavailable':result.distanceKm.toFixed(2)+' km');
- row(p,'Recorded duration',result.durationMin===null?'Unavailable':Math.round(result.durationMin)+' min');
+ row(p,'Recorded duration',fmtDuration(result.durationMin===null?null:result.durationMin*60));
  row(p,'Average pace (duration / distance)',fmtPace(result.pace));
  row(p,'Average HR',result.averageHR===null?'Unavailable':Math.round(result.averageHR)+' bpm');
  if(result.kind==='linked'&&!result.advanced){
@@ -129,11 +136,36 @@ function render(host,result){
   if(a.kind==='planned'){
    if(result.purpose)p.append(el('p',result.purpose,'small'));
    row(p,a.plannedDistanceSource==='structured-distance'?'Planned distance':'Planned distance estimate',a.plannedDistance===null?'Unavailable':a.plannedDistance.toFixed(2)+' km');
-   row(p,a.plannedDurationSource==='structured-time'?'Planned duration':'Planned duration estimate',a.plannedDuration===null?'Unavailable':Math.round(a.plannedDuration)+' min');
+   row(p,a.plannedDurationSource==='structured-time'?'Planned duration':'Planned duration estimate',fmtDuration(a.plannedDuration===null?null:a.plannedDuration*60));
+   row(p,'Recorded duration',fmtDuration(a.durationMin===null?null:a.durationMin*60));
    row(p,'Distance completed',a.totalDistanceRatio===null?'Unavailable':Math.round(a.totalDistanceRatio*100)+'%');
-   row(p,'Main-set execution',a.execution==='insufficient-evidence'?'Verified step alignment required':a.execution.replaceAll('-',' '));
-   if(a.workPace!==null)row(p,'Recorded main-set pace',fmtPace(a.workPace));
+   const execution=a.execution!=='insufficient-evidence'?a.execution.replaceAll('-',' '):a.steps?'Target execution unavailable':'Verified step alignment required';
+   row(p,'Main-set execution',execution);
+   if(a.workPace!==null)row(p,'Recorded pace on steps with pace targets',fmtPace(a.workPace));
    if(a.intervalPaceSpread!==null)row(p,'Pace spread between repetitions',Math.round(a.intervalPaceSpread)+' s/km');
+   const labels={active:'Work step',interval:'Repetition',recovery:'Recovery'};
+   const steps=a.steps?.filter(step=>Object.hasOwn(labels,step.intensity))||[];
+   if(steps.length){
+    const details=el('details'),counts={active:0,interval:0,recovery:0};
+    const summary=el('summary','Verified work and recovery steps');
+    summary.style.minHeight='44px';
+    summary.style.paddingBlock='10px';
+    summary.style.cursor='pointer';
+    details.append(summary);
+    for(const step of steps){
+     details.append(el('h4',labels[step.intensity]+' '+(++counts[step.intensity])));
+     const planned=step.durationKind==='distance'?Math.round(step.planned)+' m':step.durationKind==='time'?fmtDuration(step.planned):'Open';
+     row(details,'Planned step',planned);
+     row(details,'Recorded step',Math.round(step.meters)+' m · '+fmtDuration(step.seconds));
+     if(step.target?.kind==='pace'){
+      const {fastSecondsPerKm,slowSecondsPerKm}=step.target;
+      row(details,'Planned pace',fastSecondsPerKm===slowSecondsPerKm?fmtPace(fastSecondsPerKm):fmtPace(fastSecondsPerKm)+'–'+fmtPace(slowSecondsPerKm));
+      if(step.pace!==null)row(details,'Recorded pace',fmtPace(step.pace));
+     }
+     if(step.averageHR!==null)row(details,'Recorded average HR',Math.round(step.averageHR)+' bpm');
+    }
+    p.append(details);
+   }
   }else{
    row(p,'Recorded stimulus',a.classification.replaceAll('-',' '));
    if(result.recordedWeekKm!==null)row(p,'Running distance recorded this week',result.recordedWeekKm.toFixed(1)+' km');

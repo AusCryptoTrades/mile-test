@@ -14,6 +14,9 @@ const checks=function tests(api){
  assert(api.analyse(activity,{plans:[plan],lapEvidence:faster}).execution==='above-target','faster not better');
  const incomplete={...evidence,rows:evidence.rows.map((r,i)=>i===1?{...r,meters:1200}:r)};
  assert(api.analyse(activity,{plans:[plan],lapEvidence:incomplete}).execution==='incomplete','incomplete interval');
+ assert(api.analyse(activity,{plans:[plan],lapEvidence:incomplete}).intervalPaceSpread===null,'do not compare an incomplete interval');
+ const varied={...plan,structuredSteps:plan.structuredSteps.map((s,i)=>i===3?{...s,target:{...s.target,slowSecondsPerKm:280}}:s)};
+ assert(api.analyse(activity,{plans:[varied],lapEvidence:evidence}).intervalPaceSpread===null,'do not compare different prescriptions');
  const zones={seconds:[0,400,800,900,300],outside:0,coverage:2400,span:2400};
  assert(api.analyse(activity,{zoneDistribution:zones}).classification==='higher-intensity','unplanned high intensity');
  assert(api.analyse(activity,{zoneDistribution:zones}).adherence===null,'unplanned no adherence');
