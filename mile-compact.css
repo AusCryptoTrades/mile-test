@@ -1,0 +1,196 @@
+/* Batch 87.5.2 — compact navigation and read-only metrics, all existing themes.
+   Deliberately exclude live timer values, workout controls, inputs, calendar cells,
+   interactive cards and primary actions. Preserve 44px touch targets. */
+html body :is(#app,#mile35-detail,#m3927-detail,#m3932-detail,#mile-admin-centre,#m390-dialog,#m36-drawer) :is(button.mile35-back,button[data-mile35-close],button[data-m3927-close],button.m3932-back,button.m771-back,button[data-m381-back],button[data-m375-back],button[data-ma-close],button[onclick*="v42Move(-1)"]),
+html[data-mile-buttons] body :is(button#backToTrack,button#backToRaceLab,button#goBack,button#closeWinner,button.back,button.mile-back){
+ box-sizing:border-box!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:5px!important;
+ width:auto!important;min-width:44px!important;max-width:100%!important;min-height:36px!important;height:auto!important;
+ padding:5px 9px!important;font-size:12px!important;font-weight:650!important;line-height:1.25!important;
+ border-radius:var(--m78-radius,9px)!important;white-space:nowrap!important;box-shadow:none!important;touch-action:manipulation;
+}
+@media(pointer:coarse){html body :is(#app,#mile35-detail,#m3927-detail,#m3932-detail,#mile-admin-centre,#m390-dialog,#m36-drawer) :is(button.mile35-back,button[data-mile35-close],button[data-m3927-close],button.m3932-back,button.m771-back,button[data-m381-back],button[data-m375-back],button[data-ma-close],button[onclick*="v42Move(-1)"]),html[data-mile-buttons] body :is(button#backToTrack,button#backToRaceLab,button#goBack,button#closeWinner,button.back,button.mile-back){min-height:44px!important}}
+/* Match the settings density; reduce whitespace, not contrast or touch areas. */
+html body :is(#mile35-detail,#m3927-detail) .m875-summary{gap:5px!important;margin:7px 0!important}
+html body :is(#mile35-detail,#m3927-detail) .m875-summary>div{padding:6px 7px!important;min-height:0!important;border-radius:8px!important}
+html body :is(#mile35-detail,#m3927-detail) .m875-summary strong{font-size:clamp(13px,3.7vw,17px)!important;line-height:1.2!important;white-space:normal!important;overflow-wrap:anywhere}
+html body :is(#mile35-detail,#m3927-detail) .m875-summary small{font-size:10px!important;line-height:1.25!important;margin-top:3px!important}
+html body :is(#app,#m3932-detail,#mile35-detail,#m3927-detail,#mile-admin-centre) :is(.mile-insight-metric,.mile-v3-stat,.m3932-metric,.m375-stat,.m36-stat,.m36-stat-card,.m362-metric,.m362-stat,.m387-week-stat,.m387-stat,.m777-metric,.m395-metric,.mile35-metric,.mile35-tile,.mile-b1-stats>div,.mile-b1-event-metrics>div,.m398-metrics>div,.m380-stats>div,.mile-recovery-stats>div,.mile873-metrics>div,.m3929-statgrid>div,.m79-preview-metrics>div,.m3923-metrics>div){
+ min-height:0!important;padding:7px 9px!important;border-radius:9px!important;box-shadow:none!important;
+}
+html body :is(#app,#m3932-detail,#mile35-detail,#m3927-detail,#mile-admin-centre) :is(.mile-insight-metric,.mile-v3-stat,.m3932-metric,.m375-stat,.m36-stat,.m36-stat-card,.m362-metric,.m362-stat,.m387-week-stat,.m387-stat,.m777-metric,.m395-metric,.mile35-metric,.mile35-tile,.mile-b1-stats>div,.mile-b1-event-metrics>div,.m398-metrics>div,.m380-stats>div,.mile-recovery-stats>div,.mile873-metrics>div,.m3929-statgrid>div,.m79-preview-metrics>div,.m3923-metrics>div) :is(strong,.number,b){
+ font-size:clamp(14px,4vw,20px)!important;line-height:1.2!important;letter-spacing:-.3px!important;overflow-wrap:anywhere;
+}
+html body :is(#app,#m3932-detail,#mile35-detail,#m3927-detail,#mile-admin-centre) :is(.mile-insight-metric,.mile-v3-stat,.m3932-metric,.m375-stat,.m36-stat,.m36-stat-card,.m362-metric,.m362-stat,.m387-week-stat,.m387-stat,.m777-metric,.m395-metric,.mile35-metric,.mile35-tile,.mile-b1-stats>div,.mile-b1-event-metrics>div,.m398-metrics>div,.m380-stats>div,.mile-recovery-stats>div,.mile873-metrics>div,.m3929-statgrid>div,.m79-preview-metrics>div,.m3923-metrics>div) small{font-size:11px!important;line-height:1.3!important;margin-top:3px!important}
+html body #app .grid>.card.v3-kpi{padding:9px 11px!important;min-height:0!important;border-radius:10px!important}
+html body #app .grid>.card.v3-kpi .number,html body #app .m70-metric .number{font-size:clamp(17px,4.5vw,22px)!important;line-height:1.2!important}
+html body #app :is(.mile-insight-metrics,.mile-b1-stats,.m70-metrics,.mile-v3-statgrid,.mile-recovery-stats,.m777-metrics),html body #m3932-detail .m3932-metrics{gap:7px!important;margin-block:10px!important}
+html body #app .mile35-week-num{font-size:23px!important}
+html body #app .mile35-week-chips{gap:5px!important;margin-top:7px!important}
+html body #app .mile35-week-chips span{padding:5px 7px!important}
+html body #app .mile35-ring{width:80px;height:80px}
+html body #app .mile35-ring:before{width:61px;height:61px}
+html body #app .mile35-week-main{grid-template-columns:minmax(0,1fr) 85px;gap:8px}
+html body #m3932-detail .m3932-metric{padding:8px 6px!important}
+html body #m3932-detail .m3932-metric strong{font-size:clamp(14px,4vw,20px)!important}
+html body #m3932-detail .m3932-metric small{margin-top:3px!important}
+html body :is(#mile35-detail,#m3927-detail) :is(.mile35-top,.m3927-top){margin-bottom:10px!important}
+/* Fallback if legacy post-render code attempts to reinsert a stale heading. */
+html body #app:has(> #mile-native-view)>:is(.mile-sc-intro,.mile-universal-header){display:none!important}
+
+/* 87.6 — shared density scale. No global button/height reset; no route, color,
+   visibility, stacking, scroll locking or live exercise changes. */
+:root {
+ --m876-space-xs:4px; --m876-space-sm:8px; --m876-space-md:12px;
+ --m876-space-lg:16px; --m876-card-pad:12px; --m876-row-min:48px;
+ --m876-heading:24px; --m876-hero-min:86px;
+}
+/* Resolve 87.5.2 cascade against the existing MILE 78 button family.
+   Settings remains the established 13px/9px reference. */
+html[data-mile-buttons="main"] body #mile35-detail button.mile35-back:not([aria-label^="Close"]),
+html[data-mile-buttons="main"] body #m3927-detail button[data-m3927-close]:not([aria-label^="Close"]) {
+ font-size:12px!important; padding:5px 9px!important; min-width:44px!important;
+ width:auto!important; border-radius:var(--m78-radius)!important; line-height:1.25!important;
+}
+html[data-mile-buttons="main"] body #app button.m771-back {
+ font-size:var(--m78-font)!important; border-radius:var(--m78-radius)!important;
+}
+@media(pointer:coarse){
+ html[data-mile-buttons="main"] body #mile35-detail button.mile35-back:not([aria-label^="Close"]),
+ html[data-mile-buttons="main"] body #m3927-detail button[data-m3927-close]:not([aria-label^="Close"]),
+ html[data-mile-buttons="main"] body #app button.m771-back {min-height:44px!important}
+}
+/* All main-app screens that use the shared banner; natural height accommodates
+   long titles, zoom and narrow phones. Do not change the app's main toolbar. */
+html[data-mile-buttons="main"] body #app[data-universal-header]>.mile-universal-header {
+ height:auto!important; min-height:var(--m876-hero-min)!important;
+ max-height:none!important; padding:10px 14px!important; margin-bottom:10px!important;
+}
+html[data-mile-buttons="main"] body #app[data-universal-header]>.mile-universal-header h1 {
+ font-size:var(--m876-heading)!important; margin:3px 0!important; overflow-wrap:anywhere;
+}
+/* Main content, explicit non-interactive panels and selected dense lists. */
+html[data-mile-buttons="main"] body #app :is(.mile-v32-card,.mile-b1-section,.m395-appearance,.m384-training-head,.m362-section) {
+ padding-block:var(--m876-card-pad)!important; border-radius:12px!important;
+}
+html[data-mile-buttons="main"] body #app .mile-dashboard .v3-today {padding:var(--m876-card-pad)!important}
+html[data-mile-buttons="main"] body #app :is(.v3-activity,.mile35-activity) {
+ min-height:54px!important; padding-block:8px!important; margin-block:4px!important;
+}
+html[data-mile-buttons="main"] body #app :is(.mile-ring-grid,.mile-recovery-stats) {gap:8px!important}
+html[data-mile-buttons="main"] body #app .mile-ring-card {padding-block:8px!important}
+html[data-mile-buttons="main"] body #app .mile-ring {margin-bottom:7px!important;max-width:88px}
+html[data-mile-buttons="main"] body #app .mile-session-step {padding:8px 10px!important}
+html[data-mile-buttons="main"] body #app .mile-cal-session>summary {
+ min-height:52px!important; padding:8px 10px!important;
+}
+html[data-mile-buttons="main"] body #app .sport-tile {
+ min-height:76px!important;padding:8px!important;
+}
+html[data-mile-buttons="main"] body #app .sport-tile .mile-sport-icon {width:30px;height:30px;font-size:23px}
+html[data-mile-buttons="main"] body #app .m320-sport-art {height:82px; margin:6px 0}
+html[data-mile-buttons="main"] body #app :is(.builder-summary,.v42-week,.workout-editor-preview) {padding:10px!important}
+html[data-mile-buttons="main"] body #app .workout-steps {gap:6px;margin-block:8px}
+html[data-mile-buttons="main"] body #app .workout-step {padding:8px 10px;line-height:1.5}
+html[data-mile-buttons="main"] body #app .m70-metrics {gap:10px!important;margin-block:12px!important}
+html[data-mile-buttons="main"] body #app .iq72 section {margin-block:10px!important;padding-block:10px!important}
+html[data-mile-buttons="main"] body #app .iq72-grid {gap:10px 12px!important;margin-block:10px!important}
+html[data-mile-buttons="main"] body #app .iq72 details {padding-block:8px!important}
+html[data-mile-buttons="main"] body #app .mile-lb-podium-1 {min-height:130px!important}
+html[data-mile-buttons="main"] body #app .m362-profile .m362-cover {
+ min-height:112px!important;height:auto!important;padding:12px 14px!important;
+}
+html[data-mile-buttons="main"] body #app .m362-profile .m362-identity>.m36-avatar {
+ width:64px!important;height:64px!important;font-size:24px!important;
+}
+html[data-mile-buttons="main"] body #app .m387-week {padding:12px!important;margin-block:8px!important}
+html[data-mile-buttons="main"] body #app .m395-theme {min-height:72px!important;padding:8px!important}
+html[data-mile-buttons="main"] body #app .m771-hub button.m771-row,
+html[data-mile-buttons="main"] body #app button.m777-link {
+ min-height:var(--m876-row-min)!important;padding:8px 12px!important;gap:8px!important;
+}
+html[data-mile-buttons="main"] body #app[data-m79-social="messages"] .m86-inbox .m37-conversation {
+ min-height:52px!important;padding-block:6px!important;
+}
+/* Drawer density only: keep sticky headers, dismissal, scroll and touch targets. */
+html[data-mile-buttons="main"] body #mile-clean-sheet-host #mile-emergency-more .em-head,
+html[data-mile-buttons="main"] body #mile-clean-sheet-host #m36-drawer .mile-drawer-heading {
+ min-height:56px!important;padding-block:8px!important;
+}
+html[data-mile-buttons="main"] body #mile-emergency-more .em-group .em-link,
+html[data-mile-buttons="main"] body #m36-drawer .m320-drawer-group .m320-drawer-link,
+html[data-mile-buttons="main"] body #m36-drawer .mile-drawer-person {
+ min-height:var(--m876-row-min)!important;padding-block:7px!important;gap:8px!important;
+}
+html[data-mile-buttons="main"] body #mile-clean-sheet-host :is(.m320-drawer-group,.em-group) {margin-bottom:8px}
+html[data-mile-buttons="main"] body #m36-drawer .m320-drawer-group-label {margin-block:10px 5px!important}
+html[data-mile-buttons="main"] body #mile35-detail :is(.mile35-panel,.mile352-plot,.mile355-chart),
+html[data-mile-buttons="main"] body #m3927-detail :is(.m3927-panel,.m3927-chart-wrap) {margin-block:14px!important}
+html[data-mile-buttons="main"] body #mile35-detail .mile35-tabs,
+html[data-mile-buttons="main"] body #m3927-detail .m3927-tabs {gap:8px!important}
+html[data-mile-buttons="main"] body #m3932-detail .m3932-panel {padding:12px!important;margin-block:10px!important}
+html[data-mile-buttons="main"] body #m3932-detail .m3932-actions {margin-top:12px!important;gap:8px!important}
+html[data-mile-buttons="main"] body #m3932-detail .m3933-heading-label {margin-top:16px!important}
+html[data-mile-buttons="main"] body #m390-dialog .m390-panel {padding-top:12px!important;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))!important}
+html[data-mile-buttons="main"] body #mile-beta-feedback-overlay .beta5-panel {padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px))!important}
+html[data-mile-buttons="main"] body #mile-admin-centre .ma-card {padding:8px!important}
+/* Standalone/embedded routes. Setup and results only, never live tracking or SIM.
+   Winner canvas and share images deliberately excluded. */
+html[data-mile-buttons="tracker"] body .mile-tracker-hero {
+ padding:12px 14px!important;margin-bottom:10px!important;border-radius:12px!important;
+}
+html[data-mile-buttons="tracker"] body .mile-tracker-hero h1 {
+ font-size:28px!important;margin-block:5px!important;line-height:1.12!important;
+}
+html[data-mile-buttons="tracker"] body :is(#setup,#result).panel {
+ padding:12px!important;margin-block:10px!important;
+}
+html[data-mile-buttons="tracker"] body #setup .tracker-target-head {margin-block:12px 8px!important}
+html[data-mile-buttons="tracker"] body #result .metric {padding:10px!important}
+html[data-mile-buttons="tracker"] body #result .metric b {font-size:22px!important}
+html[data-mile-buttons="sim"] body :is(#setup,#review,#results) h1 {
+ font-size:26px!important;margin-block:5px 8px!important;
+}
+html[data-mile-buttons="sim"] body :is(#setup,#review,#results) .eyebrow {margin-top:12px!important}
+html[data-mile-buttons="sim"] body :is(#setup,#review,#results) .panel {padding:12px!important;margin-block:10px!important}
+html[data-mile-buttons="sim"] body #setup .stage-config {padding:10px!important;margin-block:10px!important}
+html[data-mile-buttons="sim"] body #results .metric {padding:10px!important}
+html[data-mile-buttons="sim"] body #results .metric strong {font-size:22px!important}
+html[data-mile-buttons="challenges"] body #root .hero {padding:14px!important;margin-bottom:10px!important}
+html[data-mile-buttons="challenges"] body #root .hero h1 {font-size:28px!important;margin-block:5px!important}
+html[data-mile-buttons="challenges"] body #root .card {padding:12px!important;margin-block:8px!important}
+html[data-mile-buttons="challenges"] body #root .card h2 {font-size:18px!important;margin-block:8px 4px!important}
+html[data-mile-buttons="challenges"] body #challengeForm {padding:12px!important}
+/* Readable input sizes and live controls are intentionally retained. */
+@media(pointer:coarse){
+ html[data-mile-buttons="main"] body #app .iq72 summary,
+ html[data-mile-buttons="main"] body #mile-admin-centre button {min-height:44px!important}
+}
+
+/* 87.6.1: the shared button sheet may be reinserted after this sheet by
+   the shell. Set its local tokens on activity Back controls and use the
+   actual data attribute for an unambiguous cascade, independent of order. */
+html[data-mile-buttons="main"] body #mile35-detail .mile35-top button.mile35-back[data-mile35-close],
+html[data-mile-buttons="main"] body #m3927-detail button[data-m3927-close] {
+ --m78-font:12px; --m78-pad:5px 9px; --m78-height:44px;
+ font-size:12px!important; padding:5px 9px!important;
+ min-width:44px!important; min-height:44px!important;
+ width:auto!important; border-radius:var(--m78-radius,9px)!important;
+}
+
+/* 87.6.2: iOS WebKit native select painted a white face over white text.
+   Keep the native picker interaction, but draw a theme-aware closed control. */
+html[data-mile-buttons="tracker"] body #setup select#workout {
+ -webkit-appearance:none!important; appearance:none!important;
+ background-color:var(--mile-panel2)!important;
+ color:var(--mile-text)!important; -webkit-text-fill-color:var(--mile-text)!important;
+ background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%)!important;
+ background-position:calc(100% - 17px) 50%,calc(100% - 12px) 50%!important;
+ background-size:5px 5px!important; background-repeat:no-repeat!important;
+ padding:10px 34px 10px 12px!important; min-height:44px!important; font-size:16px!important;
+}
+html[data-mile-buttons="tracker"] body #setup select#workout option {
+ color:var(--mile-text); background-color:var(--mile-panel2);
+}
+/* Sport filters must scroll instead of squeezing neighboring labels together. */
+html[data-mile-buttons="main"] body #app .m70-filter {gap:6px!important}
+html[data-mile-buttons="main"] body #app .m70-filter .m70-filter-button {flex:0 0 auto!important;padding-inline:8px!important}

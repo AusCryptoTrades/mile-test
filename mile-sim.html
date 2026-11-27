@@ -96,4 +96,4 @@ $('publishSim').onclick=()=>{if(!session?.finished)return;localStorage.setItem('
 $('stationVolumes').innerHTML=volumes.map((v,i)=>'<label for="volume'+i+'">'+names[i*2+1]+' ('+units[i]+')</label><input type="number" min="1" max="10000" step="1" id="volume'+i+'" value="'+v+'">').join('');$('preset').onchange=()=>{let p=$('preset').value;if(p==='custom')return;let factor=p==='half'?.5:1;$('distance').value=1000*factor;volumes.forEach((v,i)=>$('volume'+i).value=v*factor)};[$('distance'),...volumes.map((_,i)=>$('volume'+i))].forEach(el=>el.addEventListener('input',()=>{$('preset').value='custom'}));let previous=load();if(previous){if(previous.finished){session=previous;render()}else $('resume').style.display='block'}setInterval(()=>{if(session&&!session.finished)render()},1000);
 })();
 </script><link rel="stylesheet" href="./mile-buttons.css?v=78">
-<style>#tap{touch-action:manipulation;-webkit-tap-highlight-color:transparent}</style></body></html>
+<style>#tap{touch-action:manipulation;-webkit-tap-highlight-color:transparent}</style><link rel="stylesheet" href="./mile-compact.css?v=87.5.2"></body></html>
