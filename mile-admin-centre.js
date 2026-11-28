@@ -136,7 +136,7 @@
  function selectTab(selector){if(!root)return;root.querySelectorAll('.ma-tabs button').forEach(b=>b.setAttribute('aria-pressed',String(b.matches(selector))));root.querySelector('.ma-overview').hidden=selector!=='[data-ma-overview]';root.scrollTop=0}
  function enterModule(holder,heading){heading.tabIndex=-1;heading.focus({preventScroll:true});root.scrollTop=0}
  function exitModule(holder,selector){managementController?.abort();if(!root)return;holder.replaceChildren();selectTab('[data-ma-overview]');root.querySelector('[data-ma-overview]')?.focus({preventScroll:true})}
- const formatDate=value=>{if(!value)return 'Not recorded';const d=new Date(value);return Number.isNaN(d.getTime())?'Not recorded':d.toLocaleString()};
+ const formatDate=value=>{if(!value)return 'Not recorded';const d=new Date(value);return Number.isNaN(d.getTime())?'Not recorded':mileDateTime.format(d)};
  const mgmtUrl=base+'/functions/v1/mile-admin-management';
  function optionSelect(items,label){const el=node('select');el.setAttribute('aria-label',label);for(const [val,txt] of items){const opt=node('option','',txt);opt.value=val;el.append(opt)}return el}
  function openManagement(view){

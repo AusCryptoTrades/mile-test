@@ -34,3 +34,22 @@ test('reject excessive steps, nested repeats and unsupported targets',()=>{
  assert.throws(()=>buildGarminRunningWorkout(plan([{kind:'repeat',count:50,steps:[{kind:'repeat',count:50,steps:[s]}]}])),/Too many expanded/);
  assert.throws(()=>buildGarminRunningWorkout(plan([step('active',{kind:'time',seconds:60},{kind:'power',watts:300})])),/Unsupported/);
 });
+test('a manual lap round-trips through the established JSON mapping while HR completion stays out of it',()=>{
+ const lap=buildGarminRunningWorkout(plan([step('recovery',{kind:'lap'})])).segments[0].steps[0];
+ assert.equal(lap.durationType,'OPEN');
+ assert.equal(lap.durationValue,null);
+ for(const direction of ['below','above'])
+  assert.throws(()=>buildGarminRunningWorkout(plan([step('recovery',{kind:'heart_rate',direction,bpm:125,fallbackSeconds:90})])),/Use timed recovery/);
+});
+test('11 km continuous HR workout preserves metres and absolute bpm with a display-only zone',()=>{
+ const workout=buildGarminRunningWorkout(plan([
+  step('active',{kind:'distance',meters:11000},{kind:'heart_rate',lowBpm:120,highBpm:145,zone:'Z2'}),
+ ]));
+ const [run]=workout.segments[0].steps;
+ assert.equal(run.durationType,'DISTANCE');
+ assert.equal(run.durationValue,11000);
+ assert.equal(run.targetType,'HEART_RATE');
+ assert.equal(run.targetValueLow,120);
+ assert.equal(run.targetValueHigh,145);
+ assert.equal(Object.hasOwn(run,'zone'),false);
+});

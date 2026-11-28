@@ -1,0 +1,59 @@
+name: MILE onboarding database
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*_athlete_onboarding.sql'
+      - 'supabase/migrations/*_training_disclaimer_and_avatar_access.sql'
+      - 'supabase/tests/batch89-*'
+      - 'supabase/staging/**'
+      - 'scripts/staging-onboarding-install.mjs'
+      - 'docs/batch845-invitations.sql'
+      - '.github/workflows/mile-onboarding-database.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  onboarding-db:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - run: |
+          psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 \
+            -f supabase/tests/batch89-fixtures.sql \
+            -f supabase/migrations/20261127084450_athlete_onboarding.sql \
+            -f supabase/tests/batch89-onboarding.test.sql \
+            -f supabase/migrations/20261127093312_training_disclaimer_and_avatar_access.sql \
+            -f supabase/tests/batch89-1-disclaimer-avatar.test.sql
+      - name: Replay combined staging migrations and both database gates
+        env:
+          PGHOST: 127.0.0.1
+          PGUSER: postgres
+          PGDATABASE: mile_combined_staging
+        run: |
+          createdb "$PGDATABASE"
+          psql -v ON_ERROR_STOP=1 \
+            -f supabase/tests/batch89-staging-catalog-fixture.sql \
+            -f supabase/proposals/batch87-garmin-publications.sql \
+            -f supabase/migrations/20261127064605_running_workout_revisions.sql \
+            -f supabase/migrations/20261127081603_training_revision_consent.sql \
+            -f supabase/migrations/20261127082454_training_revision_legacy_workout_ids.sql \
+            -f supabase/staging/running-baseline.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/staging/onboarding-prerequisites.sql -f docs/batch845-invitations.sql
+          node scripts/staging-onboarding-install.mjs | psql -v ON_ERROR_STOP=1
+          psql -v ON_ERROR_STOP=1 \
+            -f supabase/migrations/20261127093312_training_disclaimer_and_avatar_access.sql \
+            -f supabase/staging/running-baseline.sql \
+            -f supabase/staging/onboarding-verification.sql

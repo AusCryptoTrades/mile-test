@@ -7,10 +7,12 @@ import { execFileSync } from 'node:child_process';
 
 export const assets = Object.freeze([
   'index.html', 'mile-admin-centre.js', 'mile-buttons.css',
+  'mile-onboarding.js', 'mile-onboarding.css', 'mile-avatar.js',
   'mile-challenges.html', 'mile-run-tracker.html', 'mile-shared-header.js',
   'mile-sim-sync.js', 'mile-sim.html',
   'mile-79.css', 'mile-85-auth.css', 'mile-873.css', 'mile-device-sync.js',
-  'mile-split-share.js', 'mile-86.css', 'mile-86-health-preview.js', 'mile-garmin-plan.js', 'mile-intervals.js', 'mile-intervals.css', 'mile-compact.css', 'mile-running-iq.js'
+  'mile-split-share.js', 'mile-86.css', 'mile-86-health-preview.js', 'mile-garmin-plan.js', 'mile-intervals.js', 'mile-intervals.css', 'mile-compact.css', 'mile-design.css', 'mile-running-iq.js', 'mile-running-analysis.js', 'mile-training-revisions.js',
+  'mile-running-workout.js', 'mile-running-plan.js', 'mile-running-build.js', 'mile-running-build.css'
 ]);
 export const syncAssets = Object.freeze(['workouts.mjs','apple-import.mjs','apple-transport.mjs','checkpoints.mjs','apple-native.mjs']);
 const root = fileURLToPath(new URL('../../', import.meta.url));

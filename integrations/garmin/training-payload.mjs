@@ -29,11 +29,13 @@ export function buildGarminRunningWorkout(plan){
    let durationType,durationValue=null,durationValueType=null;
    if(d.kind==='time'){exactKeys(d,['kind','seconds']);durationType='TIME';durationValue=integer(d.seconds,1,86400,'duration')}
    else if(d.kind==='distance'){exactKeys(d,['kind','meters']);durationType='DISTANCE';durationValue=number(d.meters,1,200000,'distance');durationValueType='METER'}
-   else if(d.kind==='open'){exactKeys(d,['kind']);durationType='OPEN'}else throw Error('Unsupported duration');
+   else if(d.kind==='open'||d.kind==='lap'){exactKeys(d,['kind']);durationType='OPEN'}
+   else if(d.kind==='heart_rate')throw Error('Heart-rate step completion requires a FIT workout. Use timed recovery for Garmin Connect sync.');
+   else throw Error('Unsupported duration');
    let targetType,targetValue=null,targetValueLow=null,targetValueHigh=null;
    if(t.kind==='open'){exactKeys(t,['kind']);targetType='OPEN'}
    else if(t.kind==='pace'){exactKeys(t,['kind','fastSecondsPerKm','slowSecondsPerKm']);const fast=number(t.fastSecondsPerKm,120,1800,'fast pace'),slow=number(t.slowSecondsPerKm,120,1800,'slow pace');if(fast>slow)throw Error('Reversed pace range');targetType='PACE';targetValueLow=1000/slow;targetValueHigh=1000/fast}
-   else if(t.kind==='heart_rate'){exactKeys(t,['kind','lowBpm','highBpm']);targetType='HEART_RATE';targetValueLow=integer(t.lowBpm,30,250,'low HR');targetValueHigh=integer(t.highBpm,30,250,'high HR');if(targetValueLow>targetValueHigh)throw Error('Reversed HR range')}
+   else if(t.kind==='heart_rate'){exactKeys(t,['kind','lowBpm','highBpm','zone']);if(t.zone!==undefined&&!/^Z[1-5]$/.test(t.zone))throw Error('Invalid HR zone label');targetType='HEART_RATE';targetValueLow=integer(t.lowBpm,30,250,'low HR');targetValueHigh=integer(t.highBpm,30,250,'high HR');if(targetValueLow>targetValueHigh)throw Error('Reversed HR range')}
    else throw Error('Unsupported target');
    return {type:'WorkoutStep',stepOrder,intensity:intensities[step.intensity],description:text(step.description,512,'step description'),durationType,durationValue,durationValueType,targetType,targetValue,targetValueLow,targetValueHigh,targetValueType:null,secondaryTargetType:null,secondaryTargetValue:null,secondaryTargetValueLow:null,secondaryTargetValueHigh:null,secondaryTargetValueType:null};
   });

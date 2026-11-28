@@ -21,7 +21,7 @@
    if(kind==='easy')steps.push(step('warmup','Easy walk/jog',time(600),recovery));
    steps.push(step('active',kind==='long'?'Ease into your aerobic effort.':'Conversational aerobic running.',dist(Math.round(distanceKm*1000)),easyTarget));
    steps.push(step('cooldown','Walk; gentle mobility afterwards',time(300)));
-   detail=kind==='easy'?'Warm-up: 10 min walk/jog'+(recovery.kind==='heart_rate'?' at '+targetText(recovery,'easy effort'):'')+'. Main: '+distanceKm+' km at '+easyText+'.'+hr+' RPE 3–4. Cooldown: 5 min walk + gentle mobility.':'Main: '+distanceKm+' km total running at '+easyText+'. Ease into your aerobic effort.'+hr+' Cooldown: 5 min walk. RPE 3–4.';
+   detail=kind==='easy'?'Warm-up: 10 min walk/jog'+(recovery.kind==='heart_rate'?' at '+targetText(recovery,'easy effort'):'')+'. Main: '+distanceKm+' km at '+easyText+'.'+hr+' Cooldown: 5 min walk + gentle mobility.':'Main: '+distanceKm+' km total running at '+easyText+'. Ease into your aerobic effort.'+hr+' Cooldown: 5 min walk.';
   }else{
    const n=kind==='speed'?reps+1:reps;
    if(!Number.isInteger(n)||n<2||n>50)return null;
@@ -33,7 +33,7 @@
    const rest=()=>step('recovery','Easy jog',time(120));
    if(n>2)steps.push({kind:'repeat',count:n-1,steps:[work(),rest()]});else steps.push(work(),rest());
    steps.push(work(),step('cooldown','Easy running',dist(cool),recovery));
-   detail='Warm-up: 2 km easy'+(kind==='speed'?', drills (lap when ready)':'')+(aerobic.kind==='heart_rate'?' at '+targetText(aerobic,'easy effort'):'')+' + 4 × 20 sec controlled strides with lap-controlled easy recovery. Main: '+n+' × '+seconds/60+' min at '+targetText(target,kind==='speed'?'controlled fast effort (RPE 8)':'comfortably hard effort (RPE 7)')+'; 2 min easy jog between reps. Cooldown: '+cool/1000+' km easy'+(recovery.kind==='heart_rate'?' at '+targetText(recovery,'easy effort'):'')+'. '+(kind==='speed'?'Controlled form, no sprinting. RPE 8/10.':'Build effort gradually. RPE 7/10.');
+   detail='Warm-up: 2 km easy'+(kind==='speed'?', drills (lap when ready)':'')+(aerobic.kind==='heart_rate'?' at '+targetText(aerobic,'easy effort'):'')+' + 4 × 20 sec controlled strides with lap-controlled easy recovery. Main: '+n+' × '+seconds/60+' min at '+targetText(target,kind==='speed'?'controlled fast effort':'comfortably hard effort')+'; 2 min easy jog between reps. Cooldown: '+cool/1000+' km easy'+(recovery.kind==='heart_rate'?' at '+targetText(recovery,'easy effort'):'')+'. '+(kind==='speed'?'Controlled form, no sprinting.':'Build effort gradually.');
   }
   return {steps,detail};
  }

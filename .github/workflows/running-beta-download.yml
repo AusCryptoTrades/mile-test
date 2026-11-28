@@ -1,0 +1,41 @@
+name: Running beta download
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+jobs:
+  package:
+    if: github.event.pull_request.number == 140 && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/overnight-running-onboarding'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Build and verify staging-only files
+        env:
+          # Public browser key for MILE Staging only. No privileged credentials.
+          MILE_STAGING_PUBLISHABLE_KEY: sb_publishable_WDCwC-ubCFWHf0Z9yTuUMA_rabdgVDv
+          GITHUB_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          node scripts/serve-running-staging.mjs --output "$RUNNER_TEMP/mile-running-beta"
+          cd "$RUNNER_TEMP/mile-running-beta"
+          grep -Fq "name=\"mile-beta-build\" content=\"$GITHUB_SHA\"" index.html
+          grep -Fq "connect-src https://fnyfeelynaozxtftrrga.supabase.co" _headers
+          if grep -rEq 'mgixvokjlytjuypzcfzz|https://app\.milefitness\.com\.au' .; then
+            exit 1
+          fi
+          test -f mile-running-plan.js
+          test -f mile-training-revisions.js
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mile-running-beta-staging
+          path: ${{ runner.temp }}/mile-running-beta/
+          retention-days: 7
+          if-no-files-found: error

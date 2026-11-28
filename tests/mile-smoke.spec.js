@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const reviewImage = require('./overnight-review-image');
 
 const activity = {
   id: '123456789', name: 'Fixture morning run', sport: 'Running',
@@ -68,6 +69,110 @@ async function openActivity(page) {
   await expect(detail).toBeVisible();
   return detail;
 }
+
+function runningReviewFixture({ matched = false, recordedDuration = 1800, sampleCount = 361 } = {}) {
+  const run = { ...activity, distanceKm: 6, durationSeconds: recordedDuration, averageHR: 175 };
+  const future = { id: 'next-quality', block: 'running-review', name: 'Threshold Intervals', sport: 'Running', date: '2026-11-22', status: 'planned', targetRpe: 7, km: 10 };
+  const completed = { ...future, id: 'completed', name: 'Completed session', date: '2026-11-21', status: 'done' };
+  const foreignPlan = { ...future, id: 'other-programme', block: 'other-block', name: 'Other programme session', date: '2026-11-21' };
+  const linked = { ...future, id: 'linked', name: 'Planned aerobic run', date: '2026-11-18', status: 'done', matchId: run.id, km: 6, plannedMinutes: 34, purpose: 'Build aerobic endurance.' };
+  const block = { id: 'running-review', name: 'Running review', sport: 'Running', start: '2026-11-16', end: '2026-11-30', active: true,
+    runningPlan: { version: 1, config: { adaptation: { mode: 'automatic', pace: true, volume: true, recovery: true } } },
+  };
+  return {
+    signedIn: true,
+    syncStore: { data: {
+      activities: [run], workouts: [future, completed, foreignPlan, ...(matched ? [linked] : [])], blocks: [block], activeBlock: block.id,
+      settings: { athleteProfile: { zoneBounds: [100, 120, 140, 155, 170, 190] } },
+    } },
+    intervalFixture: { samples: Array.from({ length: sampleCount }, (_, i) => ({
+      timestamp: 1794985200 + i * 5, heartRate: 175, distanceInMeters: i * 6000 / (sampleCount - 1),
+    })) },
+  };
+}
+
+test('88.3 private Analysis reviews an upcoming session after a demanding unplanned run', async ({ page }, info) => {
+  await openApp(page, runningReviewFixture());
+  const persistedRequests = [];
+  page.on('request', request => {
+    if (request.method() !== 'GET' && /av_training_data|mile_apply_running_revision|garmin.*publish/.test(request.url())) persistedRequests.push(request.url());
+  });
+  const detail = await openActivity(page);
+  await detail.getByRole('button', { name: 'Analysis', exact: true }).click();
+  const quick = detail.locator('.m881-quick');
+  const review = quick.locator('section').filter({ has: page.getByRole('heading', { name: 'Programme adjustment', exact: true }) });
+  await expect(review).toContainText('Review Threshold Intervals for enough recovery after this additional demanding run.');
+  await expect(review.getByRole('button')).toHaveCount(0);
+  await expect(quick).toContainText('Time30 min');
+  await expect(quick).toContainText('30 min in your two highest heart-rate zones.');
+  const advanced=detail.locator('.m881-detailed');
+  await expect(advanced.getByRole('heading',{name:'Recorded heart rate distribution'})).toBeHidden();
+  await expect(advanced.locator('svg')).toHaveCount(0);
+  await reviewImage(info,'06-running-analysis-brief',quick);
+  await advanced.locator('summary').click();
+  await expect(advanced.getByRole('heading',{name:'Recorded heart rate',exact:true})).toBeVisible();
+  await expect(advanced.getByRole('img',{name:/Heart rate with time/})).toContainText('30:00');
+  await expect(advanced.getByRole('img',{name:/Pace with time/})).toContainText('29:50');
+  await expect(advanced).toContainText('Running distance recorded this week6.0 km');
+  await reviewImage(info,'07-running-analysis-detail-chart',advanced.locator('.mile352-plot').first());
+  await expect(detail).not.toContainText('Distance completed');
+  await expect(detail.locator('.mile35-footer')).toContainText('private');
+  expect(await review.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+  expect(persistedRequests).toEqual([]);
+});
+
+test('88.3 private Analysis preserves targets for a linked run without verified steps', async ({ page }) => {
+  await openApp(page, runningReviewFixture({ matched: true, sampleCount: 14 }));
+  const detail = await openActivity(page);
+  await detail.getByRole('button', { name: 'Analysis', exact: true }).click();
+  await expect(detail).toContainText('Linked session: Planned aerobic run');
+  await expect(detail).toContainText('Build aerobic endurance.');
+  const quick=detail.locator('.m881-quick');
+  await expect(quick).toContainText('Time30 min');
+  await expect(quick).toContainText('Verified step data are needed');
+  await expect(quick).toContainText('Keep the current plan.');
+  const advanced=detail.locator('.m881-detailed');
+  await expect(advanced.getByRole('heading',{name:'Session evidence'})).toBeHidden();
+  await advanced.locator('summary').click();
+  await expect(advanced).toContainText('Planned duration estimate34 min');
+  await expect(advanced).toContainText('Verified step alignment required');
+  await expect(advanced.getByRole('heading',{name:'Verified work and recovery steps'})).toHaveCount(0);
+});
+
+test('88.3 Analysis quantifies easy-run HR and keeps load and pace comparisons behind the disclosure', async ({ page }, info) => {
+  const fixture=runningReviewFixture({matched:true,recordedDuration:2400,sampleCount:481});
+  const data=fixture.syncStore.data;
+  data.activities[0].averageHR=141;
+  data.activities.push(...[
+    ['81234','2026-11-16',8],['81235','2026-11-10',5],['81236','2026-11-08',4],
+  ].map(([id,date,distanceKm])=>({...activity,id,name:'Earlier run '+id,date,distanceKm})));
+  data.workouts[0].kind='long';
+  const workout=data.workouts.at(-1);
+  Object.assign(workout,{kind:'easy',detail:'6 km easy',structuredDetail:'6 km easy',structuredSteps:[{
+    kind:'step',intensity:'active',duration:{kind:'distance',meters:6000},target:{kind:'heart_rate',lowBpm:115,highBpm:145},
+  }]});
+  fixture.intervalFixture.samples.forEach((point,i)=>{point.heartRate=i<240?130:152});
+  await openApp(page,fixture);
+  const detail=await openActivity(page);
+  await detail.getByRole('button',{name:'Analysis',exact:true}).click();
+  const quick=detail.locator('.m881-quick'),advanced=detail.locator('.m881-detailed');
+  await expect(quick.locator('dl>div')).toHaveCount(4);
+  await expect(quick).toContainText('above the prescribed range for 50%');
+  await expect(quick).toContainText('Heart rate rose 22 bpm at a similar speed');
+  await expect(quick).toContainText('Start the long run gently');
+  await expect(quick).toContainText('Keep the current plan.');
+  await expect(advanced.getByText('Change in speed per heartbeat')).toBeHidden();
+  await expect(advanced.getByText('Previous seven days')).toBeHidden();
+  expect((await quick.innerText()).split(/\s+/).length).toBeLessThanOrEqual(105);
+  expect(await quick.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+  await reviewImage(info,'08-running-easy-hr-brief',quick);
+  await advanced.locator('summary').click();
+  await expect(advanced).toContainText('Change in speed per heartbeat-14%');
+  await expect(advanced).toContainText('Previous seven days9.0 km recorded');
+  await expect(advanced).toContainText('Seven days through this run14.0 km recorded');
+  await advanced.locator('summary').press('Enter');
+  await expect(advanced.getByText('Change in speed per heartbeat')).toBeHidden();
+});
 
 test.beforeEach(async ({ page }) => {
   const errors = [];
@@ -957,6 +1062,31 @@ test('77.5 account details use authenticated identity and confirm cloud save',as
  await panel.locator('[data-m775-action="cloud-save"]').click();
  await expect(panel.locator('[data-m775-status]')).toHaveText('Cloud save confirmed.');
  await expect(panel.locator('[data-m775-value="cloudstatus"]')).toHaveText('Saved');
+});
+test('a running revision conflict preserves local data and the last confirmed cloud save',async ({page})=>{
+ const confirmed='2026-11-19T12:00:00Z';
+ await openApp(page,{signedIn:true,syncStore:{updated_at:confirmed,data:{activities:[activity],workouts:[{id:'stale-running-plan',revision:1,sport:'Running',status:'planned'}]}}});
+ let writes=0;
+ await page.route('**/rest/v1/av_training_data?*',async route=>{
+  if(route.request().method()!=='POST')return route.fallback();
+  writes++;
+  expect(route.request().postDataJSON().training_data.workouts).toContainEqual(
+   expect.objectContaining({id:'stale-running-plan',revision:1})
+  );
+  await route.fulfill({status:409,json:{code:'PT409',details:'mile_running_revision_conflict'}});
+ });
+ await page.evaluate(()=>window.mileV3Go('settings'));
+ await page.locator('[data-m771-open="account"]').first().click();
+ const panel=page.locator('[data-m775-account]');
+ await panel.locator('[data-m775-action="cloud-save"]').click();
+ await expect(panel.locator('[data-m775-value="cloudstatus"]')).toHaveText('Conflict');
+ await expect(panel.locator('[data-m775-status]')).toHaveText('A running workout changed in the cloud. Your edits are on this device. Export a training backup, then reload and choose the cloud copy.');
+ expect(writes).toBe(1);
+ const saved=await page.evaluate(id=>({
+  confirmed:localStorage.getItem('av-cloud-confirmed-'+id),
+  revision:JSON.parse(localStorage.getItem('av-training-v4-'+id)).workouts[0].revision
+ }),user.id);
+ expect(saved).toEqual({confirmed,revision:1});
 });
 test('77.5 connection page and safe backup export',async ({page})=>{
  await openApp(page,{signedIn:true});

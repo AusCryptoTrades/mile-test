@@ -1,5 +1,6 @@
 
 import postgres from "npm:postgres@3.4.5";
+import { garminRouting } from "../_shared/garmin-routing.mjs";
 
 // MILE Training — Garmin OAuth 2.0 PKCE callback
 
@@ -7,19 +8,16 @@ const DB_URL = Deno.env.get("SUPABASE_DB_URL");
 const CLIENT_ID = Deno.env.get("GARMIN_CLIENT_ID");
 const CLIENT_SECRET = Deno.env.get("GARMIN_CLIENT_SECRET");
 
-const CALLBACK =
-  "https://mgixvokjlytjuypzcfzz.supabase.co/functions/v1/garmin-oauth-callback";
-
-const TEST_APP =
-  "https://auscryptotrades.github.io/mile-test/";
+const routing = garminRouting(Deno.env.get("SUPABASE_URL"), Deno.env.get("MILE_GARMIN_BETA_ORIGIN"));
 
 // Official Garmin OAuth token endpoint
 const TOKEN_URL =
   "https://diauth.garmin.com/di-oauth2-service/oauth/token";
 
 // Redirect back to MILE Test without exposing credentials.
-function redirect(status: "connected" | "failed", target = TEST_APP): Response {
-  const url = new URL(target === "https://app.milefitness.com.au/" ? target : TEST_APP);
+function redirect(status: "connected" | "failed", target = routing?.fallback): Response {
+  if (!target) return new Response("Garmin connection is unavailable", { status: 503 });
+  const url = new URL(target);
   url.searchParams.set("garmin", status);
 
   return new Response(null, {
@@ -74,6 +72,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  if (!routing) return redirect("failed");
   const url = new URL(req.url);
 
   const code = url.searchParams.get("code");
@@ -81,7 +80,7 @@ Deno.serve(async (req: Request) => {
   const error = url.searchParams.get("error");
 
   // Never trust a caller-provided return URL. Only a consumed, authenticated state may select the new origin.
-  if (!state) {
+  if (!state || (routing.beta && !routing.returnTo(state))) {
     return redirect("failed");
   }
 
@@ -96,7 +95,7 @@ Deno.serve(async (req: Request) => {
     connect_timeout: 5,
   });
 
-  let target = TEST_APP;
+  let target = routing.fallback;
   try {
     const stateHash = await hashState(state);
 
@@ -113,10 +112,15 @@ Deno.serve(async (req: Request) => {
       return redirect("failed");
     }
 
-    target = state.startsWith("app.") ? "https://app.milefitness.com.au/" : TEST_APP;
+    target = routing.returnTo(state) ?? routing.fallback;
     if (error || !code) return redirect("failed", target);
     const userId = rows[0].user_id;
     const verifier = rows[0].code_verifier;
+    if (routing.beta) {
+      const member = await sql`select 1 from public.av_members m join auth.users u on u.id=m.user_id
+        where m.user_id = ${userId} and u.email_confirmed_at is not null and not coalesce(u.is_anonymous,false)`;
+      if (!member.length) return redirect("failed", target);
+    }
 
     // Exchange authorization code for Garmin tokens.
     // This happens only on the Supabase backend.
@@ -124,7 +128,7 @@ Deno.serve(async (req: Request) => {
       grant_type: "authorization_code",
       code,
       code_verifier: verifier,
-      redirect_uri: CALLBACK,
+      redirect_uri: routing.callback,
     });
 
     const response = await fetch(TOKEN_URL, {
