@@ -1085,7 +1085,7 @@ function readableWorkout(detail){
 }
 function refreshWorkoutPreview(){let el=document.getElementById('wPreview'),input=document.getElementById('wDetail');if(el&&input)el.innerHTML=readableWorkout(input.value)}
 function withoutRunningRpe(text){return String(text||'').replace(/\s*\(?RPE\s*:?\s*\d+(?:\s*[-–/]\s*\d+)?\)?\.?/gi,'').trim()}
-function workoutCard(w){return `<div class="item ${w.date===today()?'active':''}"><div class="item-head"><div><div class="date">${nice(w.date)} · ${esc(w.sport)} · ${status(w)}</div><h3>${w.status==='done'||w.matchId?'<span class="mile-complete-tick" aria-label="Completed">✓</span> ':''}${esc(w.name)}</h3></div><span class="pill">${w.sport==='Running'&&w.runningPlanVersion?esc(window.mileRunningBuild?.sessionDistance(w)||''):w.sport==='Cycling'&&w.cyclingPlanVersion?esc(w.structuredDetail===w.detail?window.mileStructuredWorkout.time(w.plannedMinutes*60):'Edited ride'):(Number(w.km)||0)+' km plan'}</span></div>${window.mileRunningBuild?.sessionMarkup(w)??window.mileCyclingBuild?.sessionMarkup(w)??readableWorkout(w.sport==='Running'?withoutRunningRpe(w.detail):w.detail)}${w.note?`<p class="small" style="margin-top:7px">Note: ${esc(w.note)}</p>`:''}<div class="row" style="margin-top:10px">${b('Details / Edit',`editWorkout('${w.id}')`,'alt sm')}${w.status!=='done'?b('✓ Complete',`completeWorkout('${w.id}')`,'sm'):b('Undo',`uncompleteWorkout('${w.id}')`,'alt sm')}${w.sport==='Running'&&w.status!=='done'?b('Start run',`mileStartPlannedRun('${w.id}')`,'alt sm'):''}${b(w.sport==='Running'?'Notes':'Notes + RPE',`notesWorkout('${w.id}')`,'alt sm')}${window.mileDeviceSyncButton?.(w)||''}</div></div>`}
+function workoutCard(w){return `<div class="item ${w.date===today()?'active':''}"><div class="item-head"><div><div class="date">${nice(w.date)} · ${esc(w.sport)} · ${status(w)}</div><h3>${w.status==='done'||w.matchId?'<span class="mile-complete-tick" aria-label="Completed">✓</span> ':''}${esc(w.name)}</h3></div><span class="pill">${w.sport==='Running'&&w.runningPlanVersion?esc(window.mileRunningBuild?.sessionDistance(w)||''):w.sport==='Cycling'&&w.cyclingPlanVersion?esc(w.structuredDetail===w.detail?window.mileStructuredWorkout.time(w.plannedMinutes*60):'Edited ride'):(Number(w.km)||0)+' km plan'}</span></div>${window.mileRunningBuild?.sessionMarkup(w)??window.mileCyclingBuild?.sessionMarkup(w)??readableWorkout(w.sport==='Running'?withoutRunningRpe(w.detail):w.detail)}${w.note?`<p class="small" style="margin-top:7px">Note: ${esc(w.note)}</p>`:''}<div class="row" style="margin-top:10px">${b(w.revisionSource==='cycling-recovery-v1'?'Details':'Details / Edit',`editWorkout('${w.id}')`,'alt sm')}${w.status!=='done'?b('✓ Complete',`completeWorkout('${w.id}')`,'sm'):w.revisionSource==='cycling-recovery-v1'?'':b('Undo',`uncompleteWorkout('${w.id}')`,'alt sm')}${w.sport==='Running'&&w.status!=='done'?b('Start run',`mileStartPlannedRun('${w.id}')`,'alt sm'):''}${b(w.sport==='Running'?'Notes':'Notes + RPE',`notesWorkout('${w.id}')`,'alt sm')}${window.mileDeviceSyncButton?.(w)||''}</div></div>`}
 
 window.mileStartPlannedRun=function(id){const w=state.workouts.find(x=>String(x.id)===String(id));if(!w||w.sport!=='Running')return;window.mileTrackerPlanned={name:w.name,detail:withoutRunningRpe(w.detail),purpose:w.purpose,kind:w.kind,km:w.km,fixedMeters:w.fixedMeters,id:w.id,pace:w.pace,targetPace:w.targetPace,structuredSteps:w.structuredDetail===w.detail?w.structuredSteps:undefined};window.mileShellOpen?.('tracker')};
 const sportOf=a=>{let t=String(a.type||'').toLowerCase();return isRun(a)?'Running':/cycl|bike|ride/.test(t)?'Cycling':/swim/.test(t)?'Swimming':/strength|weight|gym/.test(t)?'Strength':/hyrox/.test(t)?'HYROX':'Other'};
@@ -1094,7 +1094,7 @@ function mileActivityDisplayDate(a){const d=mileActivityLocalDate(a);return /^\d
 const activityDate=a=>mileActivityLocalDate(a);
 const activityDuration=a=>{for(const v of [a.durationMin,a.elapsedDurationMin])if(Number(v)>0)return Number(v);for(const v of [a.durationSeconds,a.duration_s,a.durationInSeconds,a.duration,a.summaryDTO?.duration])if(Number(v)>0)return Number(v)/60;return 0};
 const activityCard=a=>{let linked=state.workouts.find(w=>String(w.matchId)===String(a.id));return `<div class="item activity-card"><div class="item-head"><div><div class="date">${esc(mileActivityDisplayDate(a))} · ${esc(sportOf(a))}</div><h3>${esc(a.name||a.activityName||a.type||'Garmin activity')}</h3></div><span class="pill">${Number(a.distanceKm||0).toFixed(2)} km</span></div><div class="inline-stats small muted" style="margin-top:8px">${activityDuration(a)?`<span>${formatDuration(activityDuration(a))}</span>`:''}${Number(a.paceMinKm)>0?`<span>${formatPace(Number(a.paceMinKm))}</span>`:''}${a.averageHR?`<span>♥ ${Math.round(a.averageHR)} bpm</span>`:''}</div>${linked?`<p class="tag" style="margin-top:8px">✓ Linked to ${esc(linked.name)}</p>`:`<div class="row" style="margin-top:9px">${b('Match to plan',`chooseMatch('${esc(String(a.id))}')`,'alt sm')}</div>`}</div>`};
-function chooseMatch(aid){let a=state.activities.find(x=>String(x.id)===String(aid));if(!a)return;let same=state.workouts.filter(w=>canConfirmMatch(w,a));openModal(`<h2>Match Garmin activity</h2><p class="muted small">${esc(a.type)} · ${nice(activityDate(a))} · ${Number(a.distanceKm||0).toFixed(2)} km</p><div class="list" style="margin:14px 0">${same.length?same.map(w=>`<div class="item"><strong>${esc(w.name)}</strong><div class="small muted">${esc(w.sport)} · ${w.km} km planned</div><div style="margin-top:8px">${b('Confirm link',`confirmMatch('${w.id}','${esc(String(a.id))}');closeModal()`,'sm')}</div></div>`).join(''):'<div class="empty">No unmatched planned sessions on this date. Add a session on the calendar first.</div>'}</div>${b('Close','closeModal()','alt')}`)}
+function chooseMatch(aid){let a=state.activities.find(x=>String(x.id)===String(aid));if(!a)return;let same=state.workouts.filter(w=>canConfirmMatch(w,a));openModal(`<h2>Match Garmin activity</h2><p class="muted small">${esc(a.type)} · ${nice(activityDate(a))} · ${Number(a.distanceKm||0).toFixed(2)} km</p><div class="list" style="margin:14px 0">${same.length?same.map(w=>`<div class="item"><strong>${esc(w.name)}</strong><div class="small muted">${esc(w.sport)} · ${w.sport==='Cycling'&&w.cyclingPlanVersion?esc(w.structuredDetail===w.detail?window.mileStructuredWorkout.time(w.plannedMinutes*60)+' planned':'Edited ride'):w.km+' km planned'}</div><div style="margin-top:8px">${b('Confirm link',`confirmMatch('${w.id}','${esc(String(a.id))}');closeModal()`,'sm')}</div></div>`).join(''):'<div class="empty">No unmatched planned sessions on this date. Add a session on the calendar first.</div>'}</div>${b('Close','closeModal()','alt')}`)}
 const dateActivities=s=>activities().filter(a=>activityDate(a)===s);
 const weekRange=()=>{let st=weekStart(today());return [st,add(st,6)]};
 const rangeActivities=(start,end)=>activities().filter(a=>activityDate(a)>=start&&activityDate(a)<=end);
@@ -1256,14 +1256,23 @@ function closeModal(){
  mileModalTrigger?.focus({preventScroll:true});
  mileModalTrigger=null;
 }
-function editWorkout(id,onDismiss){let w=state.workouts.find(x=>x.id===id)||{id:'',date:viewDate,name:'',sport:'Running',detail:'',km:0,block:state.activeBlock,status:'planned',note:'',rpe:null};const instructions=w.sport==='Running'?withoutRunningRpe(w.detail):w.detail;openModal(`<h2>${id?'Edit workout':'Add workout'}</h2><div class="mile-form-scroll"><div class="formgrid"><div class="field"><label for="wDate">Date</label><input type="date" id="wDate" value="${esc(w.date)}"></div><div class="field"><label for="wSport">Sport</label><select id="wSport">${['Running','HYROX','Strength','Cycling','Swimming','Triathlon','Mobility','Other'].map(s=>`<option ${w.sport===s?'selected':''}>${s}</option>`).join('')}</select></div><div class="field span2"><label for="wName">Session name</label><input id="wName" value="${esc(w.name)}"></div><div class="field"><label for="wKm">Planned run distance (km)</label><input id="wKm" type="number" min="0" step="0.1" value="${Number(w.km)||0}"></div><div class="field"><label for="wStatus">Status</label><select id="wStatus">${['planned','done','skipped'].map(s=>`<option value="${s}" ${w.status===s?'selected':''}>${s}</option>`).join('')}</select></div><div class="field span2"><label for="wDetail">Workout instructions</label><textarea id="wDetail" oninput="refreshWorkoutPreview()">${esc(instructions)}</textarea><div class="workout-editor-preview"><div class="workout-editor-preview-title">Workout preview</div><div id="wPreview">${readableWorkout(instructions)}</div></div></div></div></div><div class="mile-form-actions">${b('Save workout',`storeWorkout('${id||''}')`)}${id?b('Delete',`deleteWorkout('${id}')`,'alt'):''}${b('Cancel','dismissModal()','alt')}</div>`,onDismiss)}
+function editWorkout(id,onDismiss){let w=state.workouts.find(x=>x.id===id)||{id:'',date:viewDate,name:'',sport:'Running',detail:'',km:0,block:state.activeBlock,status:'planned',note:'',rpe:null};if(w.revisionSource==='cycling-recovery-v1'){
+ const skip=w.status==='planned'?b('Skip ride',"skipCyclingRevision('"+w.id+"')",'alt'):'';
+ openModal(`<h2>${esc(w.name)}</h2><div class="mile-form-scroll"><p class="muted small">Approved cycling revision · ${esc(window.milePBDate(w.date))}</p>${window.mileCyclingBuild?.sessionMarkup(w)||''}</div><div class="mile-form-actions">${skip}${b('Close','dismissModal()','alt')}</div>`,onDismiss);return;
+}const instructions=w.sport==='Running'?withoutRunningRpe(w.detail):w.detail;openModal(`<h2>${id?'Edit workout':'Add workout'}</h2><div class="mile-form-scroll"><div class="formgrid"><div class="field"><label for="wDate">Date</label><input type="date" id="wDate" value="${esc(w.date)}"></div><div class="field"><label for="wSport">Sport</label><select id="wSport">${['Running','HYROX','Strength','Cycling','Swimming','Triathlon','Mobility','Other'].map(s=>`<option ${w.sport===s?'selected':''}>${s}</option>`).join('')}</select></div><div class="field span2"><label for="wName">Session name</label><input id="wName" value="${esc(w.name)}"></div><div class="field"><label for="wKm">Planned run distance (km)</label><input id="wKm" type="number" min="0" step="0.1" value="${Number(w.km)||0}"></div><div class="field"><label for="wStatus">Status</label><select id="wStatus">${['planned','done','skipped'].map(s=>`<option value="${s}" ${w.status===s?'selected':''}>${s}</option>`).join('')}</select></div><div class="field span2"><label for="wDetail">Workout instructions</label><textarea id="wDetail" oninput="refreshWorkoutPreview()">${esc(instructions)}</textarea><div class="workout-editor-preview"><div class="workout-editor-preview-title">Workout preview</div><div id="wPreview">${readableWorkout(instructions)}</div></div></div></div></div><div class="mile-form-actions">${b('Save workout',`storeWorkout('${id||''}')`)}${id?b('Delete',`deleteWorkout('${id}')`,'alt'):''}${b('Cancel','dismissModal()','alt')}</div>`,onDismiss)}
+function skipCyclingRevision(id){
+ const workout=state.workouts.find(item=>item.id===id&&item.revisionSource==='cycling-recovery-v1');
+ if(!workout||workout.status!=='planned'||workout.matchId)return;
+ workout.status='skipped';dismissModal();save();notice('Ride skipped');
+}
 function storeWorkout(id){let dateVal=document.getElementById('wDate').value,name=document.getElementById('wName').value.trim();if(!dateVal||!name)return showModalError('Workout needs a date and name');let w=state.workouts.find(x=>x.id===id);if(!w){w={id:uid(),block:state.activeBlock,note:'',rpe:null,matchId:null};state.workouts.push(w)}const instructions=document.getElementById('wDetail').value;const detail=w.sport==='Running'&&instructions===withoutRunningRpe(w.detail)?w.detail??instructions:instructions;Object.assign(w,{date:dateVal,name,sport:document.getElementById('wSport').value,km:Number(document.getElementById('wKm').value)||0,status:document.getElementById('wStatus').value,detail});viewDate=dateVal;calendarMonth=dateVal.slice(0,7);closeModal();save();notice('Workout saved')}
 function deleteWorkout(id){if(!confirm('Delete this workout?'))return;state.workouts=state.workouts.filter(w=>w.id!==id);closeModal();save()}
 function completeWorkout(id){let w=state.workouts.find(w=>w.id===id);w.status='done';save()}function uncompleteWorkout(id){
  const w=state.workouts.find(w=>w.id===id);
  if(!w)return;
  if(w.sport==='Running'&&/^[1-9][0-9]{0,19}$/.test(String(w.matchId)))return mileSaveRunningMatch(w,String(w.matchId),'unlink');
- w.status='planned';w.matchId=null;save();
+ if(w.revisionSource==='cycling-recovery-v1')return;
+ w.status='planned';w.matchId=null;delete w.cyclingMatchPrescription;save();
 }
 function notesWorkout(id){let w=state.workouts.find(x=>x.id===id);openModal(`<h2>${esc(w.name)} — notes</h2><div class="mile-form-scroll">${w.sport==='Running'?'':`<div class="field"><label for="nRpe">Session RPE (1–10)</label><input type="number" id="nRpe" min="1" max="10" value="${esc(w.rpe??'')}"></div>`}<div class="field" style="margin-top:12px"><label for="nNote">Notes</label><textarea id="nNote">${esc(w.note||'')}</textarea></div></div><div class="mile-form-actions">${b('Save notes',`saveNotes('${id}')`)}${b('Cancel','closeModal()','alt')}</div>`)}
 function saveNotes(id){let w=state.workouts.find(x=>x.id===id);w.note=document.getElementById('nNote').value;if(w.sport!=='Running')w.rpe=document.getElementById('nRpe').value||null;closeModal();save()}
@@ -1279,6 +1288,7 @@ function canConfirmMatch(w,a){
  if(state.workouts.some(other=>other.matchId!=null&&String(other.matchId)===String(a.id)))return false;
  const type=String(a.type||a.sport||'').toLowerCase();
  if(isRun(a))return ['Running','HYROX'].includes(w.sport);
+ if(w.sport==='Cycling')return a.sport==='Cycling'||sportOf(a)==='Cycling';
  if(type.includes('strength'))return ['Strength','HYROX'].includes(w.sport);
  return typeof w.sport==='string'&&w.sport.length>0&&type.includes(w.sport.toLowerCase());
 }
@@ -1295,7 +1305,15 @@ function confirmMatch(wid,aid){
   notice('This match is no longer available. Review the recorded activity and schedule again.');return false;
  }
  if(w.sport==='Running'&&a.source==='garmin-developer-api')return mileSaveRunningMatch(w,String(a.id),'link');
+ if(w.sport==='Cycling')w.cyclingMatchPrescription=window.mileCyclingIQ?.matchPrescription(w,a.id)??null;
  w.matchId=a.id;w.status='done';save();notice('Activity linked to '+w.name);return true;
+}
+function mileRememberSyncedDocument(owner){
+  const snapshot=JSON.stringify(state),stamp=new Date().toISOString();
+  localStorage.setItem(v4LocalKey(owner),snapshot);
+  localStorage.setItem('av-training-v2',snapshot);
+  localStorage.setItem('av-local-edited-'+owner,stamp);
+  localStorage.setItem('av-cloud-confirmed-'+owner,stamp);
 }
 let mileMatchingState=null;
 async function mileSaveRunningMatch(workout,activityId,action){
@@ -1324,11 +1342,7 @@ async function mileSaveRunningMatch(workout,activityId,action){
   Object.assign(workout,receipt.workout);
   if(action==='link')window.mileRunningBeta?.mark('match-confirmed');
   state.runningMatchVersion=receipt.version;
-  const snapshot=JSON.stringify(state),stamp=new Date().toISOString();
-  localStorage.setItem(v4LocalKey(owner),snapshot);
-  localStorage.setItem('av-training-v2',snapshot);
-  localStorage.setItem('av-local-edited-'+owner,stamp);
-  localStorage.setItem('av-cloud-confirmed-'+owner,stamp);
+  mileRememberSyncedDocument(owner);
   render();
   notice(action==='link'?'Activity linked to '+workout.name:'Activity link removed');
   return true;
@@ -1347,9 +1361,11 @@ function cloudPayload(){let s=JSON.parse(JSON.stringify(state));s.settings={...s
 // Serialize writes per device. The database guards audited workouts across devices.
 let avCloudQueue=Promise.resolve(),avCloudPending=0,avCloudError='';
 const avCloudRevisionConflict='mile_running_revision_conflict';
+const avCloudCyclingConflict='mile_cycling_revision_conflict';
 const avCloudRevisionMessage='A running workout changed in the cloud. Your edits are on this device. Export a training backup, then reload and choose the cloud copy.';
+const avCloudCyclingMessage='A cycling workout changed in the cloud. Your edits are on this device. Export a training backup, then reload and choose the cloud copy.';
 const avMatchConflict='mile_running_match_conflict';
-function avCloudIndicator(){let el=document.getElementById('avCloudStatus');if(!el)return;el.textContent=avCloudError===avCloudRevisionMessage?'Cloud save conflict':avCloudError?'Cloud save failed — check connection':avCloudPending?'Saving to cloud…':'Cloud saved';el.style.color=avCloudError?'#ff9999':''}
+function avCloudIndicator(){let el=document.getElementById('avCloudStatus');if(!el)return;el.textContent=[avCloudRevisionMessage,avCloudCyclingMessage].includes(avCloudError)?'Cloud save conflict':avCloudError?'Cloud save failed — check connection':avCloudPending?'Saving to cloud…':'Cloud saved';el.style.color=avCloudError?'#ff9999':''}
 function cloudSave(){
  if(!token||!userId||!state.settings.supabaseUrl||!state.settings.supabaseAnon)return Promise.reject(Error('Cloud is not configured'));
  const owner=userId,url=state.settings.supabaseUrl,anon=state.settings.supabaseAnon,payload=cloudPayload(),stamp=new Date().toISOString();
@@ -1368,6 +1384,7 @@ function cloudSave(){
    if(response.status===409){
     let details;
     try{details=JSON.parse(body)?.details}catch(_){}
+    if(details===avCloudCyclingConflict)throw Object.assign(Error(avCloudCyclingMessage),{code:avCloudRevisionConflict});
     if(details===avCloudRevisionConflict||details===avMatchConflict)throw Object.assign(Error(avCloudRevisionMessage),{code:avCloudRevisionConflict});
    }
    throw Error('HTTP '+response.status+' '+body.slice(0,120));
@@ -2011,7 +2028,7 @@ v42Generate=function(){v42Capture();for(const [k,v] of Object.entries(v451Defaul
 // V4.5.6 — calendar visibility is independent of the selected training block.
 function v456Visible(blockId){const block=state.blocks.find(b=>b.id===blockId);return !block||block.calendarVisible!==false}
 function v456Toggle(blockId){const block=state.blocks.find(b=>b.id===blockId);if(!block)return;block.calendarVisible=block.calendarVisible===false;save();notice(block.calendarVisible?'Programme restored to calendar':'Programme removed from calendar; training block saved')}
-function v456Delete(blockId){const block=state.blocks.find(b=>b.id===blockId);if(!block)return;const linked=state.workouts.filter(w=>w.block===blockId&&w.matchId).length;const count=state.workouts.filter(w=>w.block===blockId).length;const msg=`Permanently delete "${block.name}" and its ${count} planned/completed workout records?${linked?' '+linked+' sessions have Garmin matches; the imported Garmin activities themselves will remain.':''} This cannot be undone. Export a backup first if needed.`;if(!confirm(msg))return;state.workouts=state.workouts.filter(w=>w.block!==blockId);state.blocks=state.blocks.filter(b=>b.id!==blockId);state.goals=state.goals.filter(g=>g.block!==blockId);if(state.activeBlock===blockId)state.activeBlock=state.blocks[0]?.id||'';save();notice('Programme deleted; imported Garmin activities retained')}
+function v456Delete(blockId){const block=state.blocks.find(b=>b.id===blockId);if(!block)return;if(state.workouts.some(w=>w.block===blockId&&w.revisionSource==='cycling-recovery-v1'))return notice('This programme contains an approved cycling revision. Hide it from Calendar to keep the record.');const linked=state.workouts.filter(w=>w.block===blockId&&w.matchId).length;const count=state.workouts.filter(w=>w.block===blockId).length;const msg=`Permanently delete "${block.name}" and its ${count} planned/completed workout records?${linked?' '+linked+' sessions have Garmin matches; the imported Garmin activities themselves will remain.':''} This cannot be undone. Export a backup first if needed.`;if(!confirm(msg))return;state.workouts=state.workouts.filter(w=>w.block!==blockId);state.blocks=state.blocks.filter(b=>b.id!==blockId);state.goals=state.goals.filter(g=>g.block!==blockId);if(state.activeBlock===blockId)state.activeBlock=state.blocks[0]?.id||'';save();notice('Programme deleted; imported Garmin activities retained')}
 function v456Manage(){openModal(`<h2>Manage Programs</h2><p class="muted small" style="margin-bottom:14px">Hide a programme without losing its training block or workouts. Restore it whenever you want.</p><div class="list">${state.blocks.map(x=>`<div class="item"><div class="item-head"><div><strong>${esc(x.name)}</strong><div class="small muted">${esc(x.sport)} · ${state.workouts.filter(w=>w.block===x.id).length} sessions · ${v456Visible(x.id)?'Shown on calendar':'Hidden from calendar'}</div></div><span class="pill">${v456Visible(x.id)?'Visible':'Saved'}</span></div><div class="row" style="margin-top:10px"><button class="btn alt sm" onclick="v456Toggle('${esc(x.id)}');v456Manage()">${v456Visible(x.id)?'Remove from calendar':'Restore to calendar'}</button><button class="btn alt sm" onclick="closeModal();navigate('goals')">Manage in Training</button></div></div>`).join('')}</div><div class="row" style="margin-top:12px"><button class="btn alt" onclick="closeModal()">Close</button></div>`)}
 const v456OriginalWorkouts=workouts;
 workouts=function(){return v456OriginalWorkouts().filter(w=>v456Visible(w.block))};
@@ -2986,6 +3003,39 @@ async function mileMountMap(d){
 }
 const mileDataRow=(label,value,unit='')=>value===null||value===undefined||value===''?'':row(label,String(value)+unit);
 const mileDetailOriginal=drawDetail;
+function mileMountTrainingRevision(host,revisionSport){
+  if(document.documentElement.dataset.mileStaging==='true'&&v4Ready&&userId&&token&&
+    state.settings.supabaseUrl==='https://fnyfeelynaozxtftrrga.supabase.co'&&window.mileTrainingRevisions){
+   const owner=userId,trainingState=state;
+   const {mount,snapshot}=window.mileTrainingRevisions;
+   mount(host,{sport:revisionSport,onApplied:(receipt,proposal)=>{
+    if(userId!==owner||state!==trainingState||avCloudPending||avCloudError)return false;
+    const matches=state.workouts.filter(w=>w.id===proposal.before.id);
+    if(matches.length!==1||snapshot(receipt.workout)!==snapshot(proposal.after))return false;
+    const current=snapshot(matches[0]);
+    if(current===snapshot(proposal.before)){
+     state.workouts[state.workouts.indexOf(matches[0])]=receipt.workout;
+     mileRememberSyncedDocument(owner);
+     render();
+     return true;
+    }
+    return current===snapshot(proposal.after);
+   },request:async (rpc,body)=>{
+    if(!v4Ready||userId!==owner||state!==trainingState)throw Error('Your training session changed. Open Analysis again.');
+    if(avCloudPending||avCloudError)throw Error('Resolve your cloud sync before reviewing revisions.');
+    const response=await fetch(state.settings.supabaseUrl+'/rest/v1/rpc/'+rpc,{
+     method:'POST',headers:sbHeaders(),body:JSON.stringify(body)
+    });
+    const result=await response.json().catch(()=>null);
+    if(!v4Ready||userId!==owner||state!==trainingState)throw Error('Your training session changed. Check your cloud plan.');
+    if(!response.ok||!result){
+     const message=response.status===409?'Evidence or workout changed. Review the current proposal again.':'Workout revision is unavailable. Check your session and try again.';
+     throw Object.assign(Error(message),{status:response.status});
+    }
+    return result;
+   }});
+  }
+}
 drawDetail=function(){
  const previousAnalysis=document.querySelector('#mile35-detail .m881-analysis-host');
  const restoreAnalysis=previousAnalysis?.dataset.activityId===String(openActivityId)&&previousAnalysis.querySelector('.m881-detailed')?.open;
@@ -3002,16 +3052,19 @@ drawDetail=function(){
   const subtype=String(a.subSport??a.activityType??a.type??'').toLowerCase();
   const result=window.mileCyclingIQ.analyse({
    id:a.id,date:activityDate(a),setting:/indoor|virtual|stationary/.test(subtype)?'indoor':points.some(p=>p.lat!==null&&p.lon!==null)?'outdoor':null,
-   activeSeconds:mileNum(mileField(summary,'movingDurationInSeconds','timerDurationInSeconds')??a.movingDurationInSeconds),
+   startSeconds:mileNum(mileField(summary,'startTimeInSeconds')??a.startTimeInSeconds),
+   elapsedSeconds:mileNum(mileField(summary,'elapsedDurationInSeconds','elapsedTimeInSeconds','durationInSeconds')??a.elapsedDurationInSeconds),
+   activeSeconds:mileNum(mileField(summary,'timerDurationInSeconds','movingDurationInSeconds')??a.movingDurationInSeconds),
    averageWatts:mileNum(mileField(summary,'averagePowerInWatts','averagePower')??a.averagePowerInWatts),
    averageHR:mileNum(a.averageHR),elevation:mileNum(mileField(summary,'totalElevationGainInMeters','elevationGain')??a.totalElevationGainInMeters)
   },{
    samples:privateRide?window.mileCyclingIQ.providerSamples(mileSamples(d)):[],
    ftpHistory:privateRide?cyclingProfile.ftpHistory:[],hrZones:privateRide?cyclingProfile.hrZones:{},
-   workouts:privateRide?state.workouts:[],today:today(),checkins:privateRide?state.checkins:{},
+   workouts:privateRide?state.workouts.filter(w=>w.matchId!=null||v456Visible(w.block)):[],today:today(),
    history:privateRide?state.activities.filter(x=>sport(x)==='Cycling').map(x=>({date:activityDate(x),minutes:activityDuration(x)})):[]
   });
   window.mileCyclingIQ.render(host,result,{detailsOpen:!!restoreAnalysis});
+  if(privateRide)mileMountTrainingRevision(host,'Cycling');
   if(restoreAnalysis)overlay.scrollTop=analysisScroll;
   return;
  }
@@ -3055,24 +3108,7 @@ drawDetail=function(){
    if(await confirmMatch(sessionId,a.id)&&userId===matchOwner&&state===matchState&&String(openActivityId)===String(a.id))drawDetail();
   }:null});
   if(restoreAnalysis)overlay.scrollTop=analysisScroll;
-  if(document.documentElement.dataset.mileStaging==='true'&&v4Ready&&userId&&token&&
-    state.settings.supabaseUrl==='https://fnyfeelynaozxtftrrga.supabase.co'&&window.mileTrainingRevisions){
-   const owner=userId,trainingState=state;
-   window.mileTrainingRevisions.mount(host,{sport:'Running',request:async (rpc,body)=>{
-    if(!v4Ready||userId!==owner||state!==trainingState)throw Error('Your training session changed. Open Analysis again.');
-    if(avCloudPending||avCloudError)throw Error('Resolve your cloud sync before reviewing revisions.');
-    const response=await fetch(state.settings.supabaseUrl+'/rest/v1/rpc/'+rpc,{
-     method:'POST',headers:sbHeaders(),body:JSON.stringify(body)
-    });
-    const result=await response.json().catch(()=>null);
-    if(!v4Ready||userId!==owner||state!==trainingState)throw Error('Your training session changed. Check your cloud plan.');
-    if(!response.ok||!result){
-     const message=response.status===409?'Evidence or workout changed. Review the current proposal again.':'Workout revision is unavailable. Check your session and try again.';
-     throw Object.assign(Error(message),{status:response.status});
-    }
-    return result;
-   }});
-  }
+  mileMountTrainingRevision(host,'Running');
   return;
  }
  if(!d){if(!mileDetailScope()?.pending.has(openActivityId))overlay.querySelector('.mile35-view')?.insertAdjacentHTML('beforeend','<p class="mile352-loading">Loading recorded Garmin data…</p>');return}
@@ -5880,4 +5916,4 @@ document.addEventListener('input',e=>{if(e.target.id!=='m79-message-search')retu
 document.addEventListener('change',e=>{if(e.target.id!=='m36-activity'&&e.target.name!=='m383-mode')return;const el=document.getElementById('m79-activity-preview');if(!el)return;const select=document.getElementById('m36-activity');const id=select?.value;const a=(state.activities||[]).find(x=>String(x.id)===id);el.hidden=!a||document.querySelector('input[name="m383-mode"]:checked')?.value==='manual';if(el.hidden)return;const payload=window.m79ActivityPayload?.(a,'private')||null;el.replaceChildren();const title=document.createElement('strong');title.textContent=a.name||a.activityName||a.type||'Workout';el.append(title);const grid=document.createElement('div');grid.className='m79-preview-metrics';for(const [label,val] of [['Distance',payload?.distance_m!=null?(payload.distance_m/1000).toFixed(2)+' km':'Not recorded'],['Duration',payload?.duration_s!=null?Math.round(payload.duration_s/60)+' min':'Not recorded']]){const cell=document.createElement('div'),l=document.createElement('small'),v=document.createElement('strong');l.textContent=label;v.textContent=val;cell.append(l,v);grid.append(cell)}el.append(grid)});
 })();
 </script><script src="./mile-admin-centre.js?v=ui-audit-1"></script>
-<link rel="stylesheet" href="./mile-85-auth.css?v=ui-audit-1"><link rel="stylesheet" href="./mile-873.css?v=87.3"><script src="./mile-device-sync.js?v=87.5"></script><script src="./mile-split-share.js?v=2"></script><link rel="stylesheet" href="./mile-86.css?v=86"><script src="./mile-86-health-preview.js?v=86"></script><link rel="stylesheet" href="./mile-intervals.css?v=87.5"><script src="./mile-intervals.js?v=87.5"></script><script src="./mile-running-workout.js?v=3"></script><script src="./mile-running-analysis.js?v=88.4.3"></script><script src="./mile-running-iq.js?v=88.8"></script><script src="./mile-training-revisions.js?v=88.5.2"></script><link rel="stylesheet" href="./mile-compact.css?v=ui-audit-2"><script>(function(){const p=new URLSearchParams(location.search),a=p.get('mileSocial');if(!['back','notifications'].includes(a))return;let tries=0;const timer=setInterval(()=>{if(++tries>1800){clearInterval(timer);return}if(typeof v4Ready==='undefined'||!v4Ready||!window.m36Open)return;clearInterval(timer);p.delete('mileSocial');history.replaceState(null,'',location.pathname+(p.size?'?'+p.toString():'')+location.hash);if(a==='notifications')window.m36Open('notifications');else if(!document.getElementById('m36-drawer'))window.m36Drawer?.()},250)})();</script><link rel="stylesheet" href="./mile-running-build.css?v=88.5"><script src="./mile-running-plan.js?v=88.6"></script><script src="./mile-running-build.js?v=88.4.1"></script><link rel="stylesheet" href="./mile-cycling.css?v=90"><script src="./mile-cycling-plan.js?v=90"></script><script src="./mile-cycling-iq.js?v=90"></script><script src="./mile-cycling-build.js?v=90"></script></body></html>
+<link rel="stylesheet" href="./mile-85-auth.css?v=ui-audit-1"><link rel="stylesheet" href="./mile-873.css?v=87.3"><script src="./mile-device-sync.js?v=87.5"></script><script src="./mile-split-share.js?v=2"></script><link rel="stylesheet" href="./mile-86.css?v=86"><script src="./mile-86-health-preview.js?v=86"></script><link rel="stylesheet" href="./mile-intervals.css?v=87.5"><script src="./mile-intervals.js?v=87.5"></script><script src="./mile-running-workout.js?v=3"></script><script src="./mile-running-analysis.js?v=88.4.3"></script><script src="./mile-running-iq.js?v=88.8"></script><script src="./mile-training-revisions.js?v=90.1"></script><link rel="stylesheet" href="./mile-compact.css?v=ui-audit-2"><script>(function(){const p=new URLSearchParams(location.search),a=p.get('mileSocial');if(!['back','notifications'].includes(a))return;let tries=0;const timer=setInterval(()=>{if(++tries>1800){clearInterval(timer);return}if(typeof v4Ready==='undefined'||!v4Ready||!window.m36Open)return;clearInterval(timer);p.delete('mileSocial');history.replaceState(null,'',location.pathname+(p.size?'?'+p.toString():'')+location.hash);if(a==='notifications')window.m36Open('notifications');else if(!document.getElementById('m36-drawer'))window.m36Drawer?.()},250)})();</script><link rel="stylesheet" href="./mile-running-build.css?v=88.5"><script src="./mile-running-plan.js?v=88.6"></script><script src="./mile-running-build.js?v=88.4.1"></script><link rel="stylesheet" href="./mile-cycling.css?v=90.1"><script src="./mile-cycling-plan.js?v=90.1"></script><script src="./mile-cycling-iq.js?v=90.1"></script><script src="./mile-cycling-build.js?v=90.1"></script></body></html>

@@ -89,7 +89,8 @@ function config(f){
 function stepLabel(step){
  return prescription.labels[step.intensity]+' · '+prescription.durationLabel(step.duration)+
   (prescription.targetLabel(step.target)?' · '+prescription.targetLabel(step.target):'')+
-  (Array.isArray(step.target?.percentFtp)?' ('+step.target.percentFtp.join('–')+'% FTP)':'');
+  (Array.isArray(step.target?.percentFtp)?' ('+step.target.percentFtp.join('–')+'% FTP)':'')+
+  (step.description?' · '+step.description:'');
 }
 function lines(steps){
  return steps.map(step=>step.kind==='repeat'?step.count+' × ('+lines(step.steps).join(' / ')+')':stepLabel(step));
@@ -104,7 +105,8 @@ function sessionMarkup(w){
  const profile=steps.map(step=>
   '<span title="'+esc(stepLabel(step))+'" data-intensity="'+step.intensity+'" style="--seconds:'+step.duration.seconds+'"></span>').join('');
  return '<div class="m90-session"><div class="muted small">'+esc([w.setting==='indoor'?'Indoor':'Outdoor',w.surface,headline,w.equipment].filter(Boolean).join(' · '))+'</div>'+
-  '<div class="m90-profile" aria-hidden="true">'+profile+'</div><details class="mile-coach-why"><summary>Workout breakdown</summary><ol>'+lines(w.structuredSteps).map(text=>'<li>'+esc(text)+'</li>').join('')+'</ol></details></div>';
+  '<div class="m90-profile" aria-hidden="true">'+profile+'</div><details class="mile-coach-why"><summary>Workout breakdown</summary>'+
+  '<p class="small">'+esc(w.purpose||'')+' '+esc(w.focus||'')+'</p><ol>'+lines(w.structuredSteps).map(text=>'<li>'+esc(text)+'</li>').join('')+'</ol></details></div>';
 }
 const title=f=>f.name.trim()||'Cycling · '+policy.goals[f.goal];
 function evaluation(f){
@@ -117,7 +119,7 @@ function preview(f){
  reviewKey=key;
  if(!result.ok)return '<p role="alert">'+esc(result.errors.join(' '))+'</p>';
  const weeks=result.weeks.map(week=>'<details class="item m882-week"><summary><strong>Week '+week.week+' · '+esc(week.phase)+'</strong> · '+prescription.time(week.plannedMinutes*60)+'</summary>'+
-  week.sessions.map(session=>'<details class="m882-session"><summary><strong>'+esc(nice(session.date))+' · '+esc(session.name)+'</strong><span>'+prescription.time(session.plannedMinutes*60)+'</span></summary>'+
+  week.sessions.map(session=>'<details class="m882-session"><summary><strong>'+esc(window.milePBDate(session.date))+' · '+esc(session.name)+'</strong><span>'+prescription.time(session.plannedMinutes*60)+'</span></summary>'+
    sessionMarkup(session)+'<p><strong>Purpose</strong> '+esc(session.purpose)+'</p><p><strong>Focus</strong> '+esc(session.focus)+'</p></details>').join('')+'</details>').join('');
  const method={power:'Power with effort guidance where appropriate',heart_rate:'Cycling heart rate for sustained work and RPE for shorter efforts',rpe:'Perceived effort'};
  return '<h3>'+esc(title(f))+'</h3><p>'+esc(method[result.method])+'</p>'+
@@ -127,45 +129,47 @@ function preview(f){
 function draw(){
  const f=form(),step=Math.max(0,Math.min(4,v42Step));
  let content='';
- if(step===0)content='<h2>Goal & programme</h2><div class="sport-tiles">'+v41SportNames.map(sport=>'<button type="button" class="sport-tile '+(sport==='Cycling'?'selected':'')+'" onclick="v42PickSport(\''+esc(sport)+'\')"><span>'+v41SportIcons[sport]+'</span><strong>'+esc(sport)+'</strong></button>').join('')+'</div>'+
+ if(step===0)content='<h3>Goal & programme</h3><div class="sport-tiles">'+v41SportNames.map(sport=>'<button type="button" class="sport-tile '+(sport==='Cycling'?'selected':'')+'" onclick="v42PickSport(\''+esc(sport)+'\')"><span>'+v41SportIcons[sport]+'</span><strong>'+esc(sport)+'</strong></button>').join('')+'</div>'+
   '<div class="formgrid">'+select(f,'goal','Cycling goal',Object.entries(policy.goals))+field(f,'weeks','Programme length (weeks)','number','min="1" max="32"')+
   field(f,'start','Start date','date')+(eventGoal(f.goal)?field(f,'eventDate','Event date (optional)','date')+
   field(f,'distanceKm','Event distance (km)','number','min="1" step="any"')+field(f,'elevation','Event elevation gain (m)','number','min="0"')+
   field(f,'course','Course notes','text','maxlength="240"'):'')+field(f,'name','Programme name','text','maxlength="80"')+'</div>';
  if(step===1){
-  content='<h2>Athlete & equipment</h2><div class="m882-history">'+history().map(row=>'<div><strong>'+row.days+' days</strong><span>'+
+  content='<h3>Athlete & equipment</h3><div class="m882-history">'+history().map(row=>'<div><strong>'+row.days+' days</strong><span>'+
    (row.count?row.count+' recorded · '+row.minutes+' min':'No rides recorded')+'</span></div>').join('')+'</div>'+
    '<div class="formgrid">'+select(f,'level','Cycling experience',names(policy.levels))+select(f,'setting','Riding setting',names(['mixed','indoor','outdoor']))+
    select(f,'surface','Bike type',names(['road','gravel','mountain','stationary']))+field(f,'weeklyMinutes','Confirm sustainable weekly minutes','number','min="15"')+
    field(f,'longestMinutes','Longest recent ride (minutes)','number','min="10"')+
-   select(f,'recovery','Recovery today',[['unknown','Unassessed'],['normal','Normal for me'],['poor','Poor']])+'</div><div class="m90-checks">'+
+   select(f,'recovery','How recovered do you feel?',[['unknown','Unassessed'],['normal','Normal for me'],['poor','Poor']])+'</div><div class="m90-checks">'+
    check(f,'powerMeter','Power meter')+check(f,'smartTrainer','Smart trainer')+check(f,'hrMonitor','Heart-rate monitor')+check(f,'cadence','Cadence sensor')+'</div>'+
+   '<p class="muted small m90-help">You can train without sensors. Effort is rated out of 10. For an easy aerobic ride, keep talking comfortable.</p>'+
    (f.powerMeter||f.smartTrainer?'<div class="formgrid">'+field(f,'ftp','Cycling FTP (watts, optional)','number','min="50" max="600"')+
-    field(f,'ftpDate','FTP assessment date','date')+select(f,'ftpConfidence','Confidence',[['low','Provisional estimate'],['moderate','Used for current rides'],['high','Recently confirmed']])+select(f,'ftpMethod','FTP assessment method',[['Athlete estimate','Athlete estimate'],['Sustained benchmark','Sustained benchmark'],['Coach assessment','Coach assessment']])+ '</div><p class="muted small">FTP is a benchmark for sustained cycling power. Leave it blank to start without power targets.</p>':'')+
-   (f.hrMonitor?'<div class="formgrid">'+field(f,'lthr','Cycling threshold HR (bpm)','number')+field(f,'maxHr','Cycling maximum HR (bpm)','number')+
-    field(f,'hrLow','Cycling aerobic HR lower bound','number')+field(f,'hrHigh','Cycling aerobic HR upper bound','number')+
-    '</div><details class="item"><summary>Additional cycling HR ranges</summary><div class="formgrid">'+
+    field(f,'ftpDate','FTP assessment date','date')+select(f,'ftpConfidence','Confidence',[['low','Provisional estimate'],['moderate','Used for current rides'],['high','Recently confirmed']])+select(f,'ftpMethod','FTP assessment method',[['Athlete estimate','Athlete estimate'],['Sustained benchmark','Sustained benchmark'],['Coach assessment','Coach assessment']])+ '</div><p class="muted small">FTP is a benchmark for sustained cycling power. Leave it blank to train by feel or with heart rate.</p>':'')+
+   (f.hrMonitor?'<div class="formgrid">'+
+    field(f,'hrLow','Easy-ride heart rate from (bpm)','number')+field(f,'hrHigh','Easy-ride heart rate to (bpm)','number')+
+    '</div><details class="item"><summary>Optional heart-rate details</summary><div class="formgrid">'+
+    field(f,'lthr','Cycling threshold HR (bpm)','number')+field(f,'maxHr','Cycling maximum HR (bpm)','number')+
     field(f,'hrRecoveryLow','Recovery lower bound (bpm)','number')+field(f,'hrRecoveryHigh','Recovery upper bound (bpm)','number')+
     field(f,'hrSteadyLow','Steady lower bound (bpm)','number')+field(f,'hrSteadyHigh','Steady upper bound (bpm)','number')+
-    '</div></details><p class="muted small">Use confirmed cycling ranges. Leave both aerobic bounds blank to use perceived effort.</p>':'')+
+    '</div></details><p class="muted small">Enter a cycling range you already use for easy rides. Leave it blank to train by feel.</p>':'')+
    (f.powerMeter||f.smartTrainer?check(f,'assessment','Consider an optional sustained benchmark if eligible'):'')+
    check(f,'interrupted','Recent training interruption')+check(f,'unwell','Currently injured, unwell or experiencing concerning symptoms')+
    '<button type="button" class="btn alt" data-m90-action="athlete">Save cycling athlete details</button>';
  }
- if(step===2)content='<h2>Training schedule</h2><h3>Available days</h3>'+dayChecks(f,'available')+
+ if(step===2)content='<h3>Training schedule</h3><h3>Available days</h3>'+dayChecks(f,'available')+
   '<div class="formgrid">'+select(f,'longDay','Preferred long ride',days.map((d,i)=>[i,d]))+
   field(f,'daysLimit','Maximum rides per week','number','min="1" max="7"')+'</div><details class="item"><summary>Day-specific time limits</summary><div class="formgrid">'+
   days.map((day,index)=>'<label class="field">'+day+' maximum (min)<input data-m90-limit="'+index+'" type="number" min="15" max="480" value="'+esc(f.dayMinutes[index])+'"></label>').join('')+
-  '</div></details><h3>Other demanding training days</h3>'+dayChecks(f,'hardDays')+'<p class="muted small">MILE also reads scheduled sessions from Calendar.</p>';
- if(step===3)content='<h2>MILE Intelligence</h2><div class="formgrid">'+select(f,'priority','Primary sport',sportNames.map(sport=>[sport,sport]))+
-  field(f,'otherSports','Other sports or commitments','text','maxlength="160"')+'</div><p>Review recommendations in MILE IQ. This beta requires you to make any programme changes yourself.</p>';
- if(step===4)content='<h2>Programme review</h2>'+preview(f);
+  '</div></details><h3>Days with hard training in another sport</h3>'+dayChecks(f,'hardDays')+'<p class="muted small">Mark hard sessions that aren’t in Calendar, such as a long run or heavy leg session.</p>';
+ if(step===3)content='<h3>MILE Intelligence</h3><div class="formgrid">'+select(f,'priority','Primary sport',sportNames.map(sport=>[sport,sport]))+
+  field(f,'otherSports','Other sports or commitments','text','maxlength="160"')+'</div><p>MILE IQ explains what your ride data shows. In the beta, any workout adjustment needs your approval.</p>';
+ if(step===4)content='<h3>Programme review</h3>'+preview(f);
  document.getElementById('app').innerHTML='<div class="grid"><section class="card full m882-build m90-build"><div class="row between"><h2>Build your cycling plan</h2><span class="pill">Step '+(step+1)+' of 5</span></div><div class="v42-steps" aria-hidden="true">'+
-  days.slice(0,5).map((_,i)=>'<span class="'+(i<=step?'on':'')+'"></span>').join('')+'</div>'+content+'<p class="muted small" role="status" data-m90-error></p><div class="row between"><button type="button" class="btn alt" data-m90-action="back" '+(step===0?'disabled':'')+'>‹ Back</button><button type="button" class="btn" data-m90-action="'+(step===4?'save':'next')+'">'+(step===4?'Create training plan':'Continue ›')+'</button></div></section></div>';
+  days.slice(0,5).map((_,i)=>'<span class="'+(i<=step?'on':'')+'"></span>').join('')+'</div>'+content+'<div class="m90-action-tray"><p class="small" role="status" data-m90-error></p><div class="row between"><button type="button" class="btn alt" data-m90-action="back" '+(step===0?'disabled hidden':'')+'>‹ Back</button><button type="button" class="btn" data-m90-action="'+(step===4?'save':'next')+'">'+(step===4?'Create training plan':'Continue ›')+'</button></div></div></section></div>';
 }
-function report(message){
+function report(message,error=true){
  const target=document.querySelector('[data-m90-error]');
- if(target)target.textContent=message;
+ if(target){target.textContent=message;target.classList.toggle('m90-form-error',error);}
 }
 function valid(f,stage){
  if(stage===0&&(!f.start||f.start<today()||!Number.isInteger(Number(f.weeks))||!(Number(f.weeks)>=1&&Number(f.weeks)<=32)||eventGoal(f.goal)&&f.eventDate&&f.eventDate<=f.start))
@@ -210,12 +214,15 @@ function saveAthlete(){
  if(error)return report(error);
  rememberAthlete(f,inputs,false);
  save();
- report('Cycling athlete details saved.');
+ report('Cycling athlete details saved.',false);
 }
 function move(n){
  const f=form(),error=n>0?valid(f,v42Step):'';
  if(error)return report(error);
  v42Step=Math.max(0,Math.min(4,v42Step+n));draw();
+ const heading=document.querySelector('.m90-build > h3');
+ heading.tabIndex=-1;heading.focus({preventScroll:true});
+ heading.scrollIntoView({block:'nearest'});
 }
 document.addEventListener('input',event=>{
  const el=event.target;
@@ -228,7 +235,12 @@ document.addEventListener('input',event=>{
    el.parentElement.querySelector('[data-m90-source]').textContent=f.sources[key];
   }
   if(key==='ftp'||key==='ftpDate'||key==='ftpMethod'||key==='ftpConfidence')f.ftpSource='manual';
-  if(['goal','powerMeter','smartTrainer','hrMonitor'].includes(key))draw();
+  if(['goal','powerMeter','smartTrainer','hrMonitor'].includes(key)){
+   const offset=window.scrollY;
+   draw();
+   document.querySelector('[data-m90-field="'+key+'"]').focus({preventScroll:true});
+   window.scrollTo(0,offset);
+  }
  }
  if(day)f[day]=el.checked?[...new Set([...f[day],Number(el.value)])]:f[day].filter(value=>value!==Number(el.value));
  if(el.dataset.m90Limit!=null)f.dayMinutes[el.dataset.m90Limit]=el.value;
@@ -240,6 +252,17 @@ document.addEventListener('click',event=>{
  else if(button.dataset.m90Action==='athlete')saveAthlete();
  else move(button.dataset.m90Action==='next'?1:-1);
 });
+function setKeyboardOffset(){
+ const viewport=window.visualViewport, build=document.querySelector('.m90-build');
+ if(!viewport||!build)return;
+ const inset=Math.max(0,window.innerHeight-viewport.height-viewport.offsetTop);
+ build.style.setProperty('--m90-keyboard-offset',inset+'px');
+ build.toggleAttribute('data-m90-keyboard',inset>110&&build.contains(document.activeElement));
+}
+window.visualViewport?.addEventListener('resize',setKeyboardOffset);
+window.visualViewport?.addEventListener('scroll',setKeyboardOffset);
+document.addEventListener('focusin',setKeyboardOffset);
+document.addEventListener('focusout',()=>requestAnimationFrame(setKeyboardOffset));
 v41Builder=function(){return v42Sport==='Cycling'?draw():legacy.builder.apply(this,arguments);};
 v42PickSport=function(sport){
  if(sport!=='Cycling')return legacy.pick.apply(this,arguments);

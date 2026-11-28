@@ -137,7 +137,7 @@ test('dropout, pauses, irregular sampling and coasting stay distinct',()=>{
  expect(iq.analyse({...ride,activeSeconds:3700},{samples:recording(3600),ftpHistory:[]}).stress).toBeNull();
 });
 
-test('cycling IQ requires an explicit unique link and keeps review suggestions read-only',()=>{
+test('cycling IQ requires an explicit unique link and leaves the plan read-only',()=>{
  const planned={id:'next',sport:'Cycling',name:'Threshold',date:'2026-12-01',status:'planned',plannedMinutes:45,demanding:true,cyclingPlanVersion:1};
  const previous={...planned,id:'old',date:ride.date,matchId:ride.id,structuredSteps:[{kind:'step',intensity:'active',duration:{kind:'time',seconds:2700}}],detail:'a',structuredDetail:'a',status:'done'};
  const checkins={'2026-11-29':{fatigue:7},'2026-11-30':{fatigue:8}};
@@ -146,8 +146,124 @@ test('cycling IQ requires an explicit unique link and keeps review suggestions r
  expect(iq.analyse(ride,{workouts:[previous,{...previous,id:'duplicate'}]}).linked).toBeNull();
  const result=iq.analyse(ride,{workouts:[previous,planned],checkins});
  expect(result.comparison).toBe('Recorded 60 min against 45 min planned.');
- expect(result.proposed.after).toBe('Easy recovery spin · 30 min · RPE 1–2/10');
- expect(iq.recommendation(planned,{'2026-11-30':{fatigue:8}},ride.date)).toBeNull();
- expect(iq.recommendation({...planned,status:'done'},checkins,ride.date)).toBeNull();
+ expect(result.next).toEqual(planned);
+ expect(result.intervals).toBeNull();
  expect(JSON.stringify([planned,previous,checkins])).toBe(frozen);
+});
+
+test('8, 12, 16 and 24-week blocks preserve coaching limits through the final session',()=>{
+ const valid=profiles.filter(({config})=>!config.unwell&&!(config.lthr>=config.maxHr&&config.maxHr));
+ const durations=[8,12,16,24];
+ const checked=new Set();
+ for(const {name,config} of valid)for(const weeks of durations){
+  // Keep each scenario's course and event demands. Fixed-duration blocks
+  // set race day after the final planned week, including a full taper.
+  const programme={...config,weeks,eventDate:config.eventDate?cycling.add(config.start,weeks*7):undefined};
+  const result=cycling.generate(programme);
+  assert.equal(result.ok,true,name);
+  assert.equal(result.weeks.length,weeks,name);
+  verify(result,programme);
+  checked.add(name+weeks);
+  const novel=new Set();
+  let previousLoadingWeek=null;
+  for(const week of result.weeks){
+   const light=['Recovery','Taper','Peak','Base'].includes(week.phase);
+   let demanding=0;
+   let hardSeconds=0;
+   for(const session of week.sessions){
+    novel.add(session.kind);
+    const expanded=structured.expand(session.structuredSteps,{sport:'Cycling'});
+    const first=expanded[0],last=expanded.at(-1);
+    assert.equal(first.intensity,'warmup');
+    assert.equal(last.intensity,'cooldown');
+    assert.ok(first.duration.seconds>=300&&last.duration.seconds>=300);
+    if(session.demanding){
+     demanding++;
+     assert.ok(first.duration.seconds>=8*60&&last.duration.seconds>=8*60,session.kind);
+     hardSeconds+=expanded.filter(step=>step.intensity==='interval').reduce((sum,step)=>sum+step.duration.seconds,0);
+    }
+    if(session.kind==='assessment')assert.ok(config.assessment&&config.recovery==='normal');
+    for(const commitment of config.commitments){
+     if(Math.abs(Date.parse(commitment.date)-Date.parse(session.date))<=86400000&&(commitment.hard||commitment.lowerBody)){
+      assert.equal(session.kind,'recovery',name);
+      assert.ok(session.plannedMinutes<=30,name);
+     }
+    }
+    if(programme.eventDate&&session.date>=cycling.add(programme.eventDate,-10))assert.ok(!session.demanding,name);
+   }
+   assert.ok(demanding<=1,name);
+   assert.ok(hardSeconds<=.40*week.plannedMinutes*60,name);
+   if(light)assert.equal(demanding,0,name);
+   if(['Recovery','Taper'].includes(week.phase)&&previousLoadingWeek&&config.commitments.length===0)
+    assert.ok(week.plannedMinutes<=previousLoadingWeek.plannedMinutes,name);
+   if(['Build','Specific preparation','Base'].includes(week.phase)&&config.commitments.length===0){
+    if(previousLoadingWeek)assert.ok(week.plannedMinutes<=previousLoadingWeek.plannedMinutes+12,name);
+    previousLoadingWeek=week;
+   }
+  }
+  if(programme.eventDate)assert.equal(result.weeks.at(-1).phase,'Taper',name);
+  if(config.weeklyMinutes>=100&&!config.interrupted&&config.recovery!=='poor')assert.ok(novel.size>=2,name);
+ }
+ expect(checked.size).toBe(128);
+});
+
+test('52 named library prescriptions are timed and use purpose-led differences',()=>{
+ const patterns=new Set();
+ for(const [kind,recipe] of Object.entries(cycling.library)){
+  const workout=cycling.ride(kind,90,{method:'rpe',assessment:true});
+  assert.ok(workout,kind);
+  assert.ok(recipe[1].length>10&&recipe[2].length>10,kind);
+  const expanded=structured.expand(workout.structuredSteps,{sport:'Cycling'});
+  assert.equal(expanded.reduce((sum,step)=>sum+step.duration.seconds,0),5400,kind);
+  patterns.add(JSON.stringify(expanded));
+ }
+ expect(Object.keys(cycling.library)).toHaveLength(52);
+ expect(patterns.size).toBeGreaterThanOrEqual(39);
+ const newcomer=cycling.generate(profiles[0].config);
+ const main=newcomer.weeks[0].sessions.flatMap(ride=>ride.structuredSteps.filter(step=>step.intensity==='active'));
+ expect(main.every(step=>step.target.kind==='rpe'&&step.target.low===2&&step.target.high===4)).toBe(true);
+ const returner=cycling.generate({...profiles[0].config,interrupted:true});
+ expect(returner.weeks[0].sessions.every(ride=>ride.kind==='recovery')).toBe(true);
+});
+
+function cueFixture(kind='power'){
+ const target=kind==='power'?{kind:'power',lowWatts:185,highWatts:215}:{kind:'heart_rate',lowBpm:120,highBpm:140};
+ const step=(intensity,seconds)=>({kind:'step',intensity,duration:{kind:'time',seconds},target});
+ const workout={id:'cue-fixture',sport:'Cycling',matchId:ride.id,cyclingPlanVersion:1,revision:1,
+  detail:'canonical',structuredDetail:'canonical',structuredSteps:[step('warmup',90),
+   {kind:'repeat',count:2,steps:[step('interval',120),step('recovery',30)]},
+   step('interval',120),step('cooldown',60)]};
+ workout.cyclingMatchPrescription=iq.matchPrescription(workout,ride.id);
+ return workout;
+}
+
+test('cycling cue windows retain zero watts, skip explicit pauses and label incomplete efforts',()=>{
+ const planned=cueFixture(),start=1794985200;
+ const samples=recording(370).map(({t,...row})=>({...row,t:start+t}));
+ for(let i=150;i<180;i++)samples[i].paused=true;
+ for(let i=95;i<100;i++)samples[i].watts=0;
+ for(let i=350;i<370;i++)samples[i].watts=null;
+ const activity={...ride,startSeconds:start,activeSeconds:340,elapsedSeconds:370};
+ const result=iq.analyse(activity,{samples,workouts:[planned]});
+ expect(result.intervals.map(cue=>cue.recorded)).toEqual([120,100,0]);
+ expect(result.intervals[0].observed.coasting).toBe(5);
+ expect(result.intervals[0].observed.inRange).toBeLessThan(1);
+ expect(result.intervals[1].observed).toBeNull();
+ expect(result.measured).toHaveLength(1);
+ const unknown=samples.map(({paused,...sample})=>sample);
+ expect(iq.analyse(activity,{samples:unknown,workouts:[planned]}).intervals).toBeNull();
+ expect(iq.analyse({...activity,startSeconds:start-30},{samples,workouts:[planned]}).intervals).toBeNull();
+ expect(iq.analyse(activity,{samples,workouts:[planned,{...planned,id:'clone'}]}).intervals).toBeNull();
+ expect(iq.analyse(activity,{samples,workouts:[{...planned,revision:2}]}).intervals).toBeNull();
+ expect(iq.analyse(activity,{samples,workouts:[{...planned,structuredDetail:'edited'}]}).intervals).toBeNull();
+});
+
+test('heart rate cue analysis excludes the first minute and suppresses low coverage',()=>{
+ const planned=cueFixture('heart_rate'),start=1794985200;
+ const samples=recording(570).map(({t,...row})=>({...row,t:start+t,
+  bpm:t<150?95:t>=300&&t<365?null:132}));
+ const result=iq.analyse({...ride,startSeconds:start,activeSeconds:570,elapsedSeconds:570},{samples,workouts:[planned]});
+ expect(result.intervals[0].observed).toMatchObject({average:132,inRange:1});
+ expect(result.intervals[1].observed).toBeNull();
+ expect(result.intervals[2].observed.average).toBe(132);
 });

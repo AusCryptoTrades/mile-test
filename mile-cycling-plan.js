@@ -60,6 +60,37 @@ const library = {
  gravel:['Gravel endurance','Build endurance on the expected surface','Use a familiar route and manage effort over loose ground.'],
  indoor:['Trainer endurance','Build aerobic time indoors','Use airflow and take water breaks as needed.'],
  brick:['Multisport-compatible ride','Build cycling endurance alongside the rest of your training','Finish with enough reserve for your other sport.'],
+ warmSkills:['Starting and shifting','Learn basic riding skills at an easy effort','Practise starting and changing gears on quiet ground or a stationary bike.'],
+ evenPacing:['Even-effort ride','Build a feel for repeatable aerobic pacing','Keep breathing similar from the first main segment to the last.'],
+ longPacing:['Long ride with pacing checks','Hold a repeatable effort over changing terrain','Stay comfortable on the flats and ease back on hills.'],
+ fondoFuel:['Gran Fondo endurance rehearsal','Practise fuelling and pacing for a long event','Use familiar food and equipment. Record what was easy to carry and tolerate.'],
+ gravelSteady:['Gravel terrain transitions','Keep effort steady as the surface changes','Choose familiar sections of loose and firm ground. Ease off on technical sections.'],
+ climbingEndurance:['Rolling climbing endurance','Practise controlling aerobic effort on gradients','Shift early and use an easier gear before the steepest part.'],
+ trainerControl:['Indoor position and pacing','Improve aerobic pacing on a trainer','Alternate hand positions when comfortable and keep the effort even.'],
+ triEasy:['Triathlon pacing rehearsal','Practise an even ride that preserves running reserve','Use your event setup if familiar. There is no extra running in this session.'],
+ tempoIntro:['Introductory tempo','Learn the difference between conversational and steady work','Hold a controlled effort you can repeat without straining.',8,4,2,'steady',3],
+ tempoCruise:['Long tempo blocks','Develop sustained work below threshold','Settle into each block and aim for even effort.',10,9,2,'steady',4],
+ tempoRise:['Tempo staircase','Practise lifting effort gradually','Settle at each new effort before increasing it.',10,[[3,'aerobic'],[4,'steady'],[3,'sweet']],2,null,4],
+ sweetLong:['Extended sweet spot','Build repeatable near-threshold work with a reset','Use a flat route or trainer and keep each block controlled.',12,10,2,'sweet',4],
+ sweetDensity:['Short-rest sweet spot','Practise steady work with less rest between efforts','Back off if the early efforts stop feeling repeatable.',12,5,4,'sweet',2],
+ thresholdCruise:['Long threshold repeats','Accumulate sustained work for longer racing efforts','Choose a safe uninterrupted stretch and pace the first repeat carefully.',14,9,2,'threshold',5],
+ thresholdLadder:['Threshold ladder','Practise adjusting to changing work duration','Keep the target consistent as duration changes.',12,[[3,'threshold'],[2,'easy','recovery'],[5,'threshold'],[3,'easy','recovery'],[7,'threshold']],1,null,0],
+ thresholdFloat:['Threshold with aerobic floats','Practise easing off between threshold efforts while still pedalling','Use the float to regain control before lifting the effort.',12,[[4,'threshold'],[2,'aerobic','recovery'],[4,'threshold']],2,null,5],
+ overunderLong:['Extended over-unders','Settle below threshold after each short increase','Regain steady breathing during each lower segment.',14,[[3,'sweet'],[1,'threshold'],[3,'sweet'],[1,'threshold']],2,null,5],
+ vo2Short:['Short aerobic repeats','Introduce high aerobic efforts with ample recovery','Keep the first repeat well within what you can reproduce.',12,2,4,'vo2',3],
+ vo2Long:['Long aerobic power efforts','Build repeatable high aerobic work for experienced riders','Ease back if the last effort cannot match the first.',15,4,4,'vo2',4],
+ microSets:['Short interval clusters','Practise short repeats with longer resets between groups','Stop the set if efforts are no longer repeatable.',12,[[.5,'vo2'],[.5,'easy','recovery'],[.5,'vo2'],[.5,'easy','recovery'],[.5,'vo2'],[.5,'easy','recovery'],[.5,'vo2']],3,null,4],
+ sprintSkill:['Acceleration skills','Practise a few low-volume accelerations with ample recovery','Roll into each acceleration in a controllable gear. Skip it if space is limited.',12,.15,4,'sprint',4],
+ sprintRolling:['Rolling starts and recovery','Practise accelerations from a moving start','Stay controlled and wait until fully recovered before the next effort.',15,.2,5,'sprint',4],
+ roadSettle:['Race surge and settle','Practise returning to tempo after an acceleration','Focus on settling quickly after each controlled surge.',12,[[.5,'anaerobic'],[4,'steady']],3,null,5],
+ roadFinish:['Late-race changes of pace','Practise pace changes after endurance riding','Rehearse the changes on safe roads or indoors.',18,[[4,'aerobic'],[1,'vo2'],[2,'sweet']],3,null,4],
+ shortRace:['Repeat race accelerations','Practise separate anaerobic surges with generous recovery','Keep surges repeatable and leave room to ride home easily.',15,.75,4,'anaerobic',5],
+ climbSustain:['Sustained climbing blocks','Practise steady effort over a longer climb','Choose a gradient and gear that allow comfortable pedalling.',12,10,2,'sweet',4],
+ climbCrest:['Climb and ride over the crest','Practise steady effort through a change of gradient','Avoid a sharp increase in effort on the approach to the crest.',12,[[4,'sweet'],[1,'threshold'],[2,'aerobic']],3,null,4],
+ ttPosition:['Time-trial position rehearsal','Practise holding your event position under controlled load','Take short breaks from the position if needed.',10,7,3,'steady',3],
+ ttPacing:['Time-trial pacing ladder','Rehearse a controlled start and finishing pace','Start below race effort and lift only while your position stays comfortable.',12,[[6,'steady'],[8,'sweet'],[5,'threshold']],1,null,0],
+ triPacing:['Triathlon steady blocks','Practise sustained effort with a reserve for the run','Use event position and take fluids at familiar intervals.',10,10,2,'steady',4],
+ cadenceChange:['Cadence transitions','Switch cadence smoothly without changing effort','Use two comfortable cadences and keep resistance light.',8,[[1,'aerobic'],[1,'aerobic']],4,null,1],
  assessment:['Controlled sustained benchmark','Record a repeatable cycling power benchmark','Use a familiar setup and record conditions and effort. Review it before entering an FTP.',12,20,1,'benchmark',0]
 };
 
@@ -78,29 +109,39 @@ function ride(kind,mins,profile) {
  const [name,purpose,focus,warm,work,reps,band,rest]=library[kind];
  const make=(intensity,seconds,effort)=>({kind:'step',intensity,duration:{kind:'time',seconds},target:target(effort,profile,seconds)});
  const seconds=mins*60,structuredSteps=[];
- const cool=5*60;
+ const technique=['cadence','cadenceChange','tempoIntro','ttPosition'].includes(kind);
+ const cool=(reps&&!technique?8:5)*60;
  if(reps){
-  const needed=warm*60+cool+(work+rest)*60*reps-rest*60;
-  if(seconds<needed)return null;
-  if(kind==='assessment'&&!profile.assessment)return null;
+  const specification=Array.isArray(work)?work:band==='over-under'?[[1,'threshold'],[3,'steady']]:[[work,band]];
+  const effort=specification.map(([minutes,effortBand,intensity],index)=>{
+   const step=make(intensity??(effortBand==='aerobic'?'active':'interval'),Math.round(minutes*60),effortBand);
+   if(kind==='cadenceChange')step.description=index===0?'Pedal at your usual comfortable cadence.':'Pedal a little quicker at the same effort.';
+   if(kind==='cadence')step.description='Pedal a little quicker without adding resistance.';
+   return step;
+  });
+  const effortSeconds=effort.reduce((sum,step)=>sum+step.duration.seconds,0);
+  const needed=warm*60+cool+reps*effortSeconds+(reps-1)*rest*60;
+  if(seconds<needed||kind==='assessment'&&!profile.assessment)return null;
   structuredSteps.push(make('warmup',warm*60,'aerobic'));
   const restStep=rest?make('recovery',rest*60,'easy'):null;
-  const effort=band==='over-under'?[make('interval',60,'threshold'),make('interval',180,'steady')]:[make('interval',Math.round(work*60),band)];
-  if(reps>2)structuredSteps.push({kind:'repeat',count:reps-1,steps:[...effort,restStep]});
-  else if(reps===2)structuredSteps.push(...effort,restStep);
+  if(reps>2)structuredSteps.push({kind:'repeat',count:reps-1,steps:restStep?[...effort,restStep]:effort});
+  else if(reps===2)structuredSteps.push(...effort,...(restStep?[restStep]:[]));
   structuredSteps.push(...effort);
   if(seconds>needed)structuredSteps.push(make('active',seconds-needed,'aerobic'));
   structuredSteps.push(make('cooldown',cool,'easy'));
  }else{
   structuredSteps.push(make('warmup',5*60,'easy'));
-  if(kind==='progressive'&&mins>=30)structuredSteps.push(make('active',seconds-20*60,'aerobic'),make('active',10*60,'steady'));
+  const split={progressive:[10,'steady'],longPacing:[15,'aerobic'],fondoFuel:[20,'aerobic'],
+   gravelSteady:[10,'aerobic'],trainerControl:[10,'aerobic'],triEasy:[10,'aerobic']}[kind];
+  if(split&&mins>=split[0]+20)structuredSteps.push(make('active',seconds-(split[0]+10)*60,'aerobic'),
+   make('active',split[0]*60,split[1]));
   else structuredSteps.push(make('active',seconds-10*60,kind==='recovery'?'easy':'aerobic'));
   structuredSteps.push(make('cooldown',cool,'easy'));
  }
  const totals=workout.totals(structuredSteps,{sport:'Cycling'});
  if(!totals||totals.seconds!==seconds)return null;
  return {sport:'Cycling',kind,name,purpose,focus:focus+(kind==='cadence'&&profile.cadence?' Compare comfort at your normal cadence and slightly above it.':''),
-  demanding:!!reps&&!['cadence','tempo'].includes(kind),plannedMinutes:mins,structuredSteps,method:profile.method,
+  demanding:!!reps&&!technique&&!['tempo','tempoCruise','triPacing'].includes(kind),plannedMinutes:mins,structuredSteps,method:profile.method,
   equipment:profile.method==='power'?'Power meter or smart trainer':profile.method==='heart_rate'?'Heart-rate monitor for sustained targets':'Perceived effort',
   cyclingPlanVersion:1};
 }
@@ -114,13 +155,57 @@ function phaseFor(week,weeks,event,weekStart) {
  if(week>0&&(week+1)%4===0)return 'Recovery';
  return week<2?'Base':week>=Math.ceil(weeks*.6)?'Specific preparation':'Build';
 }
+// Rotation varies the dose and cue structure while retaining the goal’s demands.
 const choices = {
- fitness:['tempo','sweet','threshold'],endurance:['tempo','sweet','overunder'],
- ftp:['sweet','threshold','vo2','sustained','overunder','micro'],climbing:['climb','threshold','vo2'],
- distance:['tempo','sweet','climb'],fondo:['tempo','climb','overunder','sweet'],
- road:['road','micro','vo2','anaerobic','sprint','threshold'],gravel:['tempo','climb','overunder','road'],
- tt:['tt','sustained','threshold','overunder'],triathlon:['tempo','sweet','tt']
+ fitness:['tempo','tempoCruise','sweet','sweetDensity','thresholdLadder'],
+ endurance:['tempoCruise','sweetLong','tempoRise','sweetDensity','overunderLong','vo2Short'],
+ ftp:['sweet','threshold','vo2','sustained','overunder','micro','sweetDensity','thresholdLadder',
+  'thresholdCruise','thresholdFloat','vo2Short','vo2Long','microSets','tempoRise'],
+ climbing:['climb','climbSustain','climbCrest','thresholdCruise','vo2Short','sweetLong'],
+ distance:['tempo','tempoCruise','sweetLong','tempoRise','climb'],
+ fondo:['tempoCruise','climbSustain','climbCrest','overunderLong','sweetLong','sweetDensity'],
+ road:['road','roadSettle','micro','vo2','anaerobic','sprint','threshold','roadFinish',
+  'microSets','shortRace','sprintSkill','sprintRolling','vo2Long','overunderLong'],
+ gravel:['tempoCruise','climb','climbSustain','overunder','roadSettle','thresholdFloat'],
+ tt:['ttPosition','tt','sustained','ttPacing','thresholdCruise','thresholdFloat','overunderLong'],
+ triathlon:['triPacing','ttPosition','sweetLong','tempoCruise','ttPacing']
 };
+const specific = {
+ climbing:['climbCrest','climbSustain','climb'],fondo:['climbSustain','sweetLong','climbCrest'],
+ road:['roadSettle','roadFinish','shortRace','sprintRolling','road'],gravel:['roadSettle','climbSustain','tempoCruise'],
+ tt:['ttPacing','tt','sustained','ttPosition'],triathlon:['triPacing','ttPosition','tempoCruise']
+};
+const advancedOnly=new Set(['anaerobic','sprint','micro','microSets','sprintSkill','sprintRolling',
+ 'shortRace','roadFinish','roadSettle','vo2Long','thresholdFloat','overunderLong']);
+function rideCandidates(profile,{light,highLoad,nearHard,canWork,index,week,mins,phase,eventSoon,levelIndex}){
+ const {goal,setting}=profile;
+ if(nearHard||profile.returning)return ['recovery'];
+ if(light&&phase==='Recovery')return index===0?['endurance']:['recovery','endurance'];
+ if(light&&phase==='Taper')return ['endurance','recovery'];
+ if(index===0){
+  if(levelIndex===0&&week<2)return [week===0?'warmSkills':'evenPacing','endurance'];
+  if(goal==='gravel'&&setting!=='indoor')return [week%2?'gravelSteady':'gravel','long'];
+  if(goal==='fondo'&&mins>=60)return [week%2?'fondoFuel':'longPacing','long'];
+  if(goal==='climbing'&&setting!=='indoor')return ['climbingEndurance','long'];
+  if(goal==='triathlon')return [week%2?'triEasy':'brick','endurance'];
+  if(highLoad)return [week%2?'brick':'evenPacing','endurance'];
+  return [mins>=45?(week%3?'long':'longPacing'):'evenPacing','endurance'];
+ }
+ if(canWork){
+  const group=phase==='Specific preparation'&&specific[goal]&&week%3!==0?specific[goal]:choices[goal];
+  const offset=(week+levelIndex)%group.length;
+  const rotated=[...group.slice(offset),...group.slice(0,offset)];
+  const eligible=rotated.filter(kind=>(levelIndex>=3||!advancedOnly.has(kind))&&
+   (!eventSoon||['tempo','tempoCruise','ttPosition','triPacing'].includes(kind)));
+  return [...eligible,'tempoIntro','endurance'];
+ }
+ if(!light&&!highLoad&&!eventSoon&&!['Base','Peak'].includes(phase)&&levelIndex===1&&
+  week%3===1&&mins>=25&&profile.weeklyMinutes>=120)return ['tempoIntro','endurance'];
+ if(levelIndex===0||!profile.known)return [week%2?'evenPacing':'endurance'];
+ if(setting==='indoor')return [week%3?'indoor':'trainerControl'];
+ if(highLoad||eventSoon)return ['endurance'];
+ return [(['cadence','cadenceChange','evenPacing','progressive'])[(week+index-1)%4],'endurance'];
+}
 function validateAthlete({weeklyMinutes,longestMinutes,ftp,lthr,maxHr,hrZones,unwell}) {
  const errors=[];
  if((weeklyMinutes!=null&&!absolute(weeklyMinutes,15,2400))||(longestMinutes!=null&&!absolute(longestMinutes,10,720)))
@@ -162,10 +247,10 @@ function generate(config={}) {
  const reliablePower=(config.powerMeter||config.smartTrainer)&&validFtp(config.ftp)&&['manual','imported'].includes(config.ftpSource)&&config.ftpConfidence!=='low'&&
   (!config.ftpDate||iso(config.ftpDate)&&config.ftpDate<=start&&separation(start,config.ftpDate)<=180);
  const method=reliablePower?'power':config.hrMonitor&&config.hrZones?.aerobic?'heart_rate':'rpe';
- const profile={...config,method,assessment:config.assessment&&(config.powerMeter||config.smartTrainer)&&levelIndex>=2&&!returning&&known&&config.recovery==='normal'};
+ const profile={...config,method,known,returning,assessment:config.assessment&&(config.powerMeter||config.smartTrainer)&&levelIndex>=2&&!returning&&known&&config.recovery==='normal'};
  let baseline=Math.floor(config.weeklyMinutes??Math.min(75,daysLimit*25));
- if(!known)cautions.add('Weekly cycling capacity is unconfirmed. Start with short, easy sessions and review tolerance before progressing.');
- if(returning){baseline=Math.min(90,Math.floor(baseline*.65));cautions.add('Recent interruption or poor recovery favours a lighter, easy block.');}
+ if(!known)cautions.add('Weekly cycling capacity is unconfirmed. Start with short, conversational rides and review tolerance before progressing.');
+ if(returning){baseline=Math.min(90,Math.floor(baseline*.65));cautions.add('Recent interruption or poor recovery favours a lighter block. Review how you feel before progressing.');}
  if(config.assessment&&!profile.assessment)cautions.add('The optional benchmark needs established training, normal recovery and a power meter or smart trainer.');
  if(eventDate&&separation(eventDate,start)<28)cautions.add('Preparation time is short. Review event feasibility before committing.');
  if((config.distanceKm>=100||config.elevation>=1600)&&((config.longestMinutes??0)<120||dayMinutes[longDay]<120))
@@ -183,15 +268,17 @@ function generate(config={}) {
   const otherMinutes=busy.reduce((n,item)=>n+(absolute(item.minutes,0,1440)?item.minutes:0),0);
   const highLoad=otherMinutes>=load||priority&&priority!=='Cycling';
   const days=Array.from({length:7},(_,i)=>add(first,i)).filter(d=>available.includes(dayOf(d))&&(!eventDate||d<eventDate));
-  const caps=new Map(days.map(date=>[date,Math.min(hard.some(item=>item.date===date)?30:480,Math.max(0,dayMinutes[dayOf(date)]-busy.filter(x=>x.date===date)
+  const nearHard=date=>hard.some(item=>separation(item.date,date)<=1);
+  const caps=new Map(days.map(date=>[date,Math.min(nearHard(date)?30:480,Math.max(0,dayMinutes[dayOf(date)]-busy.filter(x=>x.date===date)
    .reduce((sum,x)=>sum+(absolute(x.minutes,0,1440)?Math.ceil(x.minutes):0),0)))]));
   const selected=days.filter(date=>caps.get(date)>=15).sort((a,b)=>
+   Number(nearHard(a))-Number(nearHard(b))||
    Number(dayOf(b)===longDay)-Number(dayOf(a)===longDay)||
-   Number(hard.some(w=>separation(w.date,a)<=1))-Number(hard.some(w=>separation(w.date,b)<=1))||
    caps.get(b)-caps.get(a)||a.localeCompare(b)).slice(0,daysLimit);
   const longDate=selected[0];
   const light=weekPhase==='Recovery'||weekPhase==='Taper'||returning||!known;
-  const scale=weekPhase==='Taper'?.58:weekPhase==='Recovery'?.72:weekPhase==='Peak'?.85:1;
+  const phaseScale=weekPhase==='Taper'?.58:weekPhase==='Recovery'?.72:weekPhase==='Peak'?.85:1;
+  const scale=otherMinutes>=load?Math.min(.8,phaseScale):phaseScale;
   const budget=Math.min(Math.floor(load*scale),selected.reduce((sum,d)=>sum+caps.get(d),0));
   let remaining=budget;
   const sessions=[];
@@ -202,18 +289,15 @@ function generate(config={}) {
    const longShare=!light&&weekPhase==='Specific preparation'&&(config.distanceKm>=80||config.elevation>=1200)?.52:.44;
    const nominal=slots===1?remaining:index===0?Math.max(Math.floor(budget*longShare),Math.floor(remaining/slots)):Math.floor(remaining/slots);
    const mins=Math.min(remaining,durationCap,Math.max(15,nominal));
-   let kind=light||hard.some(item=>item.date===date)?'recovery':index===0?
-    (goal==='gravel'?'gravel':goal==='triathlon'||highLoad?'brick':mins>=45?'long':'endurance'):
-    (config.setting==='indoor'?'indoor':week%3===1?'cadence':week%3===2?'progressive':'endurance');
-   const eligible=!light&&!highLoad&&levelIndex>=2&&index>0&&weekPhase!=='Base'&&
-    !hard.some(item=>separation(item.date,date)<=1)&&separation(longDate,date)>=2&&
-    (!previousHard||separation(previousHard,date)>=2)&&!sessions.some(session=>session.demanding);
-   if(eligible){
-    const pool=choices[goal];
-    kind=profile.assessment&&!usedBenchmark&&weekPhase==='Build'&&mins>=37?'assessment':pool[(week+levelIndex)%pool.length];
-    if(levelIndex<3&&['anaerobic','sprint','micro'].includes(kind))kind='tempo';
-   }
-   const planned=ride(kind,mins,profile)||ride('endurance',mins,profile);
+   const closeToHard=nearHard(date);
+   const eventSoon=eventDate&&separation(eventDate,date)<=11;
+   const canWork=!light&&!highLoad&&levelIndex>=2&&index>0&&!['Base','Peak'].includes(weekPhase)&&
+    !closeToHard&&separation(longDate,date)>=2&&(!previousHard||separation(previousHard,date)>=2)&&
+    !sessions.some(session=>session.demanding||session.structuredSteps.some(step=>step.intensity==='interval'));
+   const candidates=rideCandidates(profile,{light,highLoad,nearHard:closeToHard,canWork,index,week,mins,phase:weekPhase,eventSoon,levelIndex});
+   if(canWork&&profile.assessment&&!usedBenchmark&&weekPhase==='Build')candidates.unshift('assessment');
+   const planned=candidates.reduce((session,kind)=>session??ride(kind,mins,profile),null);
+   if(!planned)continue;
    const setting=config.setting==='mixed'?(index===0?'outdoor':profile.smartTrainer?'indoor':'outdoor'):config.setting;
    if(planned.kind==='assessment')usedBenchmark=true;
    if(planned.demanding){previousHard=date;demandingCount++;}
@@ -221,18 +305,20 @@ function generate(config={}) {
    remaining-=mins;
   }
   const total=sessions.reduce((n,item)=>n+item.plannedMinutes,0);
-  if(total<budget||selected.length<daysLimit)cautions.add('Available time or other sessions limit the scheduled cycling volume.');
+  if(total<budget||selected.length<daysLimit||selected.some(nearHard))cautions.add('Available time or other sessions limit the scheduled cycling volume.');
   if(sessions.length)result.push({week:week+1,phase:weekPhase,plannedMinutes:total,sessions:sessions.sort((a,b)=>a.date.localeCompare(b.date))});
-  if(!light&&!highLoad&&total>=.9*load){
-   load+=Math.min(12,Math.floor(load*.06));
-   lastLong=sessions.find(item=>item.date===longDate)?.plannedMinutes??lastLong;
+  if(!light&&!highLoad&&weekPhase!=='Peak'&&total>=.9*load){
+   const increment=Math.min(12,Math.floor(load*.06),Math.max(0,total+Math.min(12,Math.floor(total*.08))-load));
+   load+=increment;
+   const longest=sessions.find(item=>item.date===longDate&&!nearHard(item.date));
+   if(longest)lastLong=Math.max(lastLong,longest.plannedMinutes);
   }
  }
  if(!result.length)return {ok:false,errors:['There is insufficient available time before the event or around existing commitments.']};
  if(profile.assessment&&!usedBenchmark)cautions.add('No suitable benchmark slot fits the current dates and time limits.');
  return {ok:true,weeks:result,baseline,method,demandingCount,warnings:[...cautions]};
 }
-const api={levels,goals,library,powerZone,powerZones,validFtp,validateAthlete,generate,add,dayOf,iso};
+const api={levels,goals,library,ride,powerZone,powerZones,validFtp,validateAthlete,generate,add,dayOf,iso};
 root.mileCyclingPlan=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(globalThis);

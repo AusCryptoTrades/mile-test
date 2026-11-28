@@ -31,3 +31,27 @@
   border-bottom: 1px solid var(--mile-border);
 }
 .m90-power-series span { flex: 1 1 0; background: var(--mile-support); }
+.m90-build > .row h2 { font-size: var(--mile-type-title); margin: 0; }
+.m90-build > h3 { margin-block: var(--mile-space-sm) var(--mile-space-xs); }
+.m90-build .formgrid { gap: var(--mile-space-sm); margin-block: var(--mile-space-sm); }
+.m90-build .field { min-width: 0; gap: var(--mile-space-xs); }
+.m90-build .m90-help { margin-block: var(--mile-space-xs); }
+/* Keep horizontal clipping without creating a second scroll container for sticky actions. */
+html:has(.m90-build), body:has(.m90-build) { overflow-x: clip; }
+.m90-build .m90-action-tray {
+  position: sticky;
+  z-index: 5;
+  bottom: 0;
+  margin-top: var(--mile-space-md);
+  padding-block: var(--mile-space-xs);
+  border-top: 1px solid var(--mile-border);
+  background: var(--mile-surface);
+}
+.m90-action-tray [data-m90-action="next"],
+.m90-action-tray [data-m90-action="save"] { margin-inline-start: auto; }
+.m90-build .m90-form-error { color: var(--mile-feedback-error, var(--mile-ink)); font-weight: 650; }
+@media (max-width: 780px) {
+  .m90-build .m90-action-tray { bottom: calc(74px + env(safe-area-inset-bottom,0px)); }
+  .m90-build[data-m90-keyboard] .m90-action-tray { bottom: var(--m90-keyboard-offset); }
+  body:has(.m90-build[data-m90-keyboard]) #mile-fixed-mobile-nav { visibility: hidden; }
+}

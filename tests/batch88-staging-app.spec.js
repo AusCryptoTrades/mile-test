@@ -160,3 +160,64 @@ test('portable beta export contains only the staging app and keeps reset redirec
   expect(await readFile(path.join(target,'mile-reset-password.html'),'utf8')).toContain("new URL('/mile-reset-password.html', location.origin).href");
  }finally{await rm(temp,{recursive:true,force:true})}
 });
+
+test('staging cycling Analysis keeps a workout until explicit approval and displays private history',async({page},info)=>{
+ await withStagingApp(info,async origin=>{
+  const owner={id:'00000000-0000-4000-8000-000000000091',email:'cycling@example.test',email_confirmed_at:'2026-11-20T12:00:00Z'};
+  const ride={id:'900091',name:'Cycling consent fixture',sport:'Cycling',type:'indoor_cycling',date:'2026-11-26',durationSeconds:1800};
+  const block={id:'cycle-block',sport:'Cycling'};
+  const before={id:'cycle-ride',name:'Threshold repeats',sport:'Cycling',date:'2026-11-29',status:'planned',
+   block:block.id,plannedMinutes:45,revision:1, cyclingPlanVersion:1};
+  const after={...before,name:'Easy recovery spin',plannedMinutes:30,revision:2,revisionSource:'cycling-recovery-v1'};
+  const id='00000000-0000-4000-8000-000000000044';
+  const calls=[];
+  let applied=false;
+  await page.route(staging+'/**',async route=>{
+   const request=route.request(),pathname=new URL(request.url()).pathname;
+   let json=[];
+   if(pathname==='/auth/v1/token')json={access_token:'fixture-athlete',user:owner};
+   else if(pathname==='/auth/v1/user')json=owner;
+   else if(pathname==='/rest/v1/av_members')json=[{user_id:owner.id}];
+   else if(pathname==='/functions/v1/garmin-connection-status')json={status:'not_connected'};
+   else if(pathname==='/rest/v1/av_training_data'){
+    expect(request.method()).toBe('GET');
+    json=[{training_data:{activities:[ride],workouts:[before],blocks:[block],activeBlock:block.id}}];
+   }else if(pathname.startsWith('/rest/v1/rpc/')){
+    const rpc=pathname.split('/').at(-1);
+    calls.push([rpc,request.postDataJSON()]);
+    expect(request.headers().authorization).toBe('Bearer fixture-athlete');
+    if(rpc==='mile_review_training_revision')json={status:'review',id,before,after,
+     evidence:{checkins:[{date:'2026-11-27',fatigue:8},{date:'2026-11-26',fatigue:9}]}};
+    else if(rpc==='mile_approve_training_revision'){applied=true;json={status:'applied',workout:after,revision:2};}
+    else if(rpc==='mile_cycling_revision_history'&&applied)json=[{before,after}];
+   }
+   await route.fulfill({json,headers:{'access-control-allow-origin':origin}});
+  });
+  await page.clock.setFixedTime(new Date('2026-11-27T12:00:00Z'));
+  await page.goto(origin);
+  await page.locator('#v4Email').fill(owner.email);
+  await page.locator('#v4Password').fill('fixture-password');
+  await page.locator('#v4Gate button[onclick*="v4Authenticate"]').click();
+  await page.locator('#v4Gate [onclick*="v4SkipGarmin"]').click();
+  await page.evaluate(id=>window.mile35OpenActivity(id),ride.id);
+  const overlay=page.locator('#mile35-detail');
+  await overlay.getByRole('button',{name:'Analysis',exact:true}).click();
+  const review=overlay.getByRole('button',{name:'Review recovery adjustment'});
+  expect(calls).toEqual([]);
+  await review.click();
+  const consent=overlay.locator('.m881-revision');
+  await expect(consent).toContainText('Threshold repeats · 29/11/2026');
+  await expect(consent.locator('.m881-revision-preview')).toContainText('30 min');
+  await reviewImage(info,'cycling-consent-preview',consent);
+  await consent.getByRole('button',{name:'Keep current ride'}).click();
+  await expect(consent.getByRole('status')).toContainText('current ride was kept');
+  expect(calls).toEqual([['mile_review_training_revision',{p_sport:'Cycling'}]]);
+  await review.click();
+  await consent.getByRole('button',{name:'Approve this revision'}).click();
+  await expect(consent.getByRole('status')).toContainText('Revision saved to Calendar');
+  await expect.poll(()=>page.evaluate(id=>state.workouts.find(w=>w.id===id)?.revision,before.id)).toBe(2);
+  expect(calls.at(-1)).toEqual(['mile_approve_training_revision',{p_proposal_id:id,p_approved:true}]);
+  await overlay.getByText('Approved cycling revisions',{exact:true}).click();
+  await expect(overlay.getByText(/Threshold repeats \(45 min\) → Easy recovery spin \(30 min\)/)).toBeVisible();
+ });
+});

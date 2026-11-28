@@ -2,7 +2,7 @@
 (function (root) {
 'use strict';
 const plan=root.mileCyclingPlan||(typeof module!=='undefined'&&require('./mile-cycling-plan.js'));
-const prescription=root.mileStructuredWorkout;
+const prescription=root.mileStructuredWorkout||(typeof module!=='undefined'&&require('./mile-running-workout.js'));
 const within=(value,low,high)=>Number.isFinite(value)&&value>=low&&value<=high;
 const average=values=>values.reduce((sum,value)=>sum+value,0)/values.length;
 
@@ -24,12 +24,13 @@ function perSecond(rows) {
   .map(row=>({...row,t:Math.floor(row.t)})).sort((a,b)=>a.t-b.t);
  if(ordered.length<2||ordered.at(-1).t-ordered[0].t>86400)return [];
  const seconds=[];
+ const start=ordered[0].t;
  for(let index=0;index<ordered.length-1;index++){
   const row=ordered[index], interval=ordered[index+1].t-row.t;
   if(interval===0)continue;
   const valid=interval<=3&&!row.paused&&!ordered[index+1].paused;
   for(let second=0;second<interval;second++)seconds.push({
-   offset:row.t-ordered[0].t+second, paused:row.paused,
+   timestamp:row.t+second, offset:row.t-start+second, paused:row.paused,
    watts:valid&&within(row.watts,0,2500)?row.watts:null,
    bpm:valid&&within(row.bpm,35,250)?row.bpm:null,
    cadence:valid&&within(row.cadence,0,230)?row.cadence:null
@@ -107,25 +108,62 @@ function ftpAt(history,date) {
  return (Array.isArray(history)?history:[]).filter(row=>row&&plan.iso(row.date)&&row.date<=date&&plan.validFtp(row.watts)&&
   ['manual','imported'].includes(row.source)&&row.confidence!=='low').sort((a,b)=>b.date.localeCompare(a.date))[0]??null;
 }
-function recommendation(workout,checkins,today) {
- if(!plan.iso(today)||!workout?.demanding||workout.sport!=='Cycling'||workout.status!=='planned'||workout.matchId||!workout.cyclingPlanVersion)return null;
- const high=Object.entries(checkins||{}).filter(([date,entry])=>date>=plan.add(today,-6)&&date<=today&&within(Number(entry?.fatigue),7,10));
- if(high.length<2||!within(workout.plannedMinutes,15,480))return null;
- const mins=Math.max(15,Math.min(30,workout.plannedMinutes));
- return {
-  before:workout.name+' · '+workout.plannedMinutes+' min',
-  after:'Easy recovery spin · '+mins+' min · RPE 1–2/10',
-  reason:'You reported high fatigue on '+high.length+' days this week. Consider an easy ride or rest, then review how you feel.'
- };
+// A confirmation binds the prescription the athlete saw to this recording.
+const canonical=(key,value)=>value&&typeof value==='object'&&!Array.isArray(value)?
+ Object.fromEntries(Object.keys(value).sort().map(name=>[name,value[name]])):value;
+function matchPrescription(workout,activityId) {
+ if(workout?.cyclingPlanVersion!==1||workout.structuredDetail!==workout.detail)return null;
+ const steps=prescription.expand(workout.structuredSteps,{sport:'Cycling'});
+ if(!steps)return null;
+ return {activityId:String(activityId),revision:workout.revision??1,steps};
 }
-function analyse(activity,{samples=[],history=[],ftpHistory=[],hrZones={},workouts=[],today=activity.date,checkins={}}={}){
+function intervalComparison(workout,activity,seconds) {
+ const saved=workout?.cyclingMatchPrescription;
+ const current=matchPrescription(workout,activity.id);
+ if(!current||!saved||JSON.stringify(saved,canonical)!==JSON.stringify(current,canonical))return null;
+ if(!current.steps.some(step=>step.intensity==='interval')||
+    current.steps.some(step=>step.duration.kind!=='time'))return null;
+ const {startSeconds,activeSeconds,elapsedSeconds}=activity;
+ if(!seconds.length||!within(startSeconds,946684800,4102444800)||
+    !within(activeSeconds,1,86400)||!within(elapsedSeconds,activeSeconds,86400))return null;
+ const active=seconds.filter(row=>!row.paused);
+ // A pause is removed only when explicitly marked. Gaps stay on the clock.
+ // Missing unmarked pause time, truncated records and shifted starts make the
+ // clock ambiguous. Refuse scoring instead of shifting all subsequent cues.
+ if(Math.abs(seconds[0].timestamp-startSeconds)>2||
+    Math.abs(seconds.length-elapsedSeconds)>3||Math.abs(active.length-activeSeconds)>3)return null;
+ const intervals=[];
+ let cursor=0;
+ for(const step of current.steps){
+  const duration=step.duration.seconds,start=cursor;
+  cursor+=duration;
+  if(step.intensity!=='interval')continue;
+  const recorded=Math.max(0,Math.min(duration,active.length-start));
+  const target=step.target??{kind:'open'};
+  const range=target.kind==='power'?[target.lowWatts,target.highWatts]:
+   target.kind==='heart_rate'?[target.lowBpm,target.highBpm]:null;
+  const delay=target.kind==='heart_rate'?60:0;
+  const field=target.kind==='power'?'watts':'bpm';
+  const expected=Math.max(0,recorded-delay);
+  const values=active.slice(start+delay,start+recorded).map(row=>row[field]).filter(value=>value!==null);
+  const observed=range&&expected>=10&&values.length>=.9*expected?{
+   average:average(values),
+   inRange:values.filter(value=>within(value,...range)).length/values.length,
+   coverage:values.length/expected,
+   coasting:field==='watts'?values.filter(value=>value===0).length:null
+  }:null;
+  intervals.push({duration,recorded,target,observed});
+ }
+ return intervals;
+}
+function analyse(activity,{samples=[],history=[],ftpHistory=[],hrZones={},workouts=[],today=activity.date}={}){
  const seconds=perSecond(samples),ftp=ftpAt(ftpHistory,activity.date);
  const activeSeconds=seconds.filter(row=>!row.paused).length;
  const activeWatts=measurement(seconds,'watts'),reportedWatts=within(activity.averageWatts,0,2500)?activity.averageWatts:null;
  const averagePower=activeWatts??reportedWatts;
  const normalizedPower=activeWatts!==null?rollingPower(seconds):null;
  const duration=within(activity.activeSeconds,1,86400)?activity.activeSeconds:null;
- const reliableDuration=duration!==null&&Math.abs(duration-activeSeconds)<=Math.max(5,.05*duration);
+ const reliableDuration=duration!==null&&Math.abs(duration-activeSeconds)<=Math.max(3,.01*duration);
  const intensityFactor=normalizedPower!==null&&ftp?normalizedPower/ftp.watts:null;
  const stress=intensityFactor!==null&&reliableDuration?duration/3600*intensityFactor**2*100:null;
  const variabilityIndex=normalizedPower!==null&&activeWatts>0?normalizedPower/activeWatts:null;
@@ -139,7 +177,8 @@ function analyse(activity,{samples=[],history=[],ftpHistory=[],hrZones={},workou
  const drift=decoupling(seconds,{normalizedPower,averagePower:activeWatts,indoor,steady});
  const next=workouts.filter(item=>item.sport==='Cycling'&&item.status==='planned'&&!item.matchId&&item.date>today)
   .sort((a,b)=>a.date.localeCompare(b.date))[0];
- const proposed=today&&next?recommendation(next,checkins,today):null;
+ const intervals=linked?intervalComparison(linked,activity,seconds):null;
+ const measured=intervals?.filter(row=>row.observed&&row.recorded===row.duration)??[];
  const hasDate=plan.iso(activity.date);
  const recent=hasDate?[0,7].map(offset=>history.filter(row=>row.date>=plan.add(activity.date,-offset-6)&&row.date<=plan.add(activity.date,-offset))
   .reduce((sum,row)=>sum+(within(row.minutes,0,1440)?row.minutes:0),0)):null;
@@ -148,8 +187,9 @@ function analyse(activity,{samples=[],history=[],ftpHistory=[],hrZones={},workou
  return {observed:activeWatts!==null?observedPower(seconds):[],series:activeWatts!==null?chartSeries(seconds):[],averagePower,averagePowerSource:activeWatts!==null?'samples':reportedWatts!==null?'provider summary':null,
   normalizedPower,intensityFactor,stress,variabilityIndex,powerZones,hrZonesMeasured,cadence,drift,ftp,activeSeconds,duration,recent,
   averageHR:measurement(seconds,'bpm')??(within(activity.averageHR,35,250)?activity.averageHR:null),
-  elevation:within(activity.elevation,0,20000)?activity.elevation:null,indoor,linked,plannedMinutes,next,proposed,
+  elevation:within(activity.elevation,0,20000)?activity.elevation:null,indoor,linked,plannedMinutes,next,intervals,measured,
   comparison:linked?(plannedMinutes!==null&&duration!==null?'Recorded '+Math.round(duration/60)+' min against '+plannedMinutes+' min planned.':'Linked ride. A timed comparison needs recorded duration and structured steps.'):
+   matches.length>1?'Multiple scheduled rides link to this recording. Resolve the duplicate before comparing the plan.':
    'Unplanned ride or no confirmed link. Review the recorded performance.',
   workoutContext:indoor?'Indoor cycling':activity.setting==='outdoor'?'Outdoor cycling':'Cycling'};
 }
@@ -174,12 +214,25 @@ function render(host,result,{detailsOpen=false}={}) {
  body.append(metrics);
  if(!items.length)body.append(element('p','Recorded measurements are unavailable for this ride.','muted small'));
  const section=(title,text)=>body.append(element('h4',title),element('p',text,'small'));
- section('Session execution',result.comparison);
+ const intervals=result.intervals;
+ const execution=intervals&&result.measured.length
+  ? ' Measured '+result.measured.length+'/'+intervals.length+' complete work cues using the planned clock.'
+  : '';
+ section('Session execution',result.comparison+execution);
+ const powerCues=result.measured.filter(row=>row.target.kind==='power');
+ const below=powerCues.filter(row=>row.observed.average<row.target.lowWatts).length;
+ const above=powerCues.filter(row=>row.observed.average>row.target.highWatts).length;
+ if(powerCues.length>=2){
+  const inRange=powerCues.length-below-above;
+  section('Power targets',inRange+'/'+powerCues.length+' fully measured work cues averaged within target.'+
+   (below>=2?' Start the next set conservatively and check pacing or interruptions.':
+    above>=2?' Aim for the middle of your target range on the next comparable ride.':' Aim for similar pacing across your next comparable set.'));
+ }
  if(result.recent?.some(Boolean))section('Recent cycling',Math.round(result.recent[0])+' min recorded over seven days, compared with '+Math.round(result.recent[1])+' min in the preceding seven days.');
  section('Next session focus',result.next?.focus||'Review how the ride felt before planning the next effort.');
- section('Programme review',result.proposed?
-  result.proposed.reason+' '+result.proposed.before+' → '+result.proposed.after+'. Review this suggestion before making changes.':
-  'Continue reviewing your training and recovery. A single ride is insufficient evidence for a programme change.');
+ section('Programme review',result.linked?
+  'Use this ride alongside recent sessions and your saved check-ins before changing the plan.':
+  'Use this ride as context for your next check-in.');
  host.append(body);
  const details=element('details',null,'mile35-panel m881-detailed');
  details.open=detailsOpen;
@@ -197,6 +250,20 @@ function render(host,result,{detailsOpen=false}={}) {
   }
   details.append(element('h4','Recorded power'),chart);
  }
+ if(intervals){
+  details.append(element('h4','Work cues · planned clock'));
+  details.append(element('p','Estimated from the confirmed plan’s cue times. Device step transitions are unavailable.','muted small'));
+  intervals.forEach((cue,index)=>{
+   const watts=cue.target.kind==='power';
+   const observed=cue.observed;
+   const state=cue.recorded===0?'Not reached':cue.recorded<cue.duration?'Partial · '+time(cue.recorded):'Complete time window';
+   add('Cue '+(index+1)+' · '+time(cue.duration)+' · '+prescription.targetLabel(cue.target),
+    state+(observed?' · '+Math.round(observed.average)+(watts?' W':' bpm')+
+     ' · '+Math.round(observed.inRange*100)+'% of measured time in range'+
+     (observed.coasting?' · '+time(observed.coasting)+' at 0 W':''):
+      cue.recorded&&['power','heart_rate'].includes(cue.target.kind)?' · Insufficient target samples':''));
+  });
+ }
  for(const best of result.observed)add('Best observed '+time(best.duration),Math.round(best.watts)+' W');
  if(result.ftp)add('FTP at ride date',result.ftp.watts+' W · '+result.ftp.source);
  if(result.intensityFactor!==null)add('Intensity factor',result.intensityFactor.toFixed(2));
@@ -205,10 +272,10 @@ function render(host,result,{detailsOpen=false}={}) {
  if(result.drift!==null)add('Power-to-HR decoupling',result.drift.toFixed(1)+'%');
  for(const [zone,seconds] of Object.entries(result.powerZones||{}))add('Power zone '+zone,time(seconds));
  for(const [zone,seconds] of Object.entries(result.hrZonesMeasured||{}))add('Heart rate · '+zone,time(seconds));
- details.append(element('p','Power calculations require recorded samples with sufficient coverage. Power-based stress also needs a dated FTP and moving time. Interval execution requires verified step alignment.','muted small'));
+ details.append(element('p','Power calculations require recorded samples with sufficient coverage. Power-based stress also needs a dated FTP and moving time. Cue comparisons need a confirmed ride and a recording that matches its timer.','muted small'));
  host.append(details);
 }
-const api={providerSamples,perSecond,rollingPower,ftpAt,analyse,recommendation,render};
+const api={providerSamples,perSecond,rollingPower,ftpAt,analyse,matchPrescription,intervalComparison,render};
 root.mileCyclingIQ=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(globalThis);

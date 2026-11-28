@@ -10,4 +10,4 @@ Hosted browser authentication, delivered confirmation mail, Storage object HTTP 
 
 ## Batch 90 cycling
 
-The cycling development draft starts from combined beta #142 at `539b786`. It adds the cycling Build adapter, shared timed prescription, compact Calendar details and private cycling MILE IQ. A 34-profile audit exercises 1,088 boundary scenarios. Local Garmin FIT contract work is activity-independent and keeps the Training API cycling publication route disabled. Cycling suggestions are read-only pending a sport-specific server approval adapter. See the [evidence and development gates](docs/batch90-cycling.md).
+Draft #143 builds on combined beta #142 at `539b786`. It includes 52 cycling workout prescriptions, private planned-clock cue analysis and an explicit-consent server revision policy with private history. The coaching suite covers 34 profiles, 1,088 boundary scenarios and 128 full 8–24 week programmes. Local Garmin FIT validation remains separate from the locked cycling Training API route. Automatic adaptation and Garmin republication are disabled. See the [cycling review and release gates](docs/batch90-cycling.md).
