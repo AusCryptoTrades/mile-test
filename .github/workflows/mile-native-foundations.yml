@@ -4,7 +4,7 @@ on:
     branches: ['feature/batch86-infrastructure']
     paths: ['native/**', '.github/workflows/mile-native-foundations.yml']
   pull_request:
-    branches: [main, 'feature/batch85-beta-polish', codex/mile-combined-beta, codex/mile-cycling-batch90]
+    branches: [main, 'feature/batch85-beta-polish', codex/mile-combined-beta, codex/mile-cycling-batch90, feature/batch91-swimming]
     paths: ['native/**', '.github/workflows/mile-native-foundations.yml', 'index.html', 'mile-*.html', 'mile-*.js', 'mile-*.css']
   workflow_dispatch:
 permissions:
@@ -103,9 +103,11 @@ jobs:
         run: |
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath build-ios CODE_SIGNING_ALLOWED=NO build
           test -d build-ios/Build/Products/Debug-iphonesimulator/App.app
+          plutil -lint build-ios/Build/Products/Debug-iphonesimulator/App.app/PrivacyInfo.xcprivacy
           /usr/libexec/PlistBuddy -c 'Print :NSLocationWhenInUseUsageDescription' build-ios/Build/Products/Debug-iphonesimulator/App.app/Info.plist
           plutil -lint build-ios/Build/Products/Debug-iphonesimulator/App.app/Info.plist
           /usr/libexec/PlistBuddy -c 'Print :NSHealthShareUsageDescription' build-ios/Build/Products/Debug-iphonesimulator/App.app/Info.plist
           test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.healthkit' ios/App/App/MILEHealthKit.entitlements)" = true
           grep -q 'registerPluginInstance(MILEHealthKitPlugin())' ios/App/App/AppDelegate.swift
+          test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.healthkit.background-delivery' ios/App/App/MILEHealthKit.entitlements)" = true
           grep -q 'customClass="MILEBridgeViewController"' ios/App/App/Base.lproj/Main.storyboard
