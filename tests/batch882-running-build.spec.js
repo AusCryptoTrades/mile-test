@@ -77,6 +77,14 @@ test('88.2 Build saves the reviewed plan and Calendar starts the same structured
  const syncStore={};await openApp(page,{origin:new URL(baseURL).origin,signedIn:true,syncStore});
  await page.evaluate(()=>{state.workouts=[{id:'fixture-completed-run',block:state.activeBlock,date:'2026-11-10',sport:'Running',name:'Historical run',detail:'Recorded workout. RPE 5/10.',km:6,status:'done',matchId:'123456789',rpe:5,note:'Do not change'}]});
  const original=await page.evaluate(()=>JSON.stringify(state.workouts.find(w=>w.id==='fixture-completed-run')));
+ await page.evaluate(()=>window.mile3931ShowWorkout('fixture-completed-run'));
+ const detailsEdit=page.locator('#m3932-detail [data-m3932-edit]');
+ await detailsEdit.click();
+ await expect(page.getByRole('dialog',{name:'Edit workout'})).toBeFocused();
+ await page.keyboard.press('Escape');
+ await expect(detailsEdit).toBeFocused();
+ await page.locator('#m3932-detail [data-m3932-close]').first().click();
+
  await page.evaluate(()=>editWorkout('fixture-completed-run'));
  await expect(page.locator('#wDetail')).toHaveValue('Recorded workout.');
  if(info.project.name.startsWith('mobile'))await expect(page.locator('#mile-fixed-mobile-nav')).toBeHidden();
