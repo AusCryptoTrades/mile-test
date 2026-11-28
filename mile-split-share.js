@@ -32,7 +32,7 @@
    part.forEach((r,j)=>{const y=594+(j+1)*L.rowHeight-6;const label=allKm?String(r.index):r.index+' · '+(r.distance/1000).toFixed(2);text(label,xx,y,L.font,fg,700,'left',w*.31);text(clock(r.seconds),xx+w*.55,y,L.font,fg,800,'right',w*.24);text(clock(r.seconds*1000/r.distance),xx+w,y,L.font,fg,700,'right',w*.35);rule(xx,y+8,w)});
   }
   rule(72,1230,936,accent,2);text('MAKE IT LOOK EASY.',72,1282,24,fg,800);
-  const date=new Date(model.activity_at||'');text(Number.isFinite(date.getTime())?date.toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'}).toUpperCase():'',1008,1282,24,muted,700,'right',400);
+  const date=new Date(model.activity_at||'');text(Number.isFinite(date.getTime())?date.toLocaleDateString('en-AU',{day:'2-digit',month:'2-digit',year:'numeric'}):'',1008,1282,24,muted,700,'right',400);
   return c;
  }
  const names=data=>data?.rows?.length?Array.from({length:layout(data.rows).count},(_,page)=>['Splits Light','Splits Dark'].map(n=>n+(layout(data.rows).count>1?' · '+(page+1)+'/'+layout(data.rows).count:''))).flat():[];

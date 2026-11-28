@@ -1,0 +1,187 @@
+/* Shared MILE foundations. Theme palettes are owned by Appearance. */
+:root {
+  --mile-font: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mile-type-caption: 11px;
+  --mile-type-support: 12px;
+  --mile-type-action: 13px;
+  --mile-type-body: 14px;
+  --mile-type-section: 18px;
+  --mile-type-title: 24px;
+  --mile-type-metric: clamp(14px, 4vw, 20px);
+  --mile-weight-action: 650;
+  --mile-weight-title: 850;
+  --mile-leading-tight: 1.2;
+  --mile-leading-body: 1.45;
+  --mile-space-xs: 4px;
+  --mile-space-sm: 8px;
+  --mile-space-md: 12px;
+  --mile-space-lg: 16px;
+  --mile-screen-gutter: 18px;
+  --mile-card-radius: 12px;
+  --mile-control-radius: 9px;
+  --mile-sheet-radius: 20px;
+  --mile-touch-size: 44px;
+  --mile-action-size: 36px;
+  --mile-icon-size: 16px;
+  --mile-nav-icon-size: 20px;
+  --mile-nav-target: 52px;
+  --mile-banner-size: 86px;
+  --mile-banner-padding: 10px 14px;
+  --mile-section-gap: 10px;
+  --mile-backdrop: #000a;
+  --mile-surface: var(--panel);
+  --mile-surface-raised: var(--panel2);
+  --mile-border: var(--line);
+  --mile-ink: var(--text);
+  --mile-support: var(--muted);
+}
+@media (max-width: 780px) {
+  :root { --mile-screen-gutter: 11px; }
+}
+@media (pointer: coarse) {
+  :root { --mile-action-size: var(--mile-touch-size); }
+}
+
+.mile-back-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-inline-size: var(--mile-touch-size);
+  min-block-size: var(--mile-touch-size);
+  padding: var(--mile-space-xs) var(--mile-space-md);
+  border: 1px solid var(--mile-border);
+  border-radius: var(--mile-control-radius);
+  background: var(--mile-surface);
+  color: var(--mile-ink);
+  font: var(--mile-weight-action) var(--mile-type-action)/var(--mile-leading-tight) var(--mile-font);
+  text-align: start;
+}
+
+html:has(#modalRoot > .modalback) { overflow: hidden; }
+#modalRoot .modalback {
+  z-index: 2147483001;
+  background: var(--mile-backdrop);
+}
+#modalRoot .modal {
+  max-height: calc(100dvh - env(safe-area-inset-top, 0px) - var(--mile-space-md));
+  padding: var(--mile-space-lg);
+  border-color: var(--mile-border);
+  border-radius: var(--mile-card-radius);
+  background: var(--mile-surface);
+  overscroll-behavior: contain;
+}
+#modalRoot .modal h2 {
+  margin-block: 0 var(--mile-space-md);
+  font-size: var(--mile-type-section);
+  line-height: var(--mile-leading-tight);
+}
+#modalRoot .mile-modal-feedback:not(:empty) {
+  margin-bottom: var(--mile-space-md);
+  padding: var(--mile-space-sm) var(--mile-space-md);
+  border: 1px solid var(--mile-border);
+  border-radius: var(--mile-control-radius);
+  background: var(--mile-surface-raised);
+}
+#modalRoot .modal :is(input:not([type=checkbox],[type=radio]), select, textarea) {
+  min-height: var(--mile-touch-size);
+  font-size: 16px;
+}
+@media (max-width: 780px) {
+  #modalRoot .modal {
+    border-radius: var(--mile-sheet-radius) var(--mile-sheet-radius) 0 0;
+    padding-bottom: calc(var(--mile-space-lg) + env(safe-area-inset-bottom, 0px));
+  }
+  #modalRoot .modalback { width: auto; }
+}
+
+#mile-whats-new-return { margin-block: 0 var(--mile-section-gap); }
+
+/* Compact editor with a scrollable field region and persistent actions. */
+#modalRoot .modal:has(.mile-form-actions) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 100%;
+  padding: 0;
+}
+#modalRoot .modal:has(.mile-form-actions) h2 {
+  flex: none;
+  margin: 0;
+  padding: var(--mile-space-md);
+  border-bottom: 1px solid var(--mile-border);
+}
+#modalRoot .mile-form-scroll {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: var(--mile-space-sm) var(--mile-space-md);
+  scroll-padding-block: var(--mile-space-sm);
+}
+#modalRoot .mile-form-scroll .formgrid {
+  gap: var(--mile-space-sm);
+}
+#modalRoot .mile-form-scroll .field label {
+  margin-bottom: var(--mile-space-xs);
+  font-size: var(--mile-type-support);
+}
+#modalRoot .mile-form-scroll :is(input, select, textarea) {
+  padding: 7px 9px;
+}
+#modalRoot .mile-form-scroll textarea {
+  min-height: 58px;
+  height: 58px;
+  resize: vertical;
+}
+#modalRoot .mile-form-actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: var(--mile-space-sm);
+  padding: var(--mile-space-sm) var(--mile-space-md);
+  padding-bottom: max(var(--mile-space-sm), env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--mile-border);
+}
+#modalRoot .mile-form-actions button {
+  min-height: var(--mile-touch-size);
+  margin: 0;
+}
+#modalRoot :is(.modalback:has(.mile-form-actions), #m390-dialog) {
+  top: var(--mile-editor-top, 0px);
+  bottom: auto;
+  height: var(--mile-editor-height, 100dvh);
+}
+#modalRoot.mile-editor-keyboard .mile-form-actions {
+  padding-bottom: var(--mile-space-sm);
+}
+@media (max-width: 780px) {
+  #modalRoot .mile-form-scroll .formgrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  #modalRoot .mile-form-scroll .formgrid > .field:not(.span2) {
+    grid-column: auto !important;
+  }
+}
+@media (max-width: 340px) {
+  #modalRoot .mile-form-scroll .formgrid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+#modalRoot .modalback:has(.mile-form-actions) {
+  background: transparent !important;
+}
+#modalRoot .modalback:has(.mile-form-actions)::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--mile-backdrop);
+  pointer-events: none;
+}
+#modalRoot .mile-form-actions .btn:not(.alt,.ghost) {
+  background: var(--mile-ink) !important;
+  border-color: var(--mile-ink) !important;
+  color: var(--bg) !important;
+}
