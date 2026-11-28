@@ -4,7 +4,7 @@ on:
     branches: ['feature/batch86-infrastructure']
     paths: ['native/**', '.github/workflows/mile-native-foundations.yml']
   pull_request:
-    branches: [main, 'feature/batch85-beta-polish']
+    branches: [main, 'feature/batch85-beta-polish', codex/mile-combined-beta]
     paths: ['native/**', '.github/workflows/mile-native-foundations.yml', 'index.html', 'mile-*.html', 'mile-*.js', 'mile-*.css']
   workflow_dispatch:
 permissions:

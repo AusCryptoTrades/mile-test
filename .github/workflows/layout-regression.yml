@@ -1,7 +1,7 @@
 name: Layout Regression
 on:
   pull_request:
-    branches: [main]
+    branches: [main, codex/mile-combined-beta]
   workflow_dispatch:
 jobs:
   test:

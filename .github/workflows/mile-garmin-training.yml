@@ -2,7 +2,7 @@ name: MILE Garmin training contract
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    branches: [main]
+    branches: [main, codex/mile-combined-beta]
     paths:
       - 'integrations/garmin/**'
       - 'supabase/functions/_shared/garmin-routing.mjs'
@@ -41,7 +41,7 @@ jobs:
           node-version: '22'
       - run: node --test integrations/garmin/*.test.mjs
       - run: npm ci --prefix integrations/garmin --ignore-scripts --no-audit --no-fund
-      - run: node --test integrations/garmin/fit-binary.mjs integrations/garmin/running-workout-fit.verify.mjs
+      - run: node --test integrations/garmin/fit-binary.mjs integrations/garmin/*.verify.mjs
   registry-database:
     runs-on: ubuntu-24.04
     timeout-minutes: 5

@@ -3,7 +3,7 @@ on:
   push:
     branches: [main, 'test/**', 'fix/**', 'feature/batch86-infrastructure']
   pull_request:
-    branches: [main, 'feature/batch85-beta-polish']
+    branches: [main, 'feature/batch85-beta-polish', codex/mile-combined-beta]
   workflow_dispatch:
 concurrency:
   group: mile-browser-${{ github.workflow }}-${{ github.ref }}

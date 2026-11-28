@@ -7,3 +7,7 @@ The documented overnight audit covered 27 profiles, including four deliberately 
 Staging `fnyfeelynaozxtftrrga` passed the Running database checks before and after onboarding. A hosted transaction also passed invite, disclaimer, legacy-member and Storage RLS checks. All proof rows were rolled back. The project has an empty private `mile-avatars` bucket. Use [staging and release steps](docs/overnight-release.md) before any rollout.
 
 Hosted browser authentication, delivered confirmation mail, Storage object HTTP and cache behaviour, deployed legal source verification, and real Garmin OAuth and round-trip identity still need verification. The runner’s HTTP proxy rejected the staging and legal origins. Automatic matching, adaptation and revision republication remain disabled. No production writes or deployment were performed.
+
+## Batch 90 cycling
+
+The cycling development draft starts from combined beta #142 at `539b786`. It adds the cycling Build adapter, shared timed prescription, compact Calendar details and private cycling MILE IQ. A 34-profile audit exercises 1,088 boundary scenarios. Local Garmin FIT contract work is activity-independent and keeps the Training API cycling publication route disabled. Cycling suggestions are read-only pending a sport-specific server approval adapter. See the [evidence and development gates](docs/batch90-cycling.md).

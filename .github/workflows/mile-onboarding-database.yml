@@ -1,8 +1,9 @@
 name: MILE onboarding database
 on:
   pull_request:
-    branches: [main]
+    branches: [main, codex/mile-combined-beta]
     paths:
+      - 'mile-cycling-build.js'
       - 'supabase/migrations/*_athlete_onboarding.sql'
       - 'supabase/migrations/*_training_disclaimer_and_avatar_access.sql'
       - 'supabase/tests/batch89-*'
