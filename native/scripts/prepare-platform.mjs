@@ -1,4 +1,4 @@
-import {readFile,writeFile,access} from 'node:fs/promises';
+import {readFile,writeFile,access,copyFile} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
@@ -24,7 +24,7 @@ if(platform==='ios'){
  const begin='// MILE HEALTHKIT GENERATED BEGIN',end='// MILE HEALTHKIT GENERATED END';
  let swift=await readFile(delegate,'utf8');
  if(swift.includes(begin)){const a=swift.indexOf(begin),b=swift.indexOf(end,a);if(b<0)throw Error('Incomplete HealthKit block');swift=swift.slice(0,a)+swift.slice(b+end.length);}
- const plugin=await readFile(path.join(cwd,'healthkit/MILEHealthKitPlugin.swift'),'utf8');
+ const plugin=(await Promise.all(['MILEHealthKitPlugin.swift','MILEHealthDetails.swift','MILEWorkoutKit.swift','MILESessionKeychain.swift'].map(name=>readFile(path.join(cwd,'healthkit',name),'utf8')))).join('\n');
  await writeFile(delegate,swift.trimEnd()+'\n\n'+begin+'\n'+plugin+'\nclass MILEBridgeViewController: CAPBridgeViewController {\n override func capacitorDidLoad() { bridge?.registerPluginInstance(MILEHealthKitPlugin()) }\n}\n'+end+'\n');
  const storyboard=path.join(app,'Base.lproj/Main.storyboard');
  let story=await readFile(storyboard,'utf8');
@@ -35,10 +35,10 @@ if(platform==='ios'){
  }
  xml=await readFile(file,'utf8');
  if(!xml.includes('<key>NSHealthShareUsageDescription</key>')){
-  xml=xml.replace(/<\/dict>\s*<\/plist>/,'<key>NSHealthShareUsageDescription</key>\n<string>MILE reads workouts you choose to share to support your training history.</string>\n</dict>\n</plist>');
+  xml=xml.replace(/<\/dict>\s*<\/plist>/,'<key>NSHealthShareUsageDescription</key>\n<string>MILE reads workouts to show your training history. With separate permission, it can also read heart rate, routes, running dynamics, sleep and recovery observations for private coaching.</string>\n</dict>\n</plist>');
   await writeFile(file,xml);
  }
- await writeFile(path.join(app,'MILEHealthKit.entitlements'),'<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>com.apple.developer.healthkit</key><true/></dict></plist>\n');
+ await writeFile(path.join(app,'MILEHealthKit.entitlements'),'<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>com.apple.developer.healthkit</key><true/><key>com.apple.developer.healthkit.background-delivery</key><true/></dict></plist>\n');
  const pbx=path.join(cwd,'ios/App/App.xcodeproj/project.pbxproj');
  let project=await readFile(pbx,'utf8');
  if(!project.includes('CODE_SIGN_ENTITLEMENTS = App/MILEHealthKit.entitlements;')){
@@ -47,6 +47,24 @@ if(platform==='ios'){
   project=project.replace(anchor,m=>m+'\n\t\t\t\tCODE_SIGN_ENTITLEMENTS = App/MILEHealthKit.entitlements;');
   await writeFile(pbx,project);
  }
+ await copyFile(path.join(cwd,'healthkit/PrivacyInfo.xcprivacy'),path.join(app,'PrivacyInfo.xcprivacy'));
+ if(!project.includes('PrivacyInfo.xcprivacy in Resources')){
+  const fileID='A92200000000000000000001',buildID='A92200000000000000000002';
+  const sections=[
+   ['/* Begin PBXFileReference section */',fileID+' /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = App/PrivacyInfo.xcprivacy; sourceTree = SOURCE_ROOT; };'],
+   ['/* Begin PBXBuildFile section */',buildID+' /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = '+fileID+'; };'],
+  ];
+  for(const [anchor,entry] of sections){if(!project.includes(anchor))throw Error('Missing privacy manifest project section');project=project.replace(anchor,anchor+'\n\t\t'+entry);}
+  const resources=/(isa = PBXResourcesBuildPhase;[\s\S]*?files = \()/;
+  if(!resources.test(project))throw Error('Missing app resources phase');
+  project=project.replace(resources,(_match)=>_match+'\n\t\t\t\t'+buildID+' /* PrivacyInfo.xcprivacy in Resources */,');
+ }
+ const bundle=process.env.MILE_IOS_BUNDLE_ID;
+ if(bundle){
+  if(!/^[A-Za-z][A-Za-z0-9-]*(\.[A-Za-z0-9-]+){2,}$/.test(bundle))throw Error('Invalid iOS bundle identifier');
+  project=project.replace(/PRODUCT_BUNDLE_IDENTIFIER = [^;]+;/g,'PRODUCT_BUNDLE_IDENTIFIER = '+bundle+';');
+ }
+ await writeFile(pbx,project);
 }else{
  const file=path.join(cwd,'android/app/src/main/AndroidManifest.xml');
  let xml=await readFile(file,'utf8');

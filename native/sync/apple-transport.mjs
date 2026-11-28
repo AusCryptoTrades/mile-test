@@ -18,7 +18,32 @@ export function createAppleTransport({baseUrl,anonKey,session,fetchImpl=fetch,si
   await verify(accountId);
   return response;
  };
+ const rpc=async (accountId,name,body)=>await (await request(accountId,'/rest/v1/rpc/'+name,{method:'POST',body:JSON.stringify(body)})).json();
  return Object.freeze({
+  async commit(accountId,rows,deleted,epoch){
+   const receipt=await rpc(accountId,'mile_commit_apple_health_page',{p_epoch:epoch,p_rows:rows,p_deleted:deleted});
+   if(receipt?.committed!==true)throw Error('Apple Health commit was not confirmed');
+   return receipt;
+  },
+  setConsent(accountId,enabled){return rpc(accountId,'mile_set_apple_health_consent',{p_enabled:enabled})},
+  reviewOverlap(accountId,id,separate){
+   return rpc(accountId,'mile_review_apple_health_overlap',{p_workout:id,p_separate:separate});
+  },
+  async status(accountId){
+   const res=await request(accountId,'/rest/v1/mile_device_consents?provider=eq.apple_health&select=enabled,epoch,last_import_at');
+   const rows=await res.json();await verify(accountId);
+   return Array.isArray(rows)&&rows.length===1?rows[0]:null;
+  },
+  async history(accountId){
+   const rows=[];
+   for(let offset=0;;offset+=500){
+    const res=await request(accountId,'/rest/v1/mile_device_workouts?provider=eq.apple_health&order=start_at.desc,provider_id&limit=500&offset='+offset);
+    const page=await res.json();await verify(accountId);
+    if(!Array.isArray(page)||page.length>500)throw Error('Workout history unavailable');
+    rows.push(...page);
+    if(page.length<500)return rows;
+   }
+  },
   async upsert(accountId,rows){
    if(!Array.isArray(rows)||rows.length>200)throw Error('Invalid workout batch');
    const allowed=new Set(['provider','provider_id','start_at','end_at','duration_seconds','distance_meters','sport']);

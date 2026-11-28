@@ -3,7 +3,7 @@
  'use strict';
  const base='https://mgixvokjlytjuypzcfzz.supabase.co';
  const key='sb_publishable_gIQO8rNBD9kKQpQdky0-7w_2A55HzO8';
- const token=()=>localStorage.getItem('av-token')||sessionStorage.getItem('av-token');
+ const token=()=>(window.mileSession?window.mileSession.read('av-token'):(window.mileSession?window.mileSession.read('av-token'):localStorage.getItem('av-token')));
  const css=document.createElement('style');
  css.textContent=`
  #mile-admin-centre{position:fixed;inset:0;z-index:2147483638;background:var(--bg,#101414);color:var(--mile-ink,var(--text,#eee));overflow:auto;overscroll-behavior:contain;overflow-anchor:none;scroll-behavior:auto!important;font:inherit;padding:env(safe-area-inset-top,0px) 10px calc(16px + env(safe-area-inset-bottom,0px));box-sizing:border-box}

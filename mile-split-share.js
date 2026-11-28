@@ -43,7 +43,7 @@
    return normalize(p.detail_snapshot.splits.map((r,i)=>({index:i+1,distance:1000,seconds:Number(r?.seconds??r?.duration??r)})),[]);
   }
   try{
-   const owner=userId,auth=typeof token!=='undefined'?token:localStorage.getItem('av-token');if(!auth)return null;
+   const owner=userId,auth=typeof token!=='undefined'?token:(window.mileSession?window.mileSession.read('av-token'):localStorage.getItem('av-token'));if(!auth)return null;
    const response=await fetch('https://mgixvokjlytjuypzcfzz.supabase.co/functions/v1/mile-shared-activity-detail?postId='+encodeURIComponent(p.id),{headers:{Authorization:'Bearer '+auth,Accept:'application/json'},signal:AbortSignal.timeout(8000),cache:'no-store'});
    if(!response.ok||owner!==userId)return null;
    const result=await response.json(),d=result.details;if(!d||owner!==userId)return null;return extract(d.raw_data||d.rawData||d);

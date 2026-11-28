@@ -19,7 +19,7 @@ export function createNativeAppleImport({cap,accountId,installationId,activeAcco
  const assertAccount=()=>{if(activeAccount()!==accountId)throw Error('Account changed')};
  return Object.freeze({
   cancel(){controller?.abort()},
-  async run({from,to,maxPages=1000}){
+  async run({from,to,maxPages=1000,askPermission=true,details=false}){
    if(running)throw Error('Import already running');
    running=true;controller=new AbortController();
    try{
@@ -32,9 +32,9 @@ export function createNativeAppleImport({cap,accountId,installationId,activeAcco
     if(!(await plugin.availability()).available)throw Error('HealthKit unavailable');
     assertAccount();
     if(controller.signal.aborted)throw Error('Import cancelled');
-    if(!(await plugin.requestReadAccess()).requestCompleted)throw Error('Permission request incomplete');
+    if(askPermission&&!(await plugin.requestReadAccess({details,account:accountId})).requestCompleted)throw Error('Permission request incomplete');
     assertAccount();
-    return await importAppleWorkouts({accountId,from,to,maxPages,readPage:args=>plugin.readWorkoutPage(args),transport,checkpoint,activeAccount,consented,signal:controller.signal});
+    return await importAppleWorkouts({accountId,from,to,maxPages,readPage:args=>plugin.readWorkoutPage({...args,details,account:accountId}),transport:backend.atomic?Object.assign({},transport,{commit:(id,rows,deleted)=>transport.commit(id,rows,deleted,backend.epoch)}):{upsert:transport.upsert},checkpoint,activeAccount,consented,signal:controller.signal});
    }finally{running=false;controller=null}
   }
  });

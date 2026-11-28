@@ -7,7 +7,7 @@ import { execFileSync } from 'node:child_process';
 
 export const assets = Object.freeze([
   'index.html', 'mile-admin-centre.js', 'mile-buttons.css',
-  'mile-onboarding.js', 'mile-onboarding.css', 'mile-avatar.js',
+  'mile-session.js', 'mile-onboarding.js', 'mile-onboarding.css', 'mile-avatar.js',
   'mile-challenges.html', 'mile-run-tracker.html', 'mile-shared-header.js',
   'mile-sim-sync.js', 'mile-sim.html',
   'mile-79.css', 'mile-85-auth.css', 'mile-873.css', 'mile-device-sync.js',
@@ -16,10 +16,18 @@ export const assets = Object.freeze([
   'mile-cycling-plan.js', 'mile-cycling-iq.js', 'mile-cycling-build.js', 'mile-cycling.css',
   'mile-swimming-library.js', 'mile-swimming-plan.js', 'mile-swimming-build.js', 'mile-swimming-iq.js'
 ]);
-export const syncAssets = Object.freeze(['workouts.mjs','apple-import.mjs','apple-transport.mjs','checkpoints.mjs','apple-native.mjs']);
+export const syncAssets = Object.freeze(['workouts.mjs','apple-import.mjs','apple-transport.mjs','checkpoints.mjs','apple-native.mjs','watch-workouts.mjs','apple-app.mjs']);
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const dest = path.join(root, 'native', 'www');
-export async function stage() {
+export async function stage({stagingKey=process.env.MILE_NATIVE_STAGING_PUBLISHABLE_KEY}={}) {
+  const appleHealth=stagingKey!=null;
+  const production='https://mgixvokjlytjuypzcfzz.supabase.co';
+  const staging='https://fnyfeelynaozxtftrrga.supabase.co';
+  const policy=`<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: ${staging}; connect-src ${staging}; frame-src 'self'; base-uri 'none'; form-action 'self'">`;
+  const originalIndex=await readFile(path.join(root,'index.html'),'utf8');
+  const productionKey=originalIndex.match(/supabaseAnon:'(sb_publishable_[A-Za-z0-9_-]+)'/)?.[1];
+  if(appleHealth&&(!/^sb_publishable_[A-Za-z0-9_-]+$/.test(stagingKey)||!productionKey||stagingKey===productionKey))
+    throw new Error('Use the MILE Staging publishable key for the Apple Health beta.');
   // Fixed destination and explicit allowlist: never copy repository, SQL, tests or credentials.
   for (const file of assets) {
     const source = path.join(root, file);
@@ -32,7 +40,12 @@ export async function stage() {
   const commit = execFileSync('git', ['rev-parse','HEAD'], { cwd: root, encoding: 'utf8' }).trim();
   const version = JSON.parse(await readFile(path.join(root,'native/package.json'),'utf8')).version;
   for (const file of assets) {
-    await copyFile(path.join(root, file), path.join(dest, file));
+    if(appleHealth){
+      const content=await readFile(path.join(root,file),'utf8');
+      const prepared=content.replaceAll(production,staging).replaceAll(productionKey,stagingKey).replaceAll('https://app.milefitness.com.au','');
+      const secure=file.endsWith('.html')?prepared.replace(/<html(\s|>)/i,'<html data-mile-native-session="true"$1').replace(/<head>/i,match=>match+policy):prepared;
+      await writeFile(path.join(dest,file),secure);
+    }else await copyFile(path.join(root, file), path.join(dest, file));
     hashes[file] = createHash('sha256').update(await readFile(path.join(dest,file))).digest('hex');
   }
   await mkdir(path.join(dest,'sync'));
@@ -49,9 +62,11 @@ export async function stage() {
   const original = await readFile(entry,'utf8');
   const closing = /<\/body\s*>/i;
   if (!closing.test(original)) throw new Error('Missing body closing tag');
-  const identity = 'window.MILE_NATIVE_BUILD='+JSON.stringify({commit,version})+';';
+  const identity = 'window.MILE_NATIVE_BUILD='+JSON.stringify({commit,version,appleHealth})+';';
   await writeFile(path.join(dest,'mile-native-runtime.js'),identity+'\n'+runtime);
-  await writeFile(entry,original.replace(closing,match=>'<script src="./mile-native-runtime.js"></script>'+match));
+  const stagingEntry=appleHealth?original.replace('<html','<html data-mile-staging="true"'):original;
+  await writeFile(entry,stagingEntry.replace(closing,match=>'<script src="./mile-native-runtime.js"></script>'+
+    (appleHealth?'<script type="module" src="./sync/apple-app.mjs"></script>':'')+match));
   for (const name of ['index.html','mile-native-runtime.js']) hashes[name]=createHash('sha256').update(await readFile(path.join(dest,name))).digest('hex');
   await writeFile(path.join(dest, 'mile-build.json'), JSON.stringify({commit,version, assets: hashes}, null, 2)+'\n');
   console.log('Staged ' + (await readdir(dest)).length + ' files for native build ' + commit);

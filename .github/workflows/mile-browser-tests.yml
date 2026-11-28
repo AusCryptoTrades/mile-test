@@ -3,7 +3,7 @@ on:
   push:
     branches: [main, 'test/**', 'fix/**', 'feature/batch86-infrastructure']
   pull_request:
-    branches: [main, 'feature/batch85-beta-polish', codex/mile-combined-beta]
+    branches: [main, 'feature/batch85-beta-polish', codex/mile-combined-beta, feature/batch91-swimming]
   workflow_dispatch:
 concurrency:
   group: mile-browser-${{ github.workflow }}-${{ github.ref }}
@@ -35,6 +35,8 @@ jobs:
         run: npx playwright install --list
       - name: Run browser project
         id: browser
+        env:
+          MILE_RC_SCREENSHOTS: ${{ github.base_ref == 'feature/batch91-swimming' && format('{0}/apple-review', runner.temp) || '' }}
         run: npm run test:e2e -- --project=${{ matrix.project }}
       - name: Summarize test outcome
         if: always()
@@ -68,6 +70,14 @@ jobs:
           path: |
             playwright-report/
             test-results/
+          retention-days: 7
+
+      - name: Upload Apple Health screenshots
+        if: github.base_ref == 'feature/batch91-swimming' && matrix.project == 'mobile-chromium' && !cancelled()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: apple-health-mobile-review
+          path: ${{ runner.temp }}/apple-review/apple-health-*.png
           retention-days: 7
 
   browser-tests:

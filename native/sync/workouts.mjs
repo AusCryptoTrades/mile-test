@@ -48,3 +48,42 @@ export async function commitPage({records,nextCursor,write,checkpoint}){
   await write(records);
   await checkpoint(nextCursor);
 }
+
+// Stable UTC bounds let an anchored query resume between launches and calendar days.
+export function appleImportRange(now=Date.now()){
+ const interval=30*86400000;
+ const boundary=Math.floor(now/interval)*interval;
+ return {from:new Date(boundary-6*interval).toISOString(),to:new Date(boundary+interval).toISOString()};
+}
+
+export function appleActivity(row){
+ if(!row||row.deleted_at||typeof row.provider_id!=='string'||!/^[0-9a-f-]{36}$/i.test(row.provider_id))return null;
+ const type=row.sport??'workout';
+ return {id:'apple:'+row.provider_id.toLowerCase(),source:'apple_health',type,date:row.start_at,
+  name:({running:'Apple Health run',cycling:'Apple Health ride',swimming:'Apple Health swim',walking:'Apple Health walk',strength:'Apple Health strength session'})[type]??'Apple Health workout',
+  startTimeLocal:row.activity_day??row.start_at?.slice(0,10),durationSeconds:row.duration_seconds,distanceKm:row.distance_meters==null?null:row.distance_meters/1000,
+  averageHR:row.average_hr??null,overlapDecision:row.overlap_decision};
+}
+
+// A close overlap is held for athlete review. Both source records remain intact.
+export function reconcileAppleActivities(rows,garmin){
+ const result={visible:[],overlaps:[]};
+ for(const row of rows){
+  const activity=appleActivity(row);
+  if(!activity||activity.overlapDecision===false)continue;
+  if(activity.overlapDecision!==true){
+   const start=Date.parse(activity.date);
+   const candidate=garmin.find(other=>{
+    const duration=Number(other.durationSeconds??other.duration_s??(Number(other.durationMin)*60));
+    return other.source==='garmin-developer-api'&&String(other.sport??other.type).toLowerCase().includes(activity.type)&&
+     Math.abs(Date.parse(other.date)-start)<=60000&&duration>0&&
+     Math.abs(duration-activity.durationSeconds)<=Math.max(30,activity.durationSeconds*.03)&&
+     Number(other.distanceKm)>0&&activity.distanceKm>0&&
+     Math.abs(other.distanceKm-activity.distanceKm)<=Math.max(.05,activity.distanceKm*.03);
+   });
+   if(candidate){result.overlaps.push({activity,garminName:candidate.name??'Garmin workout'});continue;}
+  }
+  result.visible.push(activity);
+ }
+ return result;
+}

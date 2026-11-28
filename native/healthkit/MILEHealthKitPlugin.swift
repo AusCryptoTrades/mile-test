@@ -2,8 +2,9 @@ import Foundation
 import Security
 import HealthKit
 import Capacitor
+import CoreLocation
 
-// Read-only HealthKit prototype. Only opaque checkpoints use local Keychain persistence.
+// HealthKit is read-only. Routes and recovery observations never leave the device.
 @objc(MILEHealthKitPlugin)
 public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "MILEHealthKitPlugin"
@@ -11,14 +12,139 @@ public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "availability", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "requestReadAccess", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "readWorkouts", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "readWorkoutPage", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "checkpointGet", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "checkpointSet", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "checkpointRemove", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "checkpointRemove", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "installation", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "readRecovery", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "readWorkoutDetail", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "observeWorkouts", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "changeCounter", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "resumeReadAccess", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "scheduleRun", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "readSession", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "writeSession", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "clearSession", returnType: CAPPluginReturnPromise)
     ]
     private let store = HKHealthStore()
+    private var scheduleBusy = false
     private var requestedThisSession = false
+    private var detailsThisSession = false
+    private var permissionGeneration = 0
+    private var observerGeneration = 0
+    private var workoutObserver: HKObserverQuery?
+    private let pendingKey = "mile.healthkit.workout-change"
+    private let observerKey = "mile.healthkit.workout-observer"
+
+    public override func load() {
+        if HKHealthStore.isHealthDataAvailable(), UserDefaults.standard.bool(forKey: observerKey) {
+            installObserver()
+        }
+    }
+
+    private func installObserver() {
+        guard workoutObserver == nil else { return }
+        let query = HKObserverQuery(sampleType: HKObjectType.workoutType(), predicate: nil) { _, finish, error in
+            DispatchQueue.main.async {
+                if error == nil {
+                    let defaults = UserDefaults.standard
+                    defaults.set(defaults.integer(forKey: self.pendingKey) + 1, forKey: self.pendingKey)
+                    self.notifyListeners("workoutChanged", data: [:])
+                }
+                finish()
+            }
+        }
+        workoutObserver = query
+        store.execute(query)
+    }
+
+    @objc func observeWorkouts(_ call: CAPPluginCall) {
+        guard HKHealthStore.isHealthDataAvailable() else { call.reject("HealthKit unavailable"); return }
+        let defaults = UserDefaults.standard
+        observerGeneration += 1
+        let generation = observerGeneration
+        if call.getBool("enabled") == true {
+            guard requestedThisSession else { call.reject("Request HealthKit access first"); return }
+            installObserver()
+            store.enableBackgroundDelivery(for: HKObjectType.workoutType(), frequency: .hourly) { success, _ in
+                DispatchQueue.main.async {
+                    guard generation == self.observerGeneration else { call.resolve(["enabled": false]); return }
+                    defaults.set(success, forKey: self.observerKey)
+                    call.resolve(["enabled": success])
+                }
+            }
+        } else {
+            if let query = workoutObserver { store.stop(query) }
+            workoutObserver = nil
+            defaults.removeObject(forKey: observerKey)
+            if call.getBool("resetPermission") == true {
+                permissionGeneration += 1
+                requestedThisSession = false
+                detailsThisSession = false
+            }
+            store.disableBackgroundDelivery(for: HKObjectType.workoutType()) { _, _ in call.resolve(["enabled": false]) }
+        }
+    }
+
+    @objc func resumeReadAccess(_ call: CAPPluginCall) {
+        let defaults = UserDefaults.standard
+        guard HKHealthStore.isHealthDataAvailable(), defaults.bool(forKey: observerKey),
+              let account = call.getString("account"), secureSessionOwner == account,
+              account == defaults.string(forKey: "mile.healthkit.installation-owner") else {
+            call.resolve(["ready": false]); return
+        }
+        let generation = permissionGeneration
+        store.getRequestStatusForAuthorization(toShare: [], read: [HKObjectType.workoutType()]) { status, error in
+            DispatchQueue.main.async {
+                guard error == nil, status == .unnecessary, self.permissionGeneration == generation,
+                      self.secureSessionOwner == account else { call.resolve(["ready": false]); return }
+                // A prior request means querying is permitted to proceed. It does not disclose a read grant.
+                self.requestedThisSession = true
+                call.resolve(["ready": true])
+            }
+        }
+    }
+
+    @objc func changeCounter(_ call: CAPPluginCall) {
+        call.resolve(["counter": UserDefaults.standard.integer(forKey: pendingKey)])
+    }
+
+    @objc func installation(_ call: CAPPluginCall) {
+        guard let account = call.getString("account"), UUID(uuidString: account) != nil, secureSessionOwner == account,
+              let epoch = call.getString("epoch"), UUID(uuidString: epoch) != nil,
+              let from = call.getString("from"), from.count <= 32 else {
+            call.reject("Invalid HealthKit installation scope"); return
+        }
+        let defaults = UserDefaults.standard
+        let ownerKey = "mile.healthkit.installation-owner"
+        if let existing = defaults.string(forKey: ownerKey), existing != account {
+            call.reject("This iPhone’s HealthKit import is bound to a different MILE account"); return
+        }
+        let key = "mile.healthkit.installation"
+        let id = defaults.string(forKey: key) ?? UUID().uuidString
+        defaults.set(id, forKey: key)
+        defaults.set(account, forKey: ownerKey)
+        let epochKey = "mile.healthkit.import-epoch", startKey = "mile.healthkit.import-start"
+        if defaults.string(forKey: epochKey) != epoch {
+            defaults.set(epoch, forKey: epochKey)
+            defaults.set(from, forKey: startKey)
+        }
+        call.resolve(["id": id, "from": defaults.string(forKey: startKey) ?? from])
+    }
+
+    func ownsHealthInstallation(_ account: String?) -> Bool {
+        guard let account, secureSessionOwner == account else { return false }
+        return UserDefaults.standard.string(forKey: "mile.healthkit.installation-owner") == account
+    }
+
+    private func quantityTypes() -> [HKQuantityType] {
+        var identifiers: [HKQuantityTypeIdentifier] = [.heartRate, .restingHeartRate, .heartRateVariabilitySDNN, .vo2Max]
+        if #available(iOS 16, *) {
+            identifiers += [.runningStrideLength, .runningGroundContactTime, .runningVerticalOscillation, .runningPower]
+        }
+        return identifiers.compactMap { HKObjectType.quantityType(forIdentifier: $0) }
+    }
 
     @objc func availability(_ call: CAPPluginCall) {
         call.resolve(["available": HKHealthStore.isHealthDataAvailable()])
@@ -28,58 +154,53 @@ public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
         guard HKHealthStore.isHealthDataAvailable() else {
             call.reject("HealthKit unavailable"); return
         }
-        let read: Set<HKObjectType> = [HKObjectType.workoutType()]
+        let account = call.getString("account")
+        let details = call.getBool("details") == true
+        guard account == nil && !details || account != nil && ownsHealthInstallation(account) else {
+            call.reject("HealthKit access is unavailable for this account"); return
+        }
+        let generation = permissionGeneration
+        var read: Set<HKObjectType> = [HKObjectType.workoutType()]
+        if details {
+            read.formUnion(quantityTypes().map { $0 as HKObjectType })
+            read.insert(HKSeriesType.workoutRoute())
+            if let sleep = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) { read.insert(sleep) }
+        }
         store.requestAuthorization(toShare: [], read: read) { [weak self] success, error in
             DispatchQueue.main.async {
-                guard error == nil, success else {
+                guard let self, error == nil, success, self.permissionGeneration == generation,
+                      account == nil || self.ownsHealthInstallation(account) else {
                     call.reject("HealthKit authorization request did not complete"); return
                 }
-                self?.requestedThisSession = true
+                self.requestedThisSession = true
+                self.detailsThisSession = details
                 // Completion does not imply permission to read every requested type.
                 call.resolve(["requestCompleted": true])
             }
         }
     }
 
-    @objc func readWorkouts(_ call: CAPPluginCall) {
-        guard HKHealthStore.isHealthDataAvailable(), requestedThisSession else {
-            call.reject("Request HealthKit access first"); return
-        }
-        let days = call.getInt("days") ?? 7
-        guard (1...30).contains(days) else {
-            call.reject("Days must be between 1 and 30"); return
-        }
-        let end = Date()
-        let start = end.addingTimeInterval(-Double(days) * 86400)
-        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
-        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
-        let query = HKSampleQuery(sampleType: HKObjectType.workoutType(), predicate: predicate,
-                                  limit: 501, sortDescriptors: [sort]) { _, samples, error in
-            guard error == nil else { call.reject("HealthKit workout query failed"); return }
-            let workouts = (samples as? [HKWorkout]) ?? []
-            let formatter = ISO8601DateFormatter()
-            let records: [[String: Any]] = workouts.prefix(500).map { workout in
-                var row: [String: Any] = [
-                    "provider": "apple_health",
-                    "providerId": workout.uuid.uuidString,
-                    "activityType": Int(workout.workoutActivityType.rawValue),
-                    "startAt": formatter.string(from: workout.startDate),
-                    "endAt": formatter.string(from: workout.endDate),
-                    "durationSeconds": workout.duration
-                ]
-                if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
-                    row["distanceMeters"] = distance
-                }
-                return row
+    private func distanceMeters(of workout: HKWorkout) -> Double? {
+        if #available(iOS 16, *) {
+            let identifier: HKQuantityTypeIdentifier?
+            switch workout.workoutActivityType {
+            case .running, .walking, .hiking: identifier = .distanceWalkingRunning
+            case .cycling: identifier = .distanceCycling
+            case .swimming: identifier = .distanceSwimming
+            default: identifier = nil
             }
-            call.resolve(["workouts": records, "truncated": workouts.count > 500])
+            if let identifier, let type = HKObjectType.quantityType(forIdentifier: identifier),
+               let distance = workout.statistics(for: type)?.sumQuantity()?.doubleValue(for: .meter()) {
+                return distance
+            }
         }
-        store.execute(query)
+        return workout.totalDistance?.doubleValue(for: .meter())
     }
+
     // Bounded historical windows. An opaque HealthKit anchor is valid only for
     // the same device, workout type and exact date window.
     @objc func readWorkoutPage(_ call: CAPPluginCall) {
-        guard HKHealthStore.isHealthDataAvailable(), requestedThisSession else {
+        guard HKHealthStore.isHealthDataAvailable(), requestedThisSession, ownsHealthInstallation(call.getString("account")) else {
             call.reject("Request HealthKit access first"); return
         }
         let iso = ISO8601DateFormatter()
@@ -89,7 +210,7 @@ public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
         guard let from = call.getString("from"), let to = call.getString("to"),
               let start = parse(from), let end = parse(to),
               start < end, end.timeIntervalSince(start) <= 30 * 86400,
-              end <= Date().addingTimeInterval(60) else {
+              end <= Date().addingTimeInterval(30 * 86400) else {
             call.reject("Invalid historical window"); return
         }
         var anchor: HKQueryAnchor?
@@ -107,6 +228,7 @@ public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
             NSPredicate(format: "%K < %@", HKPredicateKeyPathStartDate, end as NSDate)
         ])
         let limit = 200
+        let includeDetails = detailsThisSession && call.getBool("details") == true
         let query = HKAnchoredObjectQuery(type: HKObjectType.workoutType(), predicate: predicate,
                                          anchor: anchor, limit: limit) { _, samples, deleted, next, error in
             guard error == nil, let next = next,
@@ -132,8 +254,20 @@ public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
                 case .traditionalStrengthTraining, .functionalStrengthTraining: row["sport"] = "strength"
                 default: break
                 }
-                if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
+                if let distance = self.distanceMeters(of: workout) {
                     row["distanceMeters"] = distance
+                }
+                if let id = workout.metadata?[HKMetadataKeyTimeZone] as? String, let zone = TimeZone(identifier: id) {
+                    var calendar = Calendar(identifier: .gregorian)
+                    calendar.timeZone = zone
+                    let day = calendar.dateComponents([.year, .month, .day], from: workout.startDate)
+                    if let y = day.year, let m = day.month, let d = day.day {
+                        row["activityDay"] = String(format: "%04d-%02d-%02d", y, m, d)
+                    }
+                }
+                if #available(iOS 16, *), includeDetails, let type = HKObjectType.quantityType(forIdentifier: .heartRate),
+                   let average = workout.statistics(for: type)?.averageQuantity()?.doubleValue(for: HKUnit.count().unitDivided(by: .minute())) {
+                    row["averageHR"] = average
                 }
                 return row
             }
