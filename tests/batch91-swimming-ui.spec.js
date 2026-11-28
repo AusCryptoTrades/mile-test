@@ -1,8 +1,10 @@
 const {test,expect}=require('@playwright/test');
 
-test('Swimming Build reads private history and carries the reviewed workout into Calendar',async({page,baseURL})=>{
+const reviewImage=require('./overnight-review-image');
+
+test('Swimming Build reads private history and carries the reviewed workout into Calendar',async({page,baseURL},info)=>{
  const user={id:'00000000-0000-4000-8000-000000000091',email:'swimmer@example.test',email_confirmed_at:'2026-11-19T12:00:00Z'};
- const activities=[{id:'800099',type:'lap_swimming',sport:'Swimming',date:'2026-11-18',distanceKm:1.2,durationSeconds:1500}];
+ const activities=[{id:'800099',type:'lap_swimming',sport:'Swimming',date:'2026-11-18',distanceKm:1.2,durationSeconds:1500,elapsedDurationInSeconds:1500,movingDurationInSeconds:1200}];
  const errors=[];
  page.on('pageerror',error=>errors.push(error.message));
  await page.route('**/*',async route=>{
@@ -28,6 +30,13 @@ test('Swimming Build reads private history and carries the reviewed workout into
  await page.locator('.sport-tile').filter({hasText:/Swimming$/}).first().click();
  const build=page.locator('.m91-build'),next=build.getByRole('button',{name:'Continue'});
  await expect(build.getByRole('heading',{name:'Build your swimming plan'})).toBeVisible();
+ for(const theme of ['forest','graphite','midnight','mono','light','sand','ice']){
+  await page.evaluate(value=>window.m395ThemeSet(value),theme);
+  await expect(page.locator('html')).toHaveAttribute('data-m395-theme',theme);
+  expect(await build.evaluate(node=>node.scrollWidth<=node.clientWidth+1)).toBe(true);
+ }
+ await page.evaluate(()=>window.m395ThemeSet('mono'));
+
  await build.getByLabel('Programme weeks').fill('4');
  await next.click();
  await expect(build.getByText('1.2 km · 1 swim').first()).toBeVisible();
@@ -51,6 +60,7 @@ test('Swimming Build reads private history and carries the reviewed workout into
  await reviewed.locator('summary').first().click();
  await reviewed.locator('summary').filter({hasText:'Workout steps'}).first().click();
  const prescription=await reviewed.locator('li').first().innerText();
+ await reviewImage(info,'swimming-programme-review',reviewed);
  page.once('dialog',dialog=>dialog.accept());
  await build.getByRole('button',{name:'Create plan'}).click();
  await expect(page.locator('#app .mile-universal-header')).toContainText('Calendar');
@@ -65,5 +75,18 @@ test('Swimming Build reads private history and carries the reviewed workout into
  await steps.click();
  await expect(steps.locator('..').locator('li').first()).toHaveText(prescription);
  await expect(page.getByRole('button',{name:'Start run',exact:true})).toHaveCount(0);
+ await page.evaluate(()=>window.mile35OpenActivity('800099'));
+ const detail=page.locator('#mile35-detail');
+ await detail.getByRole('button',{name:'Analysis',exact:true}).click();
+ const iq=detail.locator('.m881-quick');
+ await expect(iq.getByRole('heading',{name:'MILE IQ · Swimming analysis'})).toBeVisible();
+ await expect(iq).toContainText('Moving pace1:40/100 m');
+ await expect(iq).toContainText('No scheduled prescription is verified');
+ const advanced=detail.locator('.m881-detailed');
+ await expect(advanced.getByText(/Repeat pace, stroke efficiency/)).toBeHidden();
+ await reviewImage(info,'swimming-mile-iq',iq);
+ await advanced.locator('summary').click();
+ await expect(advanced.getByText(/Repeat pace, stroke efficiency/)).toBeVisible();
+ expect(await iq.evaluate(node=>node.scrollWidth<=node.clientWidth+1)).toBe(true);
  expect(errors).toEqual([]);
 });

@@ -26,3 +26,12 @@ The taper direction draws on evidence that reducing volume before competition ca
 5. Keep all tests synthetic until a separate hosted staging review is authorised. Production and existing draft branches stay untouched.
 
 Run targeted tests with `npm run test:e2e -- tests/batch91-swimming.spec.js tests/batch91-swimming-ui.spec.js`.
+
+## Stage 2 implementation and verification
+
+- Private Swimming MILE IQ shows a short summary and collapsed evidence. It uses recorded movement time where explicitly supplied, deduplicated swim distance windows and the current athlete check-in. It binds a manual link to a snapshot of the current prescription and revision. Matching claims require the athlete's confirmation, and individual-length, recovery and stroke conclusions require provenance and alignment unavailable in the existing provider feed.
+- Swimming inherits the shared authenticated approval flow. The server checks the latest two fatigue ratings, membership, Calendar visibility and an eligible imminent demanding swim. It confirms supported pool units, exact whole-length steps and consistent distance and duration totals. The only policy proposes a shorter easy swim with wall rests. A stale, ambiguous, completed, matched or Garmin-claimed session is ineligible. Approval writes the same reviewed snapshot and appends an immutable receipt. Stale whole-document saves cannot undo it. The app surfaces the review and history only in the existing staging gate.
+- The official Garmin FIT SDK can round-trip pool workouts for 25 m, 50 m and 25 yd up to 50 supported steps. Offline export uses measured lengths and timed wall rests. Pace carries through as notes. Automatic matching, cloud publication and republication remain disabled. Real supported-device import, watch rendering and partner API readback still require a sandbox fixture. [Garmin FIT workout guide](https://developer.garmin.com/fit/cookbook/encoding-workout-files/)
+- Automated coaching checks cover 36 complete 12-week profiles plus 108 varied simulations, including pool units, duration caps, uninterrupted swimming limits, fatigue, mixed-sport scheduling and dated events. This is implementation validation. Independent swim-coaching review, real-device testing and authorised hosted migration verification remain release gates.
+
+The next separate development priority is native Apple Health, HealthKit and Apple Watch for the runner beta.

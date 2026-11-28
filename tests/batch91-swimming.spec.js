@@ -1,6 +1,7 @@
 const {test,expect}=require('@playwright/test');
 const swim=require('../mile-swimming-plan');
 const workout=require('../mile-running-workout');
+const assert=require('node:assert/strict');
 const start='2026-12-07';
 const base={start,weeks:12,goal:'endurance',level:'advanced',pool:'25m',weeklyMeters:3900,longestMeters:1900,
  continuousMeters:900,available:[0,2,5],sessions:3,dayMinutes:{0:65,2:55,5:80},recovery:'good',
@@ -100,4 +101,51 @@ test('constrained, returning, fatigued and event athletes keep safety boundaries
  expect(swim.generate({...base,interrupted:true}).ok).toBe(false);
  expect(swim.generate({...base,start:'2026-02-30'}).ok).toBe(false);
  expect(swim.generate({...base,dayMinutes:{0:5,2:65,5:65}}).ok).toBe(false);
+});
+
+test('Swimming IQ requires a confirmed snapshot and uses reliable moving time only',()=>{
+ const iq=require('../mile-swimming-iq');
+ const session=swim.generate(base).weeks[0].sessions[0];
+ const activity={id:'swim-abc',date:'2026-12-07',poolMeters:25,setting:'pool',meters:1200,activeSeconds:1200,elapsedSeconds:1500};
+ const matched={...session,revision:1,matchId:activity.id};
+ matched.swimmingMatchPrescription=iq.matchPrescription(matched,activity.id);
+ const result=iq.analyse(activity,{workouts:[matched]});
+ expect(result.plan).toBe(matched);
+ expect(result.metrics).toContainEqual(['Moving pace','1:40/100 m']);
+ expect(result.execution).toContain('Individual sets are unverified');
+ expect(iq.analyse(activity,{workouts:[{...matched,revision:2}]}).plan).toBeNull();
+ expect(iq.analyse(activity,{workouts:[matched,matched]}).plan).toBeNull();
+ expect(iq.analyse({...activity,poolMeters:50},{workouts:[matched]}).comparable).toBe(false);
+ expect(iq.analyse({...activity,activeSeconds:1600}).metrics.some(metric=>metric[0]==='Moving pace')).toBe(false);
+ const high=iq.analyse(activity,{workouts:[{...session,date:'2026-12-11',status:'planned',family:'css',demanding:true}],today:'2026-12-08',fatigue:8});
+ expect(high.adjustment).toContain('your approval');
+});
+
+test('108 additional simulations cover swimming course units, observed pace, fatigue and dated events',()=>{
+ const variants=['beginner','intermediate','advanced'],pools=Object.keys(swim.pools),goals=Object.keys(swim.goals);
+ let sessions=0;
+ for(let i=0;i<108;i++){
+  const level=variants[i%3],pool=pools[Math.floor(i/3)%3],goal=goals[Math.floor(i/9)%6];
+  const fatigue=i%4===0?'poor':i%5===0?'unknown':'good';
+  const athlete={...base,goal,level,pool,recovery:fatigue,sessions:i%2+2,observedPace:85+i*2,
+   weeklyMeters:level==='beginner'?1600+i*12:2500+i*32,
+   continuousMeters:level==='beginner'?100:450+i*8,
+   hardDays:i%4===3?[2]:[],dayMinutes:{0:27+i%33,2:30+i%23,5:60},
+   longestMeters:level==='beginner'?650:1700,
+   eventDate:i%2?'2027-02-14':null};
+  const plan=swim.generate(athlete);
+  expect(plan.ok,JSON.stringify(athlete)).toBe(true);
+  for(const week of plan.weeks)for(const swimSession of week.sessions){
+   sessions++;
+   assert(swimSession.plannedMinutes<=athlete.dayMinutes[swimSession.day], 'Session exceeds availability');
+   if(athlete.eventDate)assert(swimSession.date<athlete.eventDate, 'Swim on or after race day');
+   let uninterrupted=0;
+   for(const step of swimSession.structuredSteps){
+    uninterrupted=step.duration.kind==='time'?0:uninterrupted+step.duration.meters;
+    assert(uninterrupted<=athlete.continuousMeters+.01, 'Continuous block exceeds reported ability');
+   }
+   if(fatigue!=='good'||level==='beginner'||['Recovery','Taper'].includes(week.phase)) assert(!swimSession.demanding, 'Demanding work on a reduced-load day');
+  }
+ }
+ expect(sessions).toBeGreaterThan(2100);
 });

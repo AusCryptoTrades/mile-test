@@ -41,3 +41,7 @@
 .m881-detailed>summary:focus-visible{outline:2px solid var(--accent,var(--orange));outline-offset:-2px}
 .m881-detailed>.m881-analysis,.m881-detailed-charts{margin:0 0 10px;padding:9px 0;border:0;border-top:1px solid var(--line);border-radius:0}
 .m881-detailed-charts:empty{display:none}
+.m91-build .v42-checks label,.m91-build [data-m91-action] { min-height: 44px; }
+.m91-build .field { min-width: 0; }
+.m91-build [data-m91-error]:empty { display: none; }
+.m91-build .m882-week li { overflow-wrap: anywhere; }

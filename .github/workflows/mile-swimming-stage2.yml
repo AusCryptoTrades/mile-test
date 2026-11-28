@@ -1,0 +1,134 @@
+name: MILE Swimming Stage 2
+on:
+  pull_request:
+    branches: [codex/mile-cycling-batch90]
+concurrency:
+  group: mile-swimming-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  foundations:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Verify Garmin contracts and offline FIT
+        run: |
+          npm ci --prefix integrations/garmin --ignore-scripts --no-audit --no-fund
+          node --test integrations/garmin/*.test.mjs integrations/garmin/*.verify.mjs integrations/garmin/fit-binary.mjs
+      - name: Replay Running, Cycling and Swimming revisions in isolated PostgreSQL
+        env:
+          PGHOST: 127.0.0.1
+          PGUSER: postgres
+        run: |
+          for sport in running cycling swimming; do
+            createdb "mile_$sport"
+            PGDATABASE="mile_$sport" psql -v ON_ERROR_STOP=1 \
+              -f supabase/tests/batch88-running-revisions-fixtures.sql \
+              -f supabase/migrations/20261127064605_running_workout_revisions.sql \
+              -f supabase/migrations/20261127081603_training_revision_consent.sql \
+              -f supabase/migrations/20261127082454_training_revision_legacy_workout_ids.sql \
+              -f supabase/migrations/20261127182846_running_whole_km_recovery.sql \
+              -f supabase/migrations/20261128042840_cycling_revision_consent.sql \
+              -f supabase/migrations/20261128071000_swimming_revision_consent.sql
+          done
+          PGDATABASE=mile_running psql -v ON_ERROR_STOP=1 -f supabase/tests/batch88-training-revision-consent.test.sql
+          PGDATABASE=mile_cycling psql -v ON_ERROR_STOP=1 -f supabase/tests/batch90-cycling-consent.test.sql
+          PGDATABASE=mile_swimming psql -v ON_ERROR_STOP=1 -f supabase/tests/batch91-swimming-consent.test.sql
+  browser-matrix:
+    needs: foundations
+    name: Browser (${{ matrix.project }})
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop-chromium, mobile-webkit, mobile-chromium]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    container:
+      image: mcr.microsoft.com/playwright:v1.58.2-noble
+      options: --ipc=host
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Install test dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify preinstalled Chromium and WebKit
+        run: npx playwright install --list
+      - name: Run browser project
+        id: browser
+        env:
+          MILE_RC_SCREENSHOTS: ${{ runner.temp }}/swimming-review
+        run: npm run test:e2e -- --project=${{ matrix.project }}
+      - name: Summarize test outcome
+        if: always()
+        shell: bash
+        env:
+          BROWSER_PROJECT: ${{ matrix.project }}
+          BROWSER_OUTCOME: ${{ steps.browser.outcome }}
+        run: |
+          {
+            echo "## MILE browser test report — $BROWSER_PROJECT"
+            echo ''
+            printf -- '- Commit: `%s`\n' "$GITHUB_SHA"
+            printf -- '- Branch/ref: `%s`\n' "$GITHUB_REF"
+            printf -- '- Browser step: `%s`\n' "${BROWSER_OUTCOME:-skipped}"
+            echo '- Browser tests drive the real app UI with synthetic backend data. Live Garmin, account access and native iOS behavior still need verification.'
+            echo '- See Playwright HTML report artifact for screenshots and traces.'
+            echo '- Do not mark a release ready for iPhone testing solely from this workflow.'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload browser report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: mile-playwright-html-report-${{ matrix.project }}
+          path: playwright-report/
+          retention-days: 7
+      - name: Upload screenshots and traces if tests fail
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: mile-playwright-failure-report-${{ matrix.project }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+      - name: Upload mobile screenshots
+        if: matrix.project == 'mobile-chromium' && !cancelled()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: swimming-mobile-review
+          path: ${{ runner.temp }}/swimming-review/swimming-*.png
+          retention-days: 7
+          if-no-files-found: warn
+
+  browser-tests:
+    name: browser-tests
+    needs: browser-matrix
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every browser project to pass
+        env:
+          MATRIX_RESULT: ${{ needs.browser-matrix.result }}
+        run: |
+          echo "Browser matrix result: $MATRIX_RESULT"
+          test "$MATRIX_RESULT" = success

@@ -152,6 +152,7 @@ function generate(input={}){
  if(daysToEvent!=null&&daysToEvent>weeks*7)warnings.push('The event falls outside this programme. No event taper is scheduled.');
  if((input.priority&&input.priority!=='Swimming')||hardDays.length)warnings.push('Other sports limit demanding swim work and progression.');
  const primary=!input.priority||input.priority==='Swimming';
+ const preferredFamilies=input.setting==='open'&&goal==='fitness'?[...families[goal],'open-water']:families[goal];
  const gear=Array.isArray(input.gear)?input.gear:[];
  const recipeList=library.filter(recipe=>!recipe.gear||gear.includes(recipe.gear));
  const observedPace=number(input.observedPace,55,450)?input.observedPace:null;
@@ -192,7 +193,7 @@ function generate(input={}){
     const quality=!!pace&&!reduced&&phase!=='Base'&&primary&&recovery==='good'&&!nearHard(day,date)&&!hardPlaced&&level!=='beginner';
     const budget=Math.min((target-used)/(chosen.length-index)*(index===0&&chosen.length>1?1.12:1),target-used,longCap);
     const preferred=reduced?(phase==='Taper'?['taper','recovery']:['recovery','foundation']):
-     hardDay?['recovery','foundation']:level==='beginner'?['foundation','recovery','technique']:families[goal];
+     hardDay?['recovery','foundation']:level==='beginner'?['foundation','recovery','technique']:preferredFamilies;
     const eligible=compiled.filter(item=>item.meters<=budget+.001&&item.plannedMinutes<=minutes&&
      (!item.demanding||(quality&&preferred.includes(item.family)&&continuousMeters>=400))&&
      respectsContinuous(item,continuousMeters)&&(!(reduced||hardDay)||preferred.includes(item.family)));
