@@ -97,3 +97,74 @@ html:has(#modalRoot > .modalback) { overflow: hidden; }
 }
 
 #mile-whats-new-return { margin-block: 0 var(--mile-section-gap); }
+
+/* Compact editor with a scrollable field region and persistent actions. */
+#modalRoot .modal:has(.mile-form-actions) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 100%;
+  padding: 0;
+}
+#modalRoot .modal:has(.mile-form-actions) h2 {
+  flex: none;
+  margin: 0;
+  padding: var(--mile-space-md);
+  border-bottom: 1px solid var(--mile-border);
+}
+#modalRoot .mile-form-scroll {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: var(--mile-space-sm) var(--mile-space-md);
+  scroll-padding-block: var(--mile-space-sm);
+}
+#modalRoot .mile-form-scroll .formgrid {
+  gap: var(--mile-space-sm);
+}
+#modalRoot .mile-form-scroll .field label {
+  margin-bottom: var(--mile-space-xs);
+  font-size: var(--mile-type-support);
+}
+#modalRoot .mile-form-scroll :is(input, select, textarea) {
+  padding: 7px 9px;
+}
+#modalRoot .mile-form-scroll textarea {
+  min-height: 58px;
+  height: 58px;
+  resize: vertical;
+}
+#modalRoot .mile-form-actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: var(--mile-space-sm);
+  padding: var(--mile-space-sm) var(--mile-space-md);
+  padding-bottom: max(var(--mile-space-sm), env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--mile-border);
+}
+#modalRoot .mile-form-actions button {
+  min-height: var(--mile-touch-size);
+  margin: 0;
+}
+#modalRoot :is(.modalback:has(.mile-form-actions), #m390-dialog) {
+  top: var(--mile-editor-top, 0px);
+  bottom: auto;
+  height: var(--mile-editor-height, 100dvh);
+}
+#modalRoot.mile-editor-keyboard .mile-form-actions {
+  padding-bottom: var(--mile-space-sm);
+}
+@media (max-width: 780px) {
+  #modalRoot .mile-form-scroll .formgrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  #modalRoot .mile-form-scroll .formgrid > .field:not(.span2) {
+    grid-column: auto !important;
+  }
+}
+@media (max-width: 340px) {
+  #modalRoot .mile-form-scroll .formgrid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}

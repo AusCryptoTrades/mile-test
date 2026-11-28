@@ -36,3 +36,7 @@ MILE uses compact monochrome surfaces, italic page titles and the existing mount
 ## Checking changes
 
 Run the repository Playwright suite in desktop Chromium, mobile Chromium and mobile WebKit. The browser audit fixture exercises the app's real views with synthetic sign-in and data responses. Use narrow mobile, tablet and desktop captures to check wrapping, hit areas and scroll behavior. Verify live account, provider and native device paths independently when they are in scope.
+
+### Compact training editors
+
+Training editors keep their heading and actions outside the scrollable fields. Use a two-column grid for paired fields where space permits and retain the single-column layout on the narrowest phones. Controls keep 16 px text and the Save action keeps a 44 px target. Use the visual viewport for the editor height and offset when the browser pans or resizes around its keyboard. Validate with a reduced viewport and with the device keyboard before release.

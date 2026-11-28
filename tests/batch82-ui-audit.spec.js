@@ -13,7 +13,7 @@ const samples = Array.from({ length: 11 }, (_, i) => ({
   movingDurationInSeconds: i * 62,
 }));
 
-async function openApp(page, { signedIn = false, laps = true, syncStore = null } = {}) {
+async function openApp(page, { signedIn = false, laps = true, syncStore = null, admin = false } = {}) {
   const origin = 'http://127.0.0.1:4173';
   const backend = 'https://mgixvokjlytjuypzcfzz.supabase.co';
   await page.route('**/*', async route => {
@@ -23,7 +23,9 @@ async function openApp(page, { signedIn = false, laps = true, syncStore = null }
     if (url.origin !== backend) return route.abort();
     let json;
     if (url.pathname === '/auth/v1/token' && signedIn) {
-      json = { access_token: 'fixture-auth-token', refresh_token: 'fixture-refresh-token', user };
+      const fixtureUser = admin ? {...user, app_metadata:{mile_role:'admin'}} : user;
+      const payload = Buffer.from(JSON.stringify({sub:user.id,app_metadata:fixtureUser.app_metadata})).toString('base64');
+      json = { access_token: 'fixture.'+payload+'.fixture', refresh_token: 'fixture-refresh-token', user:fixtureUser };
     } else if (url.pathname === '/auth/v1/user' && signedIn) {
       json = user;
     } else if (url.pathname === '/functions/v1/garmin-connection-status') {
@@ -78,7 +80,8 @@ async function scan(page,root,label){
    else if((tag==='button'||n.getAttribute('role')==='button')&&(r.width<44||r.height<36))issues.push('review touch target');
    if(r.left< -2||r.right>doc.documentElement.clientWidth+2)issues.push('horizontal clipping candidate');
    if(isForm&&!n.getAttribute('aria-label')&&!n.getAttribute('aria-labelledby')&&!n.labels?.length)issues.push('review form label');
-   return {tag,name:nm,id:n.id||null,cls:clean(n.className),width:Math.round(r.width),height:Math.round(r.height),font:c.fontSize,bg:c.backgroundColor,fg:c.color,border:c.borderRadius,disabled:!!n.disabled,issues};
+   return {tag,name:nm,id:n.id||null,cls:clean(n.className),width:Math.round(r.width),height:Math.round(r.height),
+    labels:[...(n.labels||[])].filter(visible).map(label=>{const box=label.getBoundingClientRect();return {name:clean(label.innerText),width:Math.round(box.width),height:Math.round(box.height)}}),font:c.fontSize,bg:c.backgroundColor,fg:c.color,border:c.borderRadius,disabled:!!n.disabled,issues};
   });
   return {label,theme:doc.documentElement.dataset.m395Theme||doc.documentElement.dataset.mileTheme||'standalone',viewport:doc.documentElement.clientWidth,scrollWidth:Math.max(doc.documentElement.scrollWidth,el.scrollWidth),headings:[...el.querySelectorAll('h1,h2,h3')].filter(visible).map(n=>clean(n.innerText)),controls,issues:controls.filter(c=>c.issues.length).length};
  },label);
@@ -143,13 +146,15 @@ test('82 audit Social, activity details, support and embedded screens',async({pa
 
 test('82 audit all admin modules and their rendered controls',async({page},info)=>{
  test.setTimeout(120000);
- await openApp(page,{signedIn:true});
+ await openApp(page,{signedIn:true,admin:true});
  const respond=(r,data)=>r.fulfill({json:data,headers:{'access-control-allow-origin':'http://127.0.0.1:4173'}});
  await page.route('**/functions/v1/mile-admin-overview?*',r=>respond(r,{days:Number(new URL(r.request().url()).searchParams.get('days')),metrics:{athletes:4,garmin_activities:14,open_reports:2},growth:[{day:'2026-11-19',total:4},{day:'2026-11-25',total:4}],generated_at:'2026-11-25T00:00:00Z'}));
  await page.route('**/functions/v1/mile-admin-management?*',r=>respond(r,new URL(r.request().url()).searchParams.get('view')==='athletes'?{rows:[{display_name:'Fixture athlete',username:'fixture',activities_30d:6}],has_more:false}:{rows:[{id:'00000000-0000-4000-8000-000000000005',kind:'bug',page:'Calendar',description:'Fixture bug report',status:'new'}],counts:[{status:'new',count:1}],has_more:false}));
  await page.route('**/functions/v1/mile-admin-analytics?*',r=>respond(r,{days:Number(new URL(r.request().url()).searchParams.get('days')),usage:{members_with_recorded_events:2,registered_members:4,garmin_activities:14},health:{webhook_events:297,connection_records:2},trend:[{day:'2026-11-25',garmin:2,posts:1}],webhook_status:[{status:'processed',count:297}],file_status:[],generated_at:'2026-11-25T00:00:00Z'}));
  await page.route('**/functions/v1/mile-admin-release?*',r=>respond(r,new URL(r.request().url()).searchParams.get('view')==='announcements'?{rows:[{title:'Fixture draft',kind:'release',status:'draft',body:'Fixture only'}],audience:4,has_more:false}:{rows:[{action:'feedback.status',detail:{from:'new',to:'fixed'}}],security:{admin_accounts:1,public_tables_without_rls:0,recorded_admin_actions:1},has_more:false}));
- await page.evaluate(()=>{window.mileBetaIsAdmin=()=>true;window.mileBetaAdmin()});
+ expect(await page.evaluate(()=>window.mileBetaIsAdmin())).toBe(true);
+ await page.evaluate(()=>window.mileV3ToggleMore());
+ await page.locator('#mile-emergency-more [data-beta5-admin]').click();
  const panel=page.locator('#mile-admin-centre');
  await expect(panel.locator('.ma-status')).toContainText('Overview data connected');
  await scan(page,panel,'Admin / Overview');
@@ -173,6 +178,7 @@ test('compact Stats filters and accessible Calendar actions work on narrow scree
  await page.evaluate(()=>window.mileV3Go('calendar'));
  await expect(page.getByRole('button',{name:'Previous month',exact:true})).toBeVisible();
  await expect(page.getByRole('button',{name:'Next month',exact:true})).toBeVisible();
+ expect(await page.evaluate(()=>window.mileBetaIsAdmin())).toBe(false);
  const addWorkout=page.getByRole('button',{name:/add workout/i}).first();
  await addWorkout.press('Enter');
  const dialog=page.getByRole('dialog',{name:'Add workout',exact:false});
@@ -214,4 +220,26 @@ test('MILE IQ labels its check-in sliders and notes',async({page})=>{
  await expect(page.getByRole('slider',{name:/fatigue/i})).toBeVisible();
  await expect(page.getByRole('slider',{name:/soreness/i})).toBeVisible();
  await expect(page.getByRole('textbox',{name:'Recovery notes'})).toBeVisible();
+});
+
+
+test('workout actions stay above a shortened and panned visual viewport',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.setViewportSize({width:390,height:680});
+ await page.evaluate(()=>window.mileV3Go('calendar'));
+ await page.getByRole('button',{name:/add workout/i}).first().click();
+ const dialog=page.getByRole('dialog',{name:'Add workout'});
+ await dialog.getByLabel('Workout instructions').focus();
+ await page.evaluate(()=>{
+  Object.defineProperties(visualViewport,{height:{value:335},offsetTop:{value:40}});
+  visualViewport.dispatchEvent(new Event('resize'));
+  document.querySelector('.mile-form-scroll').scrollTop=1000;
+ });
+ const save=dialog.getByRole('button',{name:'Save workout'});
+ await expect(save).toBeVisible();
+ const box=await save.boundingBox();
+ expect(box.y+box.height).toBeLessThanOrEqual(376);
+ expect(box.height).toBeGreaterThanOrEqual(44);
+ await save.click();
+ await expect(dialog.getByRole('alert')).toBeVisible();
 });
