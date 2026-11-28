@@ -35,7 +35,7 @@ export function attachAppleHealth(win){
   panel.append(put('p','Import recorded workouts into your private MILE account. You choose what Apple Health shares.'));
   const message=put('p',status||(consent?.enabled?'Workout import is enabled.':'Choose whether to import workouts.'));
   message.className='muted small';message.setAttribute('role','status');panel.append(message);
-  if(consent?.last_import_at)panel.append(put('p','Last successful sync · '+new Date(consent.last_import_at).toLocaleString()));
+  if(consent?.last_import_at)panel.append(put('p','Last saved import · '+new Date(consent.last_import_at).toLocaleString()));
   const button=(label,fn)=>{
    const el=put('button',label);el.type='button';el.className='btn alt sm';el.disabled=busy;
    el.addEventListener('click',()=>{if(token===generation)void fn()});return el;
@@ -87,6 +87,11 @@ export function attachAppleHealth(win){
    if(nonce!==generation||current()!==id)return;
    consent=next;rows=history;
    render();app.changed();
+   if(consent?.enabled&&!permission&&plugin.resumeReadAccess){
+    const response=await plugin.resumeReadAccess({account:id});
+    if(nonce!==generation||current()!==id)return;
+    if(response.ready){permission=true;background=true;render();void checkChanges();}
+   }
   }catch{if(nonce===generation&&current()===id){status='Apple Health cloud status is unavailable.';render();}}
  }
  async function sync(details,automatic=false){
@@ -156,9 +161,13 @@ export function attachAppleHealth(win){
  }
  plugin.addListener?.('workoutChanged',()=>void checkChanges());
  win.addEventListener('mile:native-state',event=>{if(event.detail.isActive)void checkChanges();});
+ const eligibleWatchRun=(session,canonical)=>{
+  if(!context()||!session||session.date<app.localDay()||session.date>app.watchThrough())return null;
+  return watchRun(session,canonical);
+ };
  async function schedule(id){
   const session=context();
-  const workout=watchRun(app.workout(id),win.mileStructuredWorkout);
+  const workout=eligibleWatchRun(app.workout(id),win.mileStructuredWorkout);
   if(!session||!workout||!win.confirm('Schedule this exact running workout on Apple Watch for '+workout.date+'?'))return;
   try{
    const result=await plugin.scheduleRun({account:session.accountId,workout});
@@ -166,7 +175,7 @@ export function attachAppleHealth(win){
     'Scheduled on iPhone. Check the Apple Watch Workout app after syncing.');
   }catch(error){if(current()===session.accountId)app.message(error.message||'Apple Watch scheduling unavailable.');}
  }
- win.mileAppleHealth=Object.freeze({refresh,reset,activities:()=>projected().visible,mount,schedule,watchRun,
+ win.mileAppleHealth=Object.freeze({refresh,reset,activities:()=>projected().visible,mount,schedule,watchRun:eligibleWatchRun,
   renderDetail,
   async detail(id){
    const before=generation,account=current();

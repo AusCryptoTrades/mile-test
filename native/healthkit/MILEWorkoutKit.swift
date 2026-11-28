@@ -73,7 +73,7 @@ extension MILEHealthKitPlugin {
             case "heart_rate":
                 guard let low = target["lowBpm"] as? Double, let high = target["highBpm"] as? Double,
                       low >= 30, high <= 250, low <= high else { throw Invalid.workout }
-                alert = HeartRateRangeAlert.heartRate(low...high, unit: .beatsPerMinute)
+                alert = HeartRateRangeAlert.heartRate(low...high, unit: WorkoutAlertMetric.countPerMinute)
             default: throw Invalid.workout
             }
             if let alert, !CustomWorkout.supportsAlert(alert, activity: .running, location: .outdoor) { throw Invalid.workout }

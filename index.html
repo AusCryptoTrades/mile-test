@@ -1363,6 +1363,7 @@ async function importBackup(input){let f=input.files[0];if(!f)return;try{let s=J
 window.mileAppleAppContext=Object.freeze({
  session:()=>window.MILE_NATIVE_BUILD?.appleHealth===true&&window.Capacitor?.isNativePlatform?.()&&v4Member&&token&&userId?{accountId:userId,accessToken:token,url:state.settings.supabaseUrl,anonKey:state.settings.supabaseAnon}:null,
  garmin:()=>state.activities||[],
+ localDay:()=>today(),watchThrough:()=>add(today(),7),
  workout:id=>v4Ready?state.workouts.find(w=>String(w.id)===id):null,
  message:text=>notice(text),
  changed:()=>{

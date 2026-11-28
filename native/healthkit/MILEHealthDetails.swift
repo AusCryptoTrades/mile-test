@@ -72,7 +72,7 @@ extension MILEHealthKitPlugin {
             let metrics: [(String, HKQuantityTypeIdentifier, HKUnit, Int)] = [
                 ("restingHR", .restingHeartRate, HKUnit.count().unitDivided(by: .minute()), 7),
                 ("hrvSDNN", .heartRateVariabilitySDNN, .secondUnit(with: .milli), 7),
-                ("vo2Max", .vo2Max, HKUnit(from: "ml/kg*min"), 30)
+                ("vo2Max", .vo2Max, HKUnit.literUnit(with: .milli).unitDivided(by: HKUnit.gramUnit(with: .kilo)).unitDivided(by: .minute()), 30)
             ]
             var result: [String: Any] = [:]
             let formatter = ISO8601DateFormatter()

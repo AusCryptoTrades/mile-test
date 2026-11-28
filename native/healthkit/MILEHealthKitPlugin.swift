@@ -22,6 +22,7 @@ public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "readWorkoutDetail", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "observeWorkouts", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "changeCounter", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "resumeReadAccess", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "scheduleRun", returnType: CAPPluginReturnPromise)
     ]
     private let store = HKHealthStore()
@@ -73,6 +74,22 @@ public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
                 detailsThisSession = false
             }
             store.disableBackgroundDelivery(for: HKObjectType.workoutType()) { _, _ in call.resolve(["enabled": false]) }
+        }
+    }
+
+    @objc func resumeReadAccess(_ call: CAPPluginCall) {
+        let defaults = UserDefaults.standard
+        guard HKHealthStore.isHealthDataAvailable(), defaults.bool(forKey: observerKey),
+              let account = call.getString("account"), account == defaults.string(forKey: "mile.healthkit.installation-owner") else {
+            call.resolve(["ready": false]); return
+        }
+        store.getRequestStatusForAuthorization(toShare: [], read: [HKObjectType.workoutType()]) { status, error in
+            DispatchQueue.main.async {
+                guard error == nil, status == .unnecessary else { call.resolve(["ready": false]); return }
+                // A prior request means querying is permitted to proceed. It does not disclose a read grant.
+                self.requestedThisSession = true
+                call.resolve(["ready": true])
+            }
         }
     }
 
@@ -139,6 +156,23 @@ public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
+    private func distanceMeters(of workout: HKWorkout) -> Double? {
+        if #available(iOS 16, *) {
+            let identifier: HKQuantityTypeIdentifier?
+            switch workout.workoutActivityType {
+            case .running, .walking, .hiking: identifier = .distanceWalkingRunning
+            case .cycling: identifier = .distanceCycling
+            case .swimming: identifier = .distanceSwimming
+            default: identifier = nil
+            }
+            if let identifier, let type = HKObjectType.quantityType(forIdentifier: identifier),
+               let distance = workout.statistics(for: type)?.sumQuantity()?.doubleValue(for: .meter()) {
+                return distance
+            }
+        }
+        return workout.totalDistance?.doubleValue(for: .meter())
+    }
+
     @objc func readWorkouts(_ call: CAPPluginCall) {
         guard HKHealthStore.isHealthDataAvailable(), requestedThisSession else {
             call.reject("Request HealthKit access first"); return
@@ -165,7 +199,7 @@ public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
                     "endAt": formatter.string(from: workout.endDate),
                     "durationSeconds": workout.duration
                 ]
-                if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
+                if let distance = self.distanceMeters(of: workout) {
                     row["distanceMeters"] = distance
                 }
                 return row
@@ -231,7 +265,7 @@ public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
                 case .traditionalStrengthTraining, .functionalStrengthTraining: row["sport"] = "strength"
                 default: break
                 }
-                if let distance = workout.totalDistance?.doubleValue(for: .meter()) {
+                if let distance = self.distanceMeters(of: workout) {
                     row["distanceMeters"] = distance
                 }
                 if let id = workout.metadata?[HKMetadataKeyTimeZone] as? String, let zone = TimeZone(identifier: id) {

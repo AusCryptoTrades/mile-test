@@ -9,6 +9,7 @@ const run={id:'scheduled-apple-run',name:'Aerobic practice',sport:'Running',date
  structuredSteps:[{kind:'step',intensity:'active',duration:{kind:'distance',meters:10000},target:{kind:'open'}}]};
 test('native Apple Health imports privately, creates a verified match and deletes the cloud copy',async({page,baseURL},info)=>{
  let connected=false,rows=[],requests=[];
+ const watch={...run,id:'scheduled-watch',date:'2026-11-29',name:'Tomorrow Watch run'};
  const user={id:owner,email:'apple@example.test',email_confirmed_at:'2026-11-19T00:00:00Z'};
  await page.route('**/*',async route=>{
   const url=new URL(route.request().url());
@@ -19,7 +20,7 @@ test('native Apple Health imports privately, creates a verified match and delete
   else if(url.pathname==='/auth/v1/user')json=user;
   else if(url.pathname==='/functions/v1/garmin-connection-status')json={status:'not_connected'};
   else if(url.pathname==='/rest/v1/av_members')json=[{user_id:owner}];
-  else if(url.pathname==='/rest/v1/av_training_data'&&route.request().method()==='GET')json=[{training_data:{activities:[],workouts:[run],blocks:[],settings:{}}}];
+  else if(url.pathname==='/rest/v1/av_training_data'&&route.request().method()==='GET')json=[{training_data:{activities:[],workouts:[run,watch],blocks:[],settings:{}}}];
   else if(url.pathname==='/rest/v1/mile_device_consents')json=connected?[{enabled:true,epoch:owner,last_import_at:date+'T12:00:00Z'}]:[];
   else if(url.pathname==='/rest/v1/mile_device_workouts')json=rows;
   else if(url.pathname==='/rest/v1/rpc/mile_set_apple_health_consent'){
@@ -55,6 +56,7 @@ test('native Apple Health imports privately, creates a verified match and delete
    checkpointGet:async({key})=>({value:checkpoints.get(key)??null}),
    checkpointSet:async({key,value})=>checkpoints.set(key,value),
    checkpointRemove:async({key})=>checkpoints.delete(key),
+   scheduleRun:async payload=>{window.mockWatchRun=payload;return {status:'scheduledOnPhone'};},
    observeWorkouts:async()=>({enabled:false}),readWorkoutDetail:async()=>({}),addListener:()=>{}
   }}};
  },{stage,activity,date});
@@ -67,9 +69,15 @@ test('native Apple Health imports privately, creates a verified match and delete
  await page.evaluate(()=>import('/native/sync/apple-app.mjs'));
  await page.evaluate(()=>window.mile771.open('connections'));
  const panel=page.locator('[data-mile-apple-panel]');
+ for(const theme of ['forest','graphite','midnight','mono','light','sand','ice']){
+  await page.evaluate(value=>window.m395ThemeSet(value),theme);
+  await expect(page.locator('html')).toHaveAttribute('data-m395-theme',theme);
+  expect(await panel.evaluate(node=>node.scrollWidth<=node.clientWidth+1)).toBe(true);
+ }
+ await page.evaluate(()=>window.m395ThemeSet('mono'));
  page.once('dialog',dialog=>dialog.accept());
  await panel.getByRole('button',{name:'Connect Apple Health'}).click();
- await expect(panel).toContainText('Last successful sync');
+ await expect(panel).toContainText('Last saved import');
  expect(requests.flatMap(p=>p.p_rows??[])).toHaveLength(1);
  expect(Object.keys(requests.flatMap(p=>p.p_rows??[])[0])).not.toContain('user_id');
  await reviewImage(info,'apple-health-connected',panel);
@@ -87,4 +95,16 @@ test('native Apple Health imports privately, creates a verified match and delete
  await panel.getByRole('button',{name:'Disconnect and delete imports'}).click();
  await expect(panel).toContainText('Apple imports deleted from MILE');
  expect(await page.evaluate(()=>mileAllActivities().some(a=>a.source==='apple_health'))).toBe(false);
+ await page.evaluate(date=>{window.mileV3Go('calendar');viewDate=date;calendarMonth=date.slice(0,7);render();},watch.date);
+ const planned=page.locator('#app summary').filter({hasText:/^Planned sessions/}).first();
+ if(await planned.count())await planned.click();
+ const card=page.locator('details.mile-cal-session').filter({hasText:watch.name}).first();
+ if(await card.count())await card.locator('summary').first().click();
+ page.once('dialog',dialog=>dialog.accept());
+ await page.getByRole('button',{name:'Schedule on Apple Watch'}).click();
+ const sent=await page.evaluate(()=>window.mockWatchRun);
+ expect(sent.workout.steps).toEqual(watch.structuredSteps);
+ expect(sent.workout.revision).toBe(1);
+ await expect(page.locator('#toast')).toContainText('Scheduled on iPhone');
+
 });

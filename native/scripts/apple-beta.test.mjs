@@ -48,3 +48,13 @@ test('WorkoutKit conversion preserves repeat steps and rejects unsupported worko
   {structuredSteps:[{...recovery,duration:{kind:'heart_rate',direction:'below',bpm:120,fallbackSeconds:90}}]}])
   assert.equal(watchRun({...base,...changed},workout),null);
 });
+
+test('transport refuses to accept a non-confirming atomic response',async()=>{
+ const {createAppleTransport}=await import('../sync/apple-transport.mjs');
+ let response={};
+ const transport=createAppleTransport({baseUrl:'https://staging.example',anonKey:'fixture-public',session:()=>({accountId:'a',accessToken:'fixture'}),
+  fetchImpl:async()=>({ok:true,json:async()=>response})});
+ await assert.rejects(transport.commit('a',[],[],'epoch'),/not confirmed/);
+ response={committed:true};
+ assert.deepEqual(await transport.commit('a',[],[],'epoch'),response);
+});

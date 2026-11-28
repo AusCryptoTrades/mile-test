@@ -20,8 +20,10 @@ export function createAppleTransport({baseUrl,anonKey,session,fetchImpl=fetch,si
  };
  const rpc=async (accountId,name,body)=>await (await request(accountId,'/rest/v1/rpc/'+name,{method:'POST',body:JSON.stringify(body)})).json();
  return Object.freeze({
-  commit(accountId,rows,deleted,epoch){
-   return rpc(accountId,'mile_commit_apple_health_page',{p_epoch:epoch,p_rows:rows,p_deleted:deleted});
+  async commit(accountId,rows,deleted,epoch){
+   const receipt=await rpc(accountId,'mile_commit_apple_health_page',{p_epoch:epoch,p_rows:rows,p_deleted:deleted});
+   if(receipt?.committed!==true)throw Error('Apple Health commit was not confirmed');
+   return receipt;
   },
   setConsent(accountId,enabled){return rpc(accountId,'mile_set_apple_health_consent',{p_enabled:enabled})},
   reviewOverlap(accountId,id,separate){
