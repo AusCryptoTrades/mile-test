@@ -129,7 +129,7 @@ test('82 audit Social, activity details, support and embedded screens',async({pa
   await step(page,info,'Social / '+tab,async()=>{await page.evaluate(t=>window.m36Open(t),tab);await expect.poll(()=>page.evaluate(()=>window.m36State.loading)).toBe(false)});
  }
  await step(page,info,'Activity details',async()=>{await page.evaluate(()=>window.mileV3Go('dashboard'));await page.getByRole('button',{name:/fixture morning run/i}).click()},'#mile35-detail');
- for(const tab of ['Overview','Charts','Splits'])await step(page,info,'Activity details / '+tab,()=>page.getByRole('button',{name:tab,exact:true}).click(),'#mile35-detail');
+ for(const tab of ['Overview','Charts','Splits','Map'])await step(page,info,'Activity details / '+tab,()=>page.getByRole('button',{name:tab,exact:true}).click(),'#mile35-detail');
  await page.locator('#mile35-detail').getByRole('button',{name:/back/i}).click().catch(()=>{});
  for(const kind of ['bug','feedback']){
   await step(page,info,'Support / '+kind,()=>page.evaluate(k=>window.mileBetaReport(k),kind),'#mile-beta-feedback-overlay');
@@ -157,4 +157,41 @@ test('82 audit all admin modules and their rendered controls',async({page},info)
   await step(page,info,'Admin / '+view,async()=>{await panel.locator(selector).click();await expect(panel.locator('.ma-management')).toContainText(ready)},'#mile-admin-centre');
   await panel.getByRole('button',{name:'‹ Overview'}).click().catch(()=>{});
  }
+});
+
+test('compact Stats filters and accessible Calendar actions work on narrow screens',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('performance'));
+ const sports=page.locator('.m70-sport');
+ const other=sports.getByRole('button',{name:'Other',exact:true});
+ await expect(other).toBeVisible();
+ expect(await sports.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+ await other.click();
+ await expect(other).toHaveAttribute('aria-pressed','true');
+
+ await page.evaluate(()=>window.mileV3Go('calendar'));
+ await expect(page.getByRole('button',{name:'Previous month',exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Next month',exact:true})).toBeVisible();
+ const addWorkout=page.getByRole('button',{name:/add workout/i}).first();
+ await addWorkout.press('Enter');
+ const dialog=page.getByRole('dialog',{name:'Add workout',exact:false});
+ await expect(dialog).toBeVisible();
+ await expect(dialog).toBeFocused();
+ await expect(page.locator('html')).toHaveCSS('overflow','hidden');
+ await page.keyboard.press('Escape');
+ await expect(dialog).toHaveCount(0);
+ await expect(addWorkout).toBeFocused();
+});
+
+test('More navigates from a scrolled page to the top of the destination',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>{document.body.style.minHeight='3000px';window.scrollTo(0,425);});
+ await expect.poll(()=>page.evaluate(()=>scrollY)).toBe(425);
+ await page.getByRole('button',{name:/More$/}).filter({visible:true}).first().click();
+ const menu=page.locator('#mile-emergency-more.open');
+ await expect(menu).toBeVisible();
+ await menu.getByRole('button',{name:/Stats Training volume/}).click();
+ await expect(menu).toHaveCount(0);
+ await expect(page.locator('#app h1').first()).toHaveText('Stats');
+ await expect.poll(()=>page.evaluate(()=>scrollY)).toBe(0);
 });

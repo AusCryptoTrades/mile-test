@@ -18,7 +18,7 @@ html body :is(#app,#m3932-detail,#mile35-detail,#m3927-detail,#mile-admin-centre
  min-height:0!important;padding:7px 9px!important;border-radius:9px!important;box-shadow:none!important;
 }
 html body :is(#app,#m3932-detail,#mile35-detail,#m3927-detail,#mile-admin-centre) :is(.mile-insight-metric,.mile-v3-stat,.m3932-metric,.m375-stat,.m36-stat,.m36-stat-card,.m362-metric,.m362-stat,.m387-week-stat,.m387-stat,.m777-metric,.m395-metric,.mile35-metric,.mile35-tile,.mile-b1-stats>div,.mile-b1-event-metrics>div,.m398-metrics>div,.m380-stats>div,.mile-recovery-stats>div,.mile873-metrics>div,.m3929-statgrid>div,.m79-preview-metrics>div,.m3923-metrics>div) :is(strong,.number,b){
- font-size:clamp(14px,4vw,20px)!important;line-height:1.2!important;letter-spacing:-.3px!important;overflow-wrap:anywhere;
+ font-size:var(--mile-type-metric)!important;line-height:1.2!important;letter-spacing:-.3px!important;overflow-wrap:anywhere;
 }
 html body :is(#app,#m3932-detail,#mile35-detail,#m3927-detail,#mile-admin-centre) :is(.mile-insight-metric,.mile-v3-stat,.m3932-metric,.m375-stat,.m36-stat,.m36-stat-card,.m362-metric,.m362-stat,.m387-week-stat,.m387-stat,.m777-metric,.m395-metric,.mile35-metric,.mile35-tile,.mile-b1-stats>div,.mile-b1-event-metrics>div,.m398-metrics>div,.m380-stats>div,.mile-recovery-stats>div,.mile873-metrics>div,.m3929-statgrid>div,.m79-preview-metrics>div,.m3923-metrics>div) small{font-size:11px!important;line-height:1.3!important;margin-top:3px!important}
 html body #app .grid>.card.v3-kpi{padding:9px 11px!important;min-height:0!important;border-radius:10px!important}
@@ -31,7 +31,7 @@ html body #app .mile35-ring{width:80px;height:80px}
 html body #app .mile35-ring:before{width:61px;height:61px}
 html body #app .mile35-week-main{grid-template-columns:minmax(0,1fr) 85px;gap:8px}
 html body #m3932-detail .m3932-metric{padding:8px 6px!important}
-html body #m3932-detail .m3932-metric strong{font-size:clamp(14px,4vw,20px)!important}
+html body #m3932-detail .m3932-metric strong{font-size:var(--mile-type-metric)!important}
 html body #m3932-detail .m3932-metric small{margin-top:3px!important}
 html body :is(#mile35-detail,#m3927-detail) :is(.mile35-top,.m3927-top){margin-bottom:10px!important}
 /* Fallback if legacy post-render code attempts to reinsert a stale heading. */
@@ -39,11 +39,7 @@ html body #app:has(> #mile-native-view)>:is(.mile-sc-intro,.mile-universal-heade
 
 /* 87.6 — shared density scale. No global button/height reset; no route, color,
    visibility, stacking, scroll locking or live exercise changes. */
-:root {
- --m876-space-xs:4px; --m876-space-sm:8px; --m876-space-md:12px;
- --m876-space-lg:16px; --m876-card-pad:12px; --m876-row-min:48px;
- --m876-heading:24px; --m876-hero-min:86px;
-}
+
 /* Resolve 87.5.2 cascade against the existing MILE 78 button family.
    Settings remains the established 13px/9px reference. */
 html[data-mile-buttons="main"] body #mile35-detail button.mile35-back:not([aria-label^="Close"]),
@@ -62,17 +58,17 @@ html[data-mile-buttons="main"] body #app button.m771-back {
 /* All main-app screens that use the shared banner; natural height accommodates
    long titles, zoom and narrow phones. Do not change the app's main toolbar. */
 html[data-mile-buttons="main"] body #app[data-universal-header]>.mile-universal-header {
- height:auto!important; min-height:var(--m876-hero-min)!important;
- max-height:none!important; padding:10px 14px!important; margin-bottom:10px!important;
+ height:auto!important; min-height:var(--mile-banner-size)!important;
+ max-height:none!important; padding:var(--mile-banner-padding)!important; margin-bottom:var(--mile-section-gap)!important;
 }
 html[data-mile-buttons="main"] body #app[data-universal-header]>.mile-universal-header h1 {
- font-size:var(--m876-heading)!important; margin:3px 0!important; overflow-wrap:anywhere;
+ font-size:var(--mile-type-title)!important; margin:3px 0!important; overflow-wrap:anywhere;
 }
 /* Main content, explicit non-interactive panels and selected dense lists. */
 html[data-mile-buttons="main"] body #app :is(.mile-v32-card,.mile-b1-section,.m395-appearance,.m384-training-head,.m362-section) {
- padding-block:var(--m876-card-pad)!important; border-radius:12px!important;
+ padding-block:var(--mile-space-md)!important; border-radius:var(--mile-card-radius)!important;
 }
-html[data-mile-buttons="main"] body #app .mile-dashboard .v3-today {padding:var(--m876-card-pad)!important}
+html[data-mile-buttons="main"] body #app .mile-dashboard .v3-today {padding:var(--mile-space-md)!important}
 html[data-mile-buttons="main"] body #app :is(.v3-activity,.mile35-activity) {
  min-height:54px!important; padding-block:8px!important; margin-block:4px!important;
 }
@@ -106,7 +102,7 @@ html[data-mile-buttons="main"] body #app .m387-week {padding:12px!important;marg
 html[data-mile-buttons="main"] body #app .m395-theme {min-height:72px!important;padding:8px!important}
 html[data-mile-buttons="main"] body #app .m771-hub button.m771-row,
 html[data-mile-buttons="main"] body #app button.m777-link {
- min-height:var(--m876-row-min)!important;padding:8px 12px!important;gap:8px!important;
+ min-height:max(48px, var(--mile-touch-size))!important;padding:8px 12px!important;gap:8px!important;
 }
 html[data-mile-buttons="main"] body #app[data-m79-social="messages"] .m86-inbox .m37-conversation {
  min-height:52px!important;padding-block:6px!important;
@@ -119,7 +115,7 @@ html[data-mile-buttons="main"] body #mile-clean-sheet-host #m36-drawer .mile-dra
 html[data-mile-buttons="main"] body #mile-emergency-more .em-group .em-link,
 html[data-mile-buttons="main"] body #m36-drawer .m320-drawer-group .m320-drawer-link,
 html[data-mile-buttons="main"] body #m36-drawer .mile-drawer-person {
- min-height:var(--m876-row-min)!important;padding-block:7px!important;gap:8px!important;
+ min-height:max(48px, var(--mile-touch-size))!important;padding-block:7px!important;gap:8px!important;
 }
 html[data-mile-buttons="main"] body #mile-clean-sheet-host :is(.m320-drawer-group,.em-group) {margin-bottom:8px}
 html[data-mile-buttons="main"] body #m36-drawer .m320-drawer-group-label {margin-block:10px 5px!important}
@@ -191,7 +187,7 @@ html[data-mile-buttons="tracker"] body #setup select#workout {
 html[data-mile-buttons="tracker"] body #setup select#workout option {
  color:var(--mile-text); background-color:var(--mile-panel2);
 }
-/* Sport filters must scroll instead of squeezing neighboring labels together. */
+/* Preserve intrinsic filter labels when the sport row wraps. */
 html[data-mile-buttons="main"] body #app .m70-filter {gap:6px!important}
 html[data-mile-buttons="main"] body #app .m70-filter .m70-filter-button {flex:0 0 auto!important;padding-inline:8px!important}
 
@@ -268,7 +264,7 @@ html[data-mile-buttons="main"] body #app .m79-segments button,html[data-mile-but
 html[data-mile-buttons] body :is(#app,#mile35-detail,#m3927-detail,#m3932-detail,#mile-admin-centre,#setup,#root) details:not(.m877-feed-info,.m877-athlete-actions,.m8772-notification-info)>summary{list-style:none!important;position:relative!important;padding-inline-end:30px!important;cursor:pointer;min-height:44px;box-sizing:border-box}
 html[data-mile-buttons] body :is(#app,#mile35-detail,#m3927-detail,#m3932-detail,#mile-admin-centre,#setup,#root) details>summary::-webkit-details-marker{display:none!important}
 html[data-mile-buttons] body :is(#app,#mile35-detail,#m3927-detail,#m3932-detail,#mile-admin-centre,#setup,#root) details>summary::marker{content:""!important}
-html[data-mile-buttons] body :is(#app,#mile35-detail,#m3927-detail,#m3932-detail,#mile-admin-centre,#setup,#root) details:not(.m877-feed-info,.m877-athlete-actions)>summary::after{content:"+"!important;position:absolute!important;right:8px!important;top:50%!important;transform:translateY(-50%)!important;font-size:19px!important;font-weight:500!important;line-height:1!important;color:currentColor!important;pointer-events:none}
+html[data-mile-buttons] body :is(#app,#mile35-detail,#m3927-detail,#m3932-detail,#mile-admin-centre,#setup,#root) details:not(.m877-feed-info,.m877-athlete-actions,.m8772-notification-info)>summary::after{content:"+"!important;position:absolute!important;right:8px!important;top:50%!important;transform:translateY(-50%)!important;font-size:19px!important;font-weight:500!important;line-height:1!important;color:currentColor!important;pointer-events:none}
 html[data-mile-buttons] body :is(#app,#mile35-detail,#m3927-detail,#m3932-detail,#mile-admin-centre,#setup,#root) details[open]:not(.m877-feed-info,.m877-athlete-actions,.m8772-notification-info)>summary::after{content:"−"!important}
 html[data-mile-buttons] body :is(.m877-feed-info,.m877-athlete-actions)>summary::after{content:none!important}
 html[data-mile-buttons] body summary:focus-visible{outline:2px solid var(--orange,currentColor);outline-offset:2px}
@@ -276,11 +272,11 @@ html[data-mile-buttons] body summary:focus-visible{outline:2px solid var(--orang
 html[data-mile-buttons="tracker"]{--m877-art-bg:var(--mile-bg);--m877-art-far:var(--mile-panel);--m877-art-near:var(--mile-panel2);--m877-ink:var(--mile-text);--m877-line:var(--mile-line)}
 html[data-mile-buttons="challenges"]{--m877-art-bg:var(--c-bg);--m877-art-far:var(--c-panel);--m877-art-near:var(--c-panel2);--m877-ink:var(--c-text);--m877-line:var(--c-line)}
 html[data-mile-buttons="sim"]{--m877-art-bg:var(--bg);--m877-art-far:var(--panel);--m877-art-near:var(--panel2,var(--line));--m877-ink:var(--text);--m877-line:var(--line)}
-html[data-mile-buttons] body .m877-banner{box-sizing:border-box!important;min-height:86px!important;height:auto!important;max-height:none!important;padding:10px 14px!important;margin:0 0 10px!important;border:1px solid var(--m877-line)!important;border-radius:12px!important;display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:flex-start!important;position:relative!important;isolation:isolate!important;overflow:hidden!important;background:var(--m877-art-bg)!important;color:var(--m877-ink)!important}
+html[data-mile-buttons] body .m877-banner{box-sizing:border-box!important;min-height:var(--mile-banner-size)!important;height:auto!important;max-height:none!important;padding:var(--mile-banner-padding)!important;margin:0 0 var(--mile-section-gap)!important;border:1px solid var(--m877-line)!important;border-radius:var(--mile-card-radius)!important;display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:flex-start!important;position:relative!important;isolation:isolate!important;overflow:hidden!important;background:var(--m877-art-bg)!important;color:var(--m877-ink)!important}
 html[data-mile-buttons] body .m877-banner::before,html[data-mile-buttons] body .m877-banner::after{content:""!important;position:absolute!important;inset:0!important;z-index:-1!important;pointer-events:none!important;opacity:.9!important}
 html[data-mile-buttons] body .m877-banner::before{background:var(--m877-art-far)!important;clip-path:polygon(0 85%,12% 36%,22% 68%,38% 8%,52% 69%,67% 16%,79% 65%,91% 10%,100% 55%,100% 100%,0 100%)}
 html[data-mile-buttons] body .m877-banner::after{background:var(--m877-art-near)!important;clip-path:polygon(0 100%,10% 68%,23% 89%,38% 42%,54% 100%,67% 55%,78% 92%,90% 46%,100% 86%,100% 100%)}
-html[data-mile-buttons] body .m877-banner h1{font-size:24px!important;line-height:1.15!important;font-style:italic!important;font-weight:850!important;letter-spacing:-.5px!important;text-transform:none!important;margin:3px 0!important;color:inherit!important}
+html[data-mile-buttons] body .m877-banner h1{font-size:var(--mile-type-title)!important;line-height:var(--mile-leading-tight)!important;font-style:italic!important;font-weight:var(--mile-weight-title)!important;letter-spacing:-.5px!important;text-transform:none!important;margin:3px 0!important;color:inherit!important}
 html[data-mile-buttons] body .m877-banner :is(.eyebrow,.kicker){font-size:9px!important;letter-spacing:1.5px!important;line-height:1.2!important;margin:0!important;color:inherit!important}
 html[data-mile-buttons] body .m877-banner p{font-size:12px!important;line-height:1.3!important;margin:0!important;color:inherit!important;max-width:none!important}
 html.mile-in-shell[data-mile-buttons="tracker"] body,html.mile-in-shell[data-mile-buttons="challenges"] body{padding-inline:0!important;padding-top:0!important}
