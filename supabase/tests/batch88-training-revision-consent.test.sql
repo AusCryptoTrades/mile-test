@@ -26,7 +26,8 @@ set request.jwt.claim.sub='00000000-0000-4000-8000-000000000001';
 select pg_temp.expect_state($$select public.mile_revise_running_workout('fixture',1,'bypass',.9,'{}')$$,'42501');
 select pg_temp.expect_state($$select mile_running_private.revise_workout('fixture',1,'bypass',.9,'{}')$$,'42501');
 select pg_temp.expect_state($$select * from mile_training_private.revision_proposals$$,'42501');
-select pg_temp.expect_state($$select public.mile_review_training_revision('Cycling')$$,'PT422');
+-- Strength remains unsupported after Cycling and Swimming adapters are installed.
+select pg_temp.expect_state($$select public.mile_review_training_revision('Strength')$$,'PT422');
 
 do $$
 declare

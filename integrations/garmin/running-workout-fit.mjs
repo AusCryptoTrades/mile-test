@@ -9,15 +9,28 @@ export function encodeRunningWorkoutFit(workout, options) {
 export function encodeCyclingWorkoutFit(workout) {
  return encodeWorkoutFit(workout, 'cycling');
 }
+export function encodeSwimmingWorkoutFit(workout) {
+ return encodeWorkoutFit(workout, 'swimming');
+}
 function encodeWorkoutFit(workout, sport, { useTimedRecovery = false } = {}) {
- const steps = prescription.expand(workout?.steps, { limit: 50, sport: sport === 'cycling' ? 'Cycling' : 'Running' });
+ const swimming = sport === 'swimming';
+ const steps = prescription.expand(workout?.steps, { limit: 50, sport: swimming ? 'Swimming' : sport === 'cycling' ? 'Cycling' : 'Running' });
  if (!steps || workout?.sport !== sport || typeof workout.name !== 'string' || !workout.name.trim()) {
   throw Error('A '+sport+' workout with at most 50 steps is required.');
+ }
+ const poolLength = workout.poolMeters;
+ if (swimming && (![22.86, 25, 50].includes(poolLength) || !steps.some(step => step.duration.kind === 'distance') ||
+   steps.some(step => step.target?.kind && !['open','swim_pace'].includes(step.target.kind)) ||
+   steps.some(step => step.duration.kind === 'distance'
+    ? Math.round(step.duration.meters * 100) % Math.round(poolLength * 100) !== 0 || step.intensity === 'rest'
+    : step.duration.kind !== 'time' || step.intensity !== 'rest'))) {
+  throw Error('Swimming FIT export requires measured whole pool lengths and timed wall rests.');
  }
  const encoder = new Encoder();
  const messages = Profile.MesgNum;
  encoder.onMesg(messages.FILE_ID, { type: 'workout', manufacturer: 'development', product: 1, timeCreated: new Date() });
- encoder.onMesg(messages.WORKOUT, { sport, numValidSteps: steps.length, wktName: workout.name.trim().slice(0, 32) });
+ encoder.onMesg(messages.WORKOUT, { sport, numValidSteps: steps.length, wktName: workout.name.trim().slice(0, 32),
+  ...(swimming ? { subSport: 'lapSwimming', poolLength, poolLengthUnit: poolLength === 22.86 ? 'statute' : 'metric' } : {}) });
  for (const [messageIndex, step] of steps.entries()) {
   const { duration, target } = step;
   let durationType = 'open', durationValue = 0;
@@ -45,7 +58,7 @@ function encodeWorkoutFit(workout, sport, { useTimedRecovery = false } = {}) {
     customTargetValueHigh: Math.round(1000000 / fastSecondsPerKm) });
   } else if (target?.kind === 'power') {
    Object.assign(data, { targetType: 'power', customTargetValueLow: target.lowWatts + 1000, customTargetValueHigh: target.highWatts + 1000 });
-  } else if (target?.kind === 'rpe') {
+  } else if (target?.kind === 'rpe' || swimming && target?.kind === 'swim_pace') {
    data.notes = (prescription.targetLabel(target)+' · '+data.notes).slice(0, 100);
   } else if (target && target.kind !== 'open') throw Error('Invalid step target');
   encoder.onMesg(messages.WORKOUT_STEP, data);
