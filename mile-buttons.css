@@ -44,7 +44,7 @@ html[data-mile-buttons="main"] body #mile-beta-feedback-overlay button[data-beta
  min-width:44px!important;min-height:44px!important;
 }
 html[data-mile-buttons="main"] body #app :is(.m70-filter-button,.iq72-tabs button){
- min-height:36px!important;min-width:32px;padding:7px 9px!important;
+ min-height:36px!important;min-width:var(--mile-touch-size);padding:7px 9px!important;
 }
 html[data-mile-buttons="main"] body #app :is(.mile-coach-preview-session>summary,.iq72 summary,.mile-lb-card summary,.mile-lb-explainer summary){
  min-height:36px;box-sizing:border-box;display:flex;align-items:center;gap:6px;
@@ -61,5 +61,5 @@ html[data-mile-buttons="main"] body #app .m773-days label span{min-height:44px}
 
 /* Challenge sport filters: compact, intrinsically sized, readable on narrow screens. */
 html[data-mile-buttons="challenges"] body .filters{display:flex;flex-wrap:wrap;gap:6px;overflow:visible;min-width:0}
-html[data-mile-buttons="challenges"] body .filters button{flex:0 0 auto;white-space:nowrap;overflow-wrap:normal;word-break:normal;min-height:36px!important;padding:6px 10px!important;font-size:12px!important}
+html[data-mile-buttons="challenges"] body .filters button{flex:0 0 auto;min-width:var(--mile-touch-size);white-space:nowrap;overflow-wrap:normal;word-break:normal;min-height:36px!important;padding:6px 10px!important;font-size:12px!important}
 @media(pointer:coarse){html[data-mile-buttons="challenges"] body .filters button{min-height:44px!important}}

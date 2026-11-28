@@ -164,6 +164,7 @@ test('compact Stats filters and accessible Calendar actions work on narrow scree
  await page.evaluate(()=>window.mileV3Go('performance'));
  const sports=page.locator('.m70-sport');
  const other=sports.getByRole('button',{name:'Other',exact:true});
+ expect((await sports.getByRole('button',{name:'All',exact:true}).boundingBox()).width).toBeGreaterThanOrEqual(44);
  await expect(other).toBeVisible();
  expect(await sports.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
  await other.click();
