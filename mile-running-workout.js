@@ -1,4 +1,4 @@
-/* Shared interpretation of the stored Running workout. Legacy "open" durations are manual laps. */
+/* Shared interpretation of stored structured workouts. Legacy "open" durations are manual laps. */
 (function(root){
 'use strict';
 const labels={warmup:'Warm-up',active:'Main set',interval:'Work',recovery:'Recovery',rest:'Rest',cooldown:'Cool-down'};
@@ -19,31 +19,35 @@ function isDuration(value){
  return value.kind==='heart_rate'&&['above','below'].includes(value.direction)&&bpm(value.bpm)&&
   (value.fallbackSeconds===undefined||Number.isInteger(value.fallbackSeconds)&&value.fallbackSeconds>=60&&value.fallbackSeconds<=180);
 }
-function isTarget(target){
+function isTarget(target,sport){
  if(!target||target.kind==='open')return true;
  if(target.kind==='heart_rate')return bpm(target.lowBpm)&&bpm(target.highBpm)&&target.lowBpm<=target.highBpm&&
   (target.zone===undefined||Object.hasOwn(zoneNames,target.zone));
+ if(sport==='Cycling'){
+  if(target.kind==='power')return Number.isInteger(target.lowWatts)&&Number.isInteger(target.highWatts)&&target.lowWatts>=1&&target.lowWatts<=target.highWatts&&target.highWatts<=2500;
+  return target.kind==='rpe'&&Number.isInteger(target.low)&&Number.isInteger(target.high)&&target.low>=1&&target.low<=target.high&&target.high<=10;
+ }
  return target.kind==='pace'&&Number.isFinite(target.fastSecondsPerKm)&&Number.isFinite(target.slowSecondsPerKm)&&
   target.fastSecondsPerKm>=120&&target.fastSecondsPerKm<=target.slowSecondsPerKm&&target.slowSecondsPerKm<=1800;
 }
-function expand(steps,{limit=200,depth=0}={}){
+function expand(steps,{limit=200,depth=0,sport='Running'}={}){
  if(!Array.isArray(steps)||!steps.length||depth>2)return null;
  const expanded=[];
  for(const step of steps){
   if(step?.kind==='repeat'){
    if(!Number.isInteger(step.count)||step.count<2||step.count>50)return null;
-   const repetitions=expand(step.steps,{limit,depth:depth+1});
+   const repetitions=expand(step.steps,{limit,depth:depth+1,sport});
    if(!repetitions||expanded.length+repetitions.length*step.count>limit)return null;
    for(let i=0;i<step.count;i++)expanded.push(...repetitions);
   }else {
-   if(step?.kind!=='step'||!Object.hasOwn(labels,step.intensity)||!isDuration(step.duration)||!isTarget(step.target)||expanded.length===limit)return null;
+   if(step?.kind!=='step'||!Object.hasOwn(labels,step.intensity)||!isDuration(step.duration)||!isTarget(step.target,sport)||expanded.length===limit)return null;
    expanded.push(step);
   }
  }
  return expanded;
 }
-function totals(steps){
- const expanded=expand(steps);
+function totals(steps,options){
+ const expanded=expand(steps,options);
  if(!expanded)return null;
  const meters=expanded.reduce((sum,step)=>sum+(step.duration.meters??0),0);
  const seconds=expanded.reduce((sum,step)=>sum+(step.duration.seconds??0),0);
@@ -57,6 +61,8 @@ function durationLabel(duration){
  return 'Press lap when ready';
 }
 function targetLabel(target){
+ if(target?.kind==='power')return target.lowWatts+'–'+target.highWatts+' W';
+ if(target?.kind==='rpe')return 'RPE '+target.low+'–'+target.high+'/10';
  if(target?.kind==='heart_rate')return (Object.hasOwn(zoneNames,target.zone)?target.zone+' '+zoneNames[target.zone]+' · ':'')+target.lowBpm+'–'+target.highBpm+' bpm';
  if(target?.kind==='pace')return pace(target.fastSecondsPerKm)+'–'+pace(target.slowSecondsPerKm)+'/km';
  return '';
@@ -71,6 +77,7 @@ function recoveryFinish(duration,elapsed){
  return duration.fallbackSeconds!==undefined&&elapsed>=duration.fallbackSeconds;
 }
 const api={labels,expand,isDuration,durationLabel,targetLabel,distance,time,totals,demanding,recoveryFinish};
+root.mileStructuredWorkout=api;
 root.mileRunningWorkout=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(globalThis);

@@ -2,7 +2,7 @@ name: MILE Garmin training contract
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    branches: [main]
+    branches: [main, codex/mile-combined-beta]
     paths:
       - 'integrations/garmin/**'
       - 'supabase/functions/_shared/garmin-routing.mjs'
@@ -24,6 +24,8 @@ on:
       - 'supabase/tests/batch88-running-manual-match.test.sql'
       - 'supabase/migrations/*_running_whole_km_recovery.sql'
       - 'supabase/tests/batch88-running-whole-km-recovery.test.sql'
+      - 'supabase/migrations/*_cycling_revision_consent.sql'
+      - 'supabase/tests/batch90-cycling-consent.test.sql'
       - '.github/workflows/mile-garmin-training.yml'
   workflow_dispatch:
 permissions:
@@ -41,7 +43,7 @@ jobs:
           node-version: '22'
       - run: node --test integrations/garmin/*.test.mjs
       - run: npm ci --prefix integrations/garmin --ignore-scripts --no-audit --no-fund
-      - run: node --test integrations/garmin/fit-binary.mjs integrations/garmin/running-workout-fit.verify.mjs
+      - run: node --test integrations/garmin/fit-binary.mjs integrations/garmin/*.verify.mjs
   registry-database:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -107,3 +109,19 @@ jobs:
             -f supabase/migrations/20261127082454_training_revision_legacy_workout_ids.sql \
             -f supabase/migrations/20261127162230_running_manual_match.sql \
             -f supabase/tests/batch88-running-manual-match.test.sql
+
+      - name: Run cycling revision consent, history and concurrency regression
+        env:
+          PGHOST: 127.0.0.1
+          PGUSER: postgres
+          PGDATABASE: mile_cycling_consent_test
+        run: |
+          createdb "$PGDATABASE"
+          psql -v ON_ERROR_STOP=1 \
+            -f supabase/tests/batch88-running-revisions-fixtures.sql \
+            -f supabase/migrations/20261127064605_running_workout_revisions.sql \
+            -f supabase/migrations/20261127081603_training_revision_consent.sql \
+            -f supabase/migrations/20261127082454_training_revision_legacy_workout_ids.sql \
+            -f supabase/migrations/20261127182846_running_whole_km_recovery.sql \
+            -f supabase/migrations/20261128042840_cycling_revision_consent.sql \
+            -f supabase/tests/batch90-cycling-consent.test.sql

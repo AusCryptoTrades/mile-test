@@ -3,15 +3,21 @@ import prescription from '../../mile-running-workout.js';
 
 // Garmin FIT workout files specify one completion condition. Timed alternatives
 // stay in the MILE plan and can be exported as a deliberate alternative.
-export function encodeRunningWorkoutFit(workout, { useTimedRecovery = false } = {}) {
- const steps = prescription.expand(workout?.steps, { limit: 50 });
- if (!steps || workout?.sport !== 'running' || typeof workout.name !== 'string' || !workout.name.trim()) {
-  throw Error('A running workout with at most 50 steps is required.');
+export function encodeRunningWorkoutFit(workout, options) {
+ return encodeWorkoutFit(workout, 'running', options);
+}
+export function encodeCyclingWorkoutFit(workout) {
+ return encodeWorkoutFit(workout, 'cycling');
+}
+function encodeWorkoutFit(workout, sport, { useTimedRecovery = false } = {}) {
+ const steps = prescription.expand(workout?.steps, { limit: 50, sport: sport === 'cycling' ? 'Cycling' : 'Running' });
+ if (!steps || workout?.sport !== sport || typeof workout.name !== 'string' || !workout.name.trim()) {
+  throw Error('A '+sport+' workout with at most 50 steps is required.');
  }
  const encoder = new Encoder();
  const messages = Profile.MesgNum;
  encoder.onMesg(messages.FILE_ID, { type: 'workout', manufacturer: 'development', product: 1, timeCreated: new Date() });
- encoder.onMesg(messages.WORKOUT, { sport: 'running', numValidSteps: steps.length, wktName: workout.name.trim().slice(0, 32) });
+ encoder.onMesg(messages.WORKOUT, { sport, numValidSteps: steps.length, wktName: workout.name.trim().slice(0, 32) });
  for (const [messageIndex, step] of steps.entries()) {
   const { duration, target } = step;
   let durationType = 'open', durationValue = 0;
@@ -37,6 +43,10 @@ export function encodeRunningWorkoutFit(workout, { useTimedRecovery = false } = 
      fastSecondsPerKm < 120 || slowSecondsPerKm > 1800 || fastSecondsPerKm > slowSecondsPerKm) throw Error('Invalid pace target');
    Object.assign(data, { targetType: 'speed', customTargetValueLow: Math.round(1000000 / slowSecondsPerKm),
     customTargetValueHigh: Math.round(1000000 / fastSecondsPerKm) });
+  } else if (target?.kind === 'power') {
+   Object.assign(data, { targetType: 'power', customTargetValueLow: target.lowWatts + 1000, customTargetValueHigh: target.highWatts + 1000 });
+  } else if (target?.kind === 'rpe') {
+   data.notes = (prescription.targetLabel(target)+' · '+data.notes).slice(0, 100);
   } else if (target && target.kind !== 'open') throw Error('Invalid step target');
   encoder.onMesg(messages.WORKOUT_STEP, data);
  }

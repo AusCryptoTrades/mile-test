@@ -4,7 +4,7 @@
 |---|---|---|
 | 88 | Running | Pace, heart rate, distance, sustainable mileage and race specificity |
 | 89 | Onboarding | Athlete profile, disciplines, units, privacy, verified consent |
-| 90 | Cycling | Power, heart rate, duration and endurance |
+| 90 | Cycling | Development draft for duration-based Build, private IQ and athlete-approved cycling revisions. Remaining gates cover coaching review, hosted staging, provider identity and sandbox publication. |
 | 91 | Swimming | Pool length, pace per 100 metres, repetitions, rest and technique |
 | 92 | Strength | Exercises, sets, repetitions, load, equipment and recovery |
 | 93 | HYROX | Running, stations, compromised running and event preparation |
