@@ -13,7 +13,10 @@
 
 /* Sign-in auxiliary actions keep their compact text with larger touch areas. */
 #v4Gate .pw input { padding-inline-end: 64px; }
-#v4Gate .pw button { min-height: var(--mile-touch-size) !important; }
+#v4Gate .pw button {
+  min-width: var(--mile-touch-size) !important;
+  min-height: var(--mile-touch-size) !important;
+}
 #v4Gate :is(.center, .footer) a {
   display: inline-flex;
   align-items: center;

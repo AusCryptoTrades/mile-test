@@ -177,6 +177,7 @@ test('compact Stats filters and accessible Calendar actions work on narrow scree
  const dialog=page.getByRole('dialog',{name:'Add workout',exact:false});
  await expect(dialog).toBeVisible();
  await expect(dialog).toBeFocused();
+ await expect(dialog.getByLabel('Session name')).toBeEditable();
  await expect(page.locator('html')).toHaveCSS('overflow','hidden');
  await page.keyboard.press('Escape');
  await expect(dialog).toHaveCount(0);
@@ -193,5 +194,19 @@ test('More navigates from a scrolled page to the top of the destination',async({
  await menu.getByRole('button',{name:/Stats Training volume/}).click();
  await expect(menu).toHaveCount(0);
  await expect(page.locator('#app h1').first()).toHaveText('Stats');
+ const mobileNav=page.locator('#mile-fixed-mobile-nav');
+ if(await mobileNav.isVisible()){
+  await expect(mobileNav.getByRole('button',{name:/More$/})).toHaveAttribute('aria-current','page');
+  await expect(mobileNav.locator('[aria-current=page]')).toHaveCount(1);
+ }
  await expect.poll(()=>page.evaluate(()=>scrollY)).toBe(0);
+});
+
+
+test('MILE IQ labels its check-in sliders and notes',async({page})=>{
+ await openApp(page,{signedIn:true});
+ await page.evaluate(()=>window.mileV3Go('insights'));
+ await expect(page.getByRole('slider',{name:/fatigue/i})).toBeVisible();
+ await expect(page.getByRole('slider',{name:/soreness/i})).toBeVisible();
+ await expect(page.getByRole('textbox',{name:'Recovery notes'})).toBeVisible();
 });
