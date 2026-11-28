@@ -35,7 +35,7 @@ function form(){
  const settings=state.settings.trainingPreferences773?.Cycling||{};
  const experience={beginner:'beginner',regular:'recreational',experienced:'advanced',competitive:'competitive'}[shared?.athlete?.experience];
  const latest=root.mileCyclingIQ.ftpAt(saved.ftpHistory,today());
- draft={owner,goal:'fitness',weeks:'8',start:today(),name:'',eventDate:'',distanceKm:'',elevation:'',course:'',
+ draft={owner,dateText:{},goal:'fitness',weeks:'8',start:today(),name:'',eventDate:'',distanceKm:'',elevation:'',course:'',
   level:saved.level||experience||'beginner',setting:saved.setting||'mixed',surface:saved.surface||'road',
   weeklyMinutes:saved.weeklyMinutes??(h[1].count?Math.round(h[1].minutes/4):''),
   longestMinutes:saved.longestMinutes??h[2].longest??'', powerMeter:!!saved.powerMeter,smartTrainer:!!saved.smartTrainer,
@@ -58,6 +58,19 @@ function form(){
 }
 const source=(f,key)=>Object.hasOwn(f.sources,key)?'<small class="muted" data-m90-source="'+key+'">'+esc(f.sources[key])+'</small>':'';
 const field=(f,key,label,type='text',limits='')=>'<label class="field">'+esc(label)+'<input data-m90-field="'+key+'" type="'+type+'" value="'+esc(f[key]??'')+'" '+limits+'>'+source(f,key)+'</label>';
+function dateField(f,key,label){
+ const text=Object.hasOwn(f.dateText,key)?f.dateText[key]:f[key]?window.milePBDate(f[key]):'';
+ return '<div class="field m90-date"><label for="m90-date-'+key+'">'+esc(label)+'</label>'+
+  '<div class="m90-date-controls"><input id="m90-date-'+key+'" data-m90-date="'+key+'" type="text" inputmode="numeric" '+
+  'maxlength="10" placeholder="DD/MM/YYYY" value="'+esc(text)+'">'+
+  '<span class="m90-date-icon" aria-hidden="true">▦</span><input data-m90-picker="'+key+'" type="date" tabindex="-1" '+
+  'aria-label="Choose '+esc(label)+' from calendar" value="'+esc(f[key]||'')+'"></div></div>';
+}
+function dateInput(text){
+ const [day,month,year]=text.split('/');
+ const date=year+'-'+month+'-'+day;
+ return /^\d\d\/\d\d\/\d{4}$/.test(text)&&policy.iso(date)?date:'';
+}
 const select=(f,key,label,items)=>'<label class="field">'+esc(label)+'<select data-m90-field="'+key+'">'+items.map(([value,text])=>'<option value="'+esc(value)+'"'+(String(f[key])===String(value)?' selected':'')+'>'+esc(text)+'</option>').join('')+'</select></label>';
 const check=(f,key,label)=>'<label class="m882-check"><input type="checkbox" data-m90-field="'+key+'" '+(f[key]?'checked':'')+'> '+esc(label)+'</label>';
 const dayChecks=(f,key)=>'<div class="v42-checks">'+days.map((day,index)=>'<label><input type="checkbox" data-m90-day="'+key+'" value="'+index+'" '+(f[key].includes(index)?'checked':'')+'> '+day.slice(0,3)+'</label>').join('')+'</div>';
@@ -131,7 +144,7 @@ function draw(){
  let content='';
  if(step===0)content='<h3>Goal & programme</h3><div class="sport-tiles">'+v41SportNames.map(sport=>'<button type="button" class="sport-tile '+(sport==='Cycling'?'selected':'')+'" onclick="v42PickSport(\''+esc(sport)+'\')"><span>'+v41SportIcons[sport]+'</span><strong>'+esc(sport)+'</strong></button>').join('')+'</div>'+
   '<div class="formgrid">'+select(f,'goal','Cycling goal',Object.entries(policy.goals))+field(f,'weeks','Programme length (weeks)','number','min="1" max="32"')+
-  field(f,'start','Start date','date')+(eventGoal(f.goal)?field(f,'eventDate','Event date (optional)','date')+
+  dateField(f,'start','Start date')+(eventGoal(f.goal)?dateField(f,'eventDate','Event date (optional)')+
   field(f,'distanceKm','Event distance (km)','number','min="1" step="any"')+field(f,'elevation','Event elevation gain (m)','number','min="0"')+
   field(f,'course','Course notes','text','maxlength="240"'):'')+field(f,'name','Programme name','text','maxlength="80"')+'</div>';
  if(step===1){
@@ -144,7 +157,7 @@ function draw(){
    check(f,'powerMeter','Power meter')+check(f,'smartTrainer','Smart trainer')+check(f,'hrMonitor','Heart-rate monitor')+check(f,'cadence','Cadence sensor')+'</div>'+
    '<p class="muted small m90-help">You can train without sensors. Effort is rated out of 10. For an easy aerobic ride, keep talking comfortable.</p>'+
    (f.powerMeter||f.smartTrainer?'<div class="formgrid">'+field(f,'ftp','Cycling FTP (watts, optional)','number','min="50" max="600"')+
-    field(f,'ftpDate','FTP assessment date','date')+select(f,'ftpConfidence','Confidence',[['low','Provisional estimate'],['moderate','Used for current rides'],['high','Recently confirmed']])+select(f,'ftpMethod','FTP assessment method',[['Athlete estimate','Athlete estimate'],['Sustained benchmark','Sustained benchmark'],['Coach assessment','Coach assessment']])+ '</div><p class="muted small">FTP is a benchmark for sustained cycling power. Leave it blank to train by feel or with heart rate.</p>':'')+
+    dateField(f,'ftpDate','FTP assessment date')+select(f,'ftpConfidence','Confidence',[['low','Provisional estimate'],['moderate','Used for current rides'],['high','Recently confirmed']])+select(f,'ftpMethod','FTP assessment method',[['Athlete estimate','Athlete estimate'],['Sustained benchmark','Sustained benchmark'],['Coach assessment','Coach assessment']])+ '</div><p class="muted small">FTP is a benchmark for sustained cycling power. Leave it blank to train by feel or with heart rate.</p>':'')+
    (f.hrMonitor?'<div class="formgrid">'+
     field(f,'hrLow','Easy-ride heart rate from (bpm)','number')+field(f,'hrHigh','Easy-ride heart rate to (bpm)','number')+
     '</div><details class="item"><summary>Optional heart-rate details</summary><div class="formgrid">'+
@@ -172,6 +185,9 @@ function report(message,error=true){
  if(target){target.textContent=message;target.classList.toggle('m90-form-error',error);}
 }
 function valid(f,stage){
+ if(stage===0&&(!policy.iso(f.start)||eventGoal(f.goal)&&f.dateText.eventDate&&!policy.iso(f.eventDate)))
+  return 'Enter dates in DD/MM/YYYY format.';
+ if(stage===1&&f.ftp&&f.dateText.ftpDate&&!policy.iso(f.ftpDate))return 'Enter the FTP assessment date in DD/MM/YYYY format.';
  if(stage===0&&(!f.start||f.start<today()||!Number.isInteger(Number(f.weeks))||!(Number(f.weeks)>=1&&Number(f.weeks)<=32)||eventGoal(f.goal)&&f.eventDate&&f.eventDate<=f.start))
   return 'Choose a start date today or later, 1–32 weeks and an event after the start.';
  if(stage===1&&(f.powerMeter||f.smartTrainer)&&f.ftp&&(!f.ftpDate||f.ftpDate>today()||!policy.iso(f.ftpDate)))return 'Enter an FTP assessment date today or earlier.';
@@ -228,6 +244,21 @@ document.addEventListener('input',event=>{
  const el=event.target;
  if(!el.closest('.m90-build'))return;
  const f=form(),key=el.dataset.m90Field,day=el.dataset.m90Day;
+ const dateKey=el.dataset.m90Date??el.dataset.m90Picker;
+ if(dateKey){
+  const text=document.getElementById('m90-date-'+dateKey);
+  const takingFromPicker=el!==text;
+  const picker=takingFromPicker?el:el.parentElement.querySelector('[data-m90-picker]');
+  if(takingFromPicker)text.value=el.value?window.milePBDate(el.value):'';
+  else if(event.inputType!=='deleteContentBackward'&&text.selectionStart===text.value.length){
+   const digits=text.value.replace(/\D/g,'').slice(0,8);
+   text.value=[digits.slice(0,2),digits.slice(2,4),digits.slice(4)].filter(Boolean).join('/');
+  }
+  f.dateText[dateKey]=text.value;
+  f[dateKey]=dateInput(text.value);
+  if(!takingFromPicker)picker.value=f[dateKey];
+  if(dateKey==='ftpDate')f.ftpSource='manual';
+ }
  if(key){
   f[key]=el.type==='checkbox'?el.checked:el.value;
   if(Object.hasOwn(f.sources,key)){

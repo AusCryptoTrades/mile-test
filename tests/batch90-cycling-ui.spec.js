@@ -45,6 +45,7 @@ test('cycling Build carries one timed workout through review and Calendar in eve
  await page.evaluate(()=>window.m395ThemeSet('mono'));
  await expect(build.getByRole('heading',{name:'Build your cycling plan'})).toBeVisible();
  await build.getByLabel('Programme length (weeks)').fill('4');
+ await expect(build.getByLabel('Start date',{exact:true})).toHaveValue('20/11/2026');
  await build.getByLabel('Cycling goal').selectOption('endurance');
  await next.click();
  await expect(build.getByLabel('Confirm sustainable weekly minutes')).toHaveValue('15');
@@ -58,6 +59,14 @@ test('cycling Build carries one timed workout through review and Calendar in eve
  await build.getByLabel('Longest recent ride (minutes)').fill('60');
  await build.getByLabel('Power meter',{exact:true}).check();
  await expect(build.getByLabel('Cycling FTP (watts, optional)')).toHaveValue('250');
+ const assessmentDate=build.getByLabel('FTP assessment date',{exact:true});
+ await expect(assessmentDate).toHaveValue('01/11/2026');
+ const checks=build.locator('.m90-checks label');
+ for(const control of await checks.all()){
+  const box=await control.boundingBox();
+  expect(box.height).toBeGreaterThanOrEqual(44);
+  expect(await control.evaluate(label=>label.scrollWidth<=label.clientWidth+1)).toBe(true);
+ }
  await build.getByRole('button',{name:'Save cycling athlete details'}).click();
  await expect(build.getByRole('status')).toContainText('Cycling athlete details saved');
  await reviewImage(info,'cycling-assessment',build);

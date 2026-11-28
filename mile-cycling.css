@@ -55,3 +55,30 @@ html:has(.m90-build), body:has(.m90-build) { overflow-x: clip; }
   .m90-build[data-m90-keyboard] .m90-action-tray { bottom: var(--m90-keyboard-offset); }
   body:has(.m90-build[data-m90-keyboard]) #mile-fixed-mobile-nav { visibility: hidden; }
 }
+
+.m90-build .m882-check input[type="checkbox"] {
+  flex: 0 0 18px;
+  inline-size: 18px;
+  block-size: 18px;
+  min-height: 0;
+  margin: 0;
+  accent-color: var(--mile-ink);
+}
+.m90-build .m90-date-controls { position: relative; }
+.m90-build .m90-date-controls [data-m90-date] { width: 100%; padding-inline-end: var(--mile-touch-size); }
+.m90-build .m90-date-icon,
+.m90-build [data-m90-picker] {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: var(--mile-touch-size);
+}
+.m90-build .m90-date-icon { display: grid; place-content: center; color: var(--mile-ink); }
+.m90-build [data-m90-picker] { opacity: 0; cursor: pointer; }
+.m90-build [data-m90-picker]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  cursor: pointer;
+}
