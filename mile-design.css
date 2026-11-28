@@ -77,6 +77,13 @@ html:has(#modalRoot > .modalback) { overflow: hidden; }
   font-size: var(--mile-type-section);
   line-height: var(--mile-leading-tight);
 }
+#modalRoot .mile-modal-feedback:not(:empty) {
+  margin-bottom: var(--mile-space-md);
+  padding: var(--mile-space-sm) var(--mile-space-md);
+  border: 1px solid var(--mile-border);
+  border-radius: var(--mile-control-radius);
+  background: var(--mile-surface-raised);
+}
 #modalRoot .modal :is(input:not([type=checkbox],[type=radio]), select, textarea) {
   min-height: var(--mile-touch-size);
   font-size: 16px;

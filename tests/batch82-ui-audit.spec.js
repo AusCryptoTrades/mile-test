@@ -180,6 +180,10 @@ test('compact Stats filters and accessible Calendar actions work on narrow scree
  await expect(dialog).toBeFocused();
  await expect(dialog.getByLabel('Session name')).toBeEditable();
  await expect(page.locator('html')).toHaveCSS('overflow','hidden');
+ await dialog.getByRole('button',{name:'Save workout'}).click();
+ const error=dialog.getByRole('alert');
+ await expect(error).toHaveText('Workout needs a date and name');
+ await expect(error).toBeFocused();
  await page.keyboard.press('Escape');
  await expect(dialog).toHaveCount(0);
  await expect(addWorkout).toBeFocused();
