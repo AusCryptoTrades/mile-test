@@ -23,6 +23,9 @@ function isTarget(target,sport){
  if(!target||target.kind==='open')return true;
  if(target.kind==='heart_rate')return bpm(target.lowBpm)&&bpm(target.highBpm)&&target.lowBpm<=target.highBpm&&
   (target.zone===undefined||Object.hasOwn(zoneNames,target.zone));
+ if(sport==='Swimming')return target.kind==='swim_pace'&&Number.isInteger(target.fastSecondsPer100m)&&
+  Number.isInteger(target.slowSecondsPer100m)&&target.fastSecondsPer100m>=40&&
+  target.fastSecondsPer100m<=target.slowSecondsPer100m&&target.slowSecondsPer100m<=480;
  if(sport==='Cycling'){
   if(target.kind==='power')return Number.isInteger(target.lowWatts)&&Number.isInteger(target.highWatts)&&target.lowWatts>=1&&target.lowWatts<=target.highWatts&&target.highWatts<=2500;
   return target.kind==='rpe'&&Number.isInteger(target.low)&&Number.isInteger(target.high)&&target.low>=1&&target.low<=target.high&&target.high<=10;
@@ -61,6 +64,7 @@ function durationLabel(duration){
  return 'Press lap when ready';
 }
 function targetLabel(target){
+ if(target?.kind==='swim_pace')return pace(target.fastSecondsPer100m)+'–'+pace(target.slowSecondsPer100m)+'/100 m';
  if(target?.kind==='power')return target.lowWatts+'–'+target.highWatts+' W';
  if(target?.kind==='rpe')return 'RPE '+target.low+'–'+target.high+'/10';
  if(target?.kind==='heart_rate')return (Object.hasOwn(zoneNames,target.zone)?target.zone+' '+zoneNames[target.zone]+' · ':'')+target.lowBpm+'–'+target.highBpm+' bpm';
