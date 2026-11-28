@@ -168,3 +168,20 @@ html:has(#modalRoot > .modalback) { overflow: hidden; }
     grid-template-columns: minmax(0, 1fr) !important;
   }
 }
+
+#modalRoot .modalback:has(.mile-form-actions) {
+  background: transparent !important;
+}
+#modalRoot .modalback:has(.mile-form-actions)::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--mile-backdrop);
+  pointer-events: none;
+}
+#modalRoot .mile-form-actions .btn:not(.alt,.ghost) {
+  background: var(--mile-ink) !important;
+  border-color: var(--mile-ink) !important;
+  color: var(--bg) !important;
+}
