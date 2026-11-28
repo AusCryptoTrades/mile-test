@@ -13,7 +13,8 @@ export const assets = Object.freeze([
   'mile-79.css', 'mile-85-auth.css', 'mile-873.css', 'mile-device-sync.js',
   'mile-split-share.js', 'mile-86.css', 'mile-86-health-preview.js', 'mile-garmin-plan.js', 'mile-intervals.js', 'mile-intervals.css', 'mile-compact.css', 'mile-design.css', 'mile-running-iq.js', 'mile-running-analysis.js', 'mile-training-revisions.js',
   'mile-running-workout.js', 'mile-running-plan.js', 'mile-running-build.js', 'mile-running-build.css',
-  'mile-cycling-plan.js', 'mile-cycling-iq.js', 'mile-cycling-build.js', 'mile-cycling.css'
+  'mile-cycling-plan.js', 'mile-cycling-iq.js', 'mile-cycling-build.js', 'mile-cycling.css',
+  'mile-swimming-plan.js', 'mile-swimming-build.js', 'mile-swimming.css'
 ]);
 export const syncAssets = Object.freeze(['workouts.mjs','apple-import.mjs','apple-transport.mjs','checkpoints.mjs','apple-native.mjs']);
 const root = fileURLToPath(new URL('../../', import.meta.url));

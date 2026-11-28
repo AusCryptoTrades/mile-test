@@ -5,7 +5,7 @@
 | 88 | Running | Pace, heart rate, distance, sustainable mileage and race specificity |
 | 89 | Onboarding | Athlete profile, disciplines, units, privacy, verified consent |
 | 90 | Cycling | Development draft for duration-based Build, private IQ and athlete-approved cycling revisions. Remaining gates cover coaching review, hosted staging, provider identity and sandbox publication. |
-| 91 | Swimming | Pool length, pace per 100 metres, repetitions, rest and technique |
+| 91 | Swimming | Stage 1 implements swimming assessment, CSS, pool and supervised open-water plans and Calendar. Stage 2 covers IQ, consent, provider contracts and release verification. |
 | 92 | Strength | Exercises, sets, repetitions, load, equipment and recovery |
 | 93 | HYROX | Running, stations, compromised running and event preparation |
 | 94 | Triathlon | Coordinated swim, bike and run load, bricks and transitions |

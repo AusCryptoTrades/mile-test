@@ -11,3 +11,7 @@ Hosted browser authentication, delivered confirmation mail, Storage object HTTP 
 ## Batch 90 cycling
 
 Draft #143 builds on combined beta #142 at `539b786`. It includes 52 cycling workout prescriptions, private planned-clock cue analysis and an explicit-consent server revision policy with private history. The coaching suite covers 34 profiles, 1,088 boundary scenarios and 128 full 8–24 week programmes. Local Garmin FIT validation remains separate from the locked cycling Training API route. Automatic adaptation and Garmin republication are disabled. See the [cycling review and release gates](docs/batch90-cycling.md).
+
+## Batch 91 swimming
+
+Stage 1 builds on Cycling #143 at `af2b9c3`. The Swimming Build uses dated CSS, owned activity history, canonical swimming sets and Calendar, with 52 pool recipes and a supervised open-water alternative. See [coaching assumptions and Stage 2 work](docs/batch91-swimming.md).

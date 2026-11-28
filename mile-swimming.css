@@ -1,0 +1,28 @@
+html:has(.m91-build), body:has(.m91-build) { overflow-x: clip; }
+.m91-build .m882-check { align-items: center; min-height: var(--mile-touch-size); }
+.m91-build .m882-check input[type="checkbox"] {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  margin: 0;
+}
+.m91-build .field { min-width: 0; }
+.m91-build [data-m91-action] { min-height: var(--mile-touch-size); }
+.m91-build [data-m91-status]:empty { display: none; }
+.m91-build [data-m91-status] { font-size: var(--mile-type-support); margin: 0 0 var(--mile-space-xs); }
+.m91-actions {
+  position: sticky;
+  z-index: 5;
+  bottom: 0;
+  margin-top: var(--mile-space-md);
+  padding-block: var(--mile-space-xs);
+  border-top: 1px solid var(--mile-border);
+  background: var(--mile-surface);
+}
+.m91-actions :is([data-m91-action="next"],[data-m91-action="save"]) { margin-inline-start: auto; }
+.m91-session ol { padding-inline-start: 1.25em; }
+.m91-session li { margin-block: var(--mile-space-xs); }
+@media (max-width: 780px) {
+  .m91-actions { bottom: calc(74px + env(safe-area-inset-bottom, 0px)); }
+}
