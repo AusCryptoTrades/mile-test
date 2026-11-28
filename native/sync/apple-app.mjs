@@ -28,6 +28,26 @@ export function attachAppleHealth(win){
  const adopt=()=>{const id=current();if(owner&&owner!==id)reset();owner=id??null;return owner};
  const projected=()=>owner&&owner===current()?reconcileAppleActivities(rows,app.garmin()):{visible:[],overlaps:[]};
  const put=(tag,value)=>{const el=doc.createElement(tag);el.textContent=value;return el};
+ function mountRecovery(host){
+  if(!host||!recovery||!owner||owner!==current())return;
+  const section=doc.createElement('section');section.className='mile35-panel';
+  section.append(put('h3','Apple Health recovery observations'));
+  const readings=[['restingHR','Resting heart rate','bpm'],['hrvSDNN','HRV (SDNN)','ms'],['vo2Max','VO₂ max','mL/kg/min']];
+  let available=false;
+  for(const [key,label,unit] of readings){
+   const reading=recovery[key];
+   if(!Number.isFinite(reading?.value)||!Number.isFinite(Date.parse(reading.date)))continue;
+   available=true;
+   section.append(put('p',label+' · '+reading.value.toFixed(1)+' '+unit+' · '+new Date(reading.date).toLocaleDateString()));
+  }
+  if(Number.isFinite(recovery.sleepMinutes24h)&&recovery.sleepMinutes24h>0){
+   available=true;
+   section.append(put('p','Recorded sleep in the last 24 hours · '+Math.round(recovery.sleepMinutes24h)+' min'));
+  }
+  if(!available)return;
+  section.append(put('p','Recent readings from this iPhone. These are separate from Garmin scores and do not drive programme changes.'));
+  host.append(section);
+ }
  function show(panel){
   if(!panel.isConnected)return;
   const token=generation;
@@ -49,18 +69,7 @@ export function attachAppleHealth(win){
    panel.append(put('p','Optional heart rate may sync to MILE. Routes, running dynamics, sleep and recovery readings stay on this device.'));
   }
   panel.append(actions);
-  if(recovery){
-   const section=doc.createElement('details');section.append(put('summary','Apple Health recovery observations'));
-   const labels={restingHR:'Resting heart rate',hrvSDNN:'HRV (SDNN)',vo2Max:'VO₂ max'};
-   const units={restingHR:'bpm',hrvSDNN:'ms',vo2Max:'mL/kg/min'};
-   for(const [key,label] of Object.entries(labels)){
-    const reading=recovery[key];
-    if(Number.isFinite(reading?.value)&&reading.date) section.append(put('p',label+' · '+reading.value.toFixed(1)+' '+units[key]+' · '+new Date(reading.date).toLocaleDateString()));
-   }
-   if(Number.isFinite(recovery.sleepMinutes24h))section.append(put('p','Recorded sleep in the last 24 hours · '+Math.round(recovery.sleepMinutes24h)+' min'));
-   section.append(put('p','Apple observations use their own measurements and are kept separate from Garmin recovery scores.'));
-   panel.append(section);
-  }
+  mountRecovery(panel);
   for(const {activity,garminName} of projected().overlaps.slice(0,20)){
    const item=doc.createElement('section');
    item.append(put('p','Possible duplicate · '+new Date(activity.date).toLocaleString()+' · '+garminName),
@@ -116,8 +125,11 @@ export function attachAppleHealth(win){
    const result=await importer.run({...range,from:install.from??range.from,details,askPermission:!automatic});
    if(nonce!==generation||current()!==id)return;
    permission=true;seenCounter=change.counter;
-   if(details)recovery=await plugin.readRecovery().catch(()=>null);
-   if(nonce!==generation||current()!==id){recovery=null;return;}
+   if(details){
+    const observations=await plugin.readRecovery({account:id}).catch(()=>null);
+    if(nonce!==generation||current()!==id)return;
+    recovery=observations;
+   }
    status=result.imported||result.removed?'Health workout changes synced.':
     'No workout changes returned. Apple Health may have no new data or permission may be limited.';
   }catch(error){if(nonce===generation&&current()===id)status=error.message||'Apple Health sync could not finish.'}
@@ -167,20 +179,21 @@ export function attachAppleHealth(win){
  };
  async function schedule(id){
   const session=context();
+  const nonce=generation;
   const workout=eligibleWatchRun(app.workout(id),win.mileStructuredWorkout);
   if(!session||!workout||!win.confirm('Schedule this exact running workout on Apple Watch for '+workout.date+'?'))return;
   try{
    const result=await plugin.scheduleRun({account:session.accountId,workout});
-   if(current()===session.accountId)app.message(result.status==='alreadyScheduled'?'A schedule already exists for this session.':
+   if(nonce===generation&&current()===session.accountId)app.message(result.status==='alreadyScheduled'?'A schedule already exists for this session.':
     'Scheduled on iPhone. Check the Apple Watch Workout app after syncing.');
-  }catch(error){if(current()===session.accountId)app.message(error.message||'Apple Watch scheduling unavailable.');}
+  }catch(error){if(nonce===generation&&current()===session.accountId)app.message(error.message||'Apple Watch scheduling unavailable.');}
  }
  win.mileAppleHealth=Object.freeze({refresh,reset,activities:()=>projected().visible,mount,schedule,watchRun:eligibleWatchRun,
-  renderDetail,
+  renderDetail,mountRecovery,
   async detail(id){
    const before=generation,account=current();
    if(!account||!permission||!projected().visible.some(activity=>activity.id===id))return {};
-   const detail=await plugin.readWorkoutDetail({id:id.slice(6)}).catch(()=>({}));
+   const detail=await plugin.readWorkoutDetail({id:id.slice(6),account}).catch(()=>({}));
    return before===generation&&account===current()?detail:{};
   }});
  app.changed();mount();void refresh();

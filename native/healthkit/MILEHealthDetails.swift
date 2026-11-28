@@ -13,7 +13,7 @@ extension MILEHealthKitPlugin {
     }
 
     @objc func readWorkoutDetail(_ call: CAPPluginCall) {
-        guard detailsThisSession, let raw = call.getString("id"), let id = UUID(uuidString: raw) else {
+        guard detailsThisSession, ownsHealthInstallation(call.getString("account")), let raw = call.getString("id"), let id = UUID(uuidString: raw) else {
             call.reject("Optional workout detail access is unavailable"); return
         }
         workoutSample(id) { workout in
@@ -66,7 +66,7 @@ extension MILEHealthKitPlugin {
     }
 
     @objc func readRecovery(_ call: CAPPluginCall) {
-        guard detailsThisSession else { call.reject("Optional recovery access is unavailable"); return }
+        guard detailsThisSession, ownsHealthInstallation(call.getString("account")) else { call.reject("Optional recovery access is unavailable"); return }
         Task {
             let end = Date()
             let metrics: [(String, HKQuantityTypeIdentifier, HKUnit, Int)] = [

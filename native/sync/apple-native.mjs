@@ -32,9 +32,9 @@ export function createNativeAppleImport({cap,accountId,installationId,activeAcco
     if(!(await plugin.availability()).available)throw Error('HealthKit unavailable');
     assertAccount();
     if(controller.signal.aborted)throw Error('Import cancelled');
-    if(askPermission&&!(await plugin.requestReadAccess({details})).requestCompleted)throw Error('Permission request incomplete');
+    if(askPermission&&!(await plugin.requestReadAccess({details,account:accountId})).requestCompleted)throw Error('Permission request incomplete');
     assertAccount();
-    return await importAppleWorkouts({accountId,from,to,maxPages,readPage:args=>plugin.readWorkoutPage({...args,details}),transport:backend.atomic?Object.assign({},transport,{commit:(id,rows,deleted)=>transport.commit(id,rows,deleted,backend.epoch)}):{upsert:transport.upsert},checkpoint,activeAccount,consented,signal:controller.signal});
+    return await importAppleWorkouts({accountId,from,to,maxPages,readPage:args=>plugin.readWorkoutPage({...args,details,account:accountId}),transport:backend.atomic?Object.assign({},transport,{commit:(id,rows,deleted)=>transport.commit(id,rows,deleted,backend.epoch)}):{upsert:transport.upsert},checkpoint,activeAccount,consented,signal:controller.signal});
    }finally{running=false;controller=null}
   }
  });

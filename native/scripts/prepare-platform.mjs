@@ -24,7 +24,7 @@ if(platform==='ios'){
  const begin='// MILE HEALTHKIT GENERATED BEGIN',end='// MILE HEALTHKIT GENERATED END';
  let swift=await readFile(delegate,'utf8');
  if(swift.includes(begin)){const a=swift.indexOf(begin),b=swift.indexOf(end,a);if(b<0)throw Error('Incomplete HealthKit block');swift=swift.slice(0,a)+swift.slice(b+end.length);}
- const plugin=(await Promise.all(['MILEHealthKitPlugin.swift','MILEHealthDetails.swift','MILEWorkoutKit.swift'].map(name=>readFile(path.join(cwd,'healthkit',name),'utf8')))).join('\n');
+ const plugin=(await Promise.all(['MILEHealthKitPlugin.swift','MILEHealthDetails.swift','MILEWorkoutKit.swift','MILESessionKeychain.swift'].map(name=>readFile(path.join(cwd,'healthkit',name),'utf8')))).join('\n');
  await writeFile(delegate,swift.trimEnd()+'\n\n'+begin+'\n'+plugin+'\nclass MILEBridgeViewController: CAPBridgeViewController {\n override func capacitorDidLoad() { bridge?.registerPluginInstance(MILEHealthKitPlugin()) }\n}\n'+end+'\n');
  const storyboard=path.join(app,'Base.lproj/Main.storyboard');
  let story=await readFile(storyboard,'utf8');

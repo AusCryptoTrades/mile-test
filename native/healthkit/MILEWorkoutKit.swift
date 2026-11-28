@@ -10,7 +10,7 @@ extension MILEHealthKitPlugin {
             call.reject("Apple Watch scheduling is unavailable on this device"); return
         }
         guard let payload = call.getObject("workout"), let account = call.getString("account"),
-              UUID(uuidString: account) != nil else { call.reject("Invalid workout"); return }
+              UUID(uuidString: account) != nil, secureSessionOwner == account else { call.reject("Invalid workout"); return }
         Task { @MainActor in
             guard !scheduleBusy else { call.reject("A workout is already being scheduled"); return }
             scheduleBusy = true
@@ -22,6 +22,9 @@ extension MILEHealthKitPlugin {
                     call.reject("Allow MILE to schedule workouts in Apple Watch settings"); return
                 }
                 let existing = await scheduler.scheduledWorkouts
+                guard secureSessionOwner == account else {
+                    call.reject("Your MILE account changed before scheduling"); return
+                }
                 if existing.contains(where: { $0.plan.id == plan.id }) {
                     call.resolve(["status": "alreadyScheduled"]); return
                 }
@@ -62,6 +65,7 @@ extension MILEHealthKitPlugin {
             } else if kind == "time", let value = duration["seconds"] as? Double, (1...86400).contains(value) {
                 goal = .time(value, .seconds)
             } else { throw Invalid.workout }
+            guard CustomWorkout.supportsGoal(goal, activity: .running, location: .outdoor) else { throw Invalid.workout }
             let target = row["target"] as? [String: Any] ?? [:]
             var alert: (any WorkoutAlert)?
             switch target["kind"] as? String ?? "open" {

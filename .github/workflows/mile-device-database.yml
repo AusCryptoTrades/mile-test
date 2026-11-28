@@ -2,7 +2,7 @@ name: MILE isolated device database
 on:
   pull_request:
     branches: [main, 'feature/batch85-beta-polish', feature/batch91-swimming]
-    paths: ['supabase/proposals/batch86-device-sync.sql', 'supabase/tests/batch86-*.sql', 'supabase/tests/batch92-*.sql', 'supabase/migrations/*_apple_health_beta.sql', '.github/workflows/mile-device-database.yml']
+    paths: ['supabase/proposals/batch86-device-sync.sql', 'supabase/tests/batch86-*.sql', 'supabase/tests/batch92-*.sql', 'supabase/migrations/*_apple_health_beta.sql', 'native/scripts/staging-apple-sql.py', '.github/workflows/mile-device-database.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -42,9 +42,9 @@ jobs:
           createdb "$PGDATABASE"
           psql -v ON_ERROR_STOP=1 -f supabase/tests/batch88-running-revisions-fixtures.sql
           psql -v ON_ERROR_STOP=1 -c "alter table auth.users add column email_confirmed_at timestamptz, add column is_anonymous boolean not null default false; update auth.users set email_confirmed_at=now();"
+          python3 native/scripts/staging-apple-sql.py > "$RUNNER_TEMP/mile-apple-atomic.sql"
           psql -v ON_ERROR_STOP=1 \
-            -f supabase/proposals/batch86-device-sync.sql \
             -f supabase/migrations/20261127064605_running_workout_revisions.sql \
             -f supabase/migrations/20261127162230_running_manual_match.sql \
-            -f supabase/migrations/20261128113000_apple_health_beta.sql \
+            -f "$RUNNER_TEMP/mile-apple-atomic.sql" \
             -f supabase/tests/batch92-apple-health.test.sql

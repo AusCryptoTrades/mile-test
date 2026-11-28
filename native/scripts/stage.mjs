@@ -7,7 +7,7 @@ import { execFileSync } from 'node:child_process';
 
 export const assets = Object.freeze([
   'index.html', 'mile-admin-centre.js', 'mile-buttons.css',
-  'mile-onboarding.js', 'mile-onboarding.css', 'mile-avatar.js',
+  'mile-session.js', 'mile-onboarding.js', 'mile-onboarding.css', 'mile-avatar.js',
   'mile-challenges.html', 'mile-run-tracker.html', 'mile-shared-header.js',
   'mile-sim-sync.js', 'mile-sim.html',
   'mile-79.css', 'mile-85-auth.css', 'mile-873.css', 'mile-device-sync.js',
@@ -23,6 +23,7 @@ export async function stage({stagingKey=process.env.MILE_NATIVE_STAGING_PUBLISHA
   const appleHealth=stagingKey!=null;
   const production='https://mgixvokjlytjuypzcfzz.supabase.co';
   const staging='https://fnyfeelynaozxtftrrga.supabase.co';
+  const policy=`<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: ${staging}; connect-src ${staging}; frame-src 'self'; base-uri 'none'; form-action 'self'">`;
   const originalIndex=await readFile(path.join(root,'index.html'),'utf8');
   const productionKey=originalIndex.match(/supabaseAnon:'(sb_publishable_[A-Za-z0-9_-]+)'/)?.[1];
   if(appleHealth&&(!/^sb_publishable_[A-Za-z0-9_-]+$/.test(stagingKey)||!productionKey||stagingKey===productionKey))
@@ -41,7 +42,9 @@ export async function stage({stagingKey=process.env.MILE_NATIVE_STAGING_PUBLISHA
   for (const file of assets) {
     if(appleHealth){
       const content=await readFile(path.join(root,file),'utf8');
-      await writeFile(path.join(dest,file),content.replaceAll(production,staging).replaceAll(productionKey,stagingKey));
+      const prepared=content.replaceAll(production,staging).replaceAll(productionKey,stagingKey).replaceAll('https://app.milefitness.com.au','');
+      const secure=file.endsWith('.html')?prepared.replace(/<html(\s|>)/i,'<html data-mile-native-session="true"$1').replace(/<head>/i,match=>match+policy):prepared;
+      await writeFile(path.join(dest,file),secure);
     }else await copyFile(path.join(root, file), path.join(dest, file));
     hashes[file] = createHash('sha256').update(await readFile(path.join(dest,file))).digest('hex');
   }
@@ -61,8 +64,7 @@ export async function stage({stagingKey=process.env.MILE_NATIVE_STAGING_PUBLISHA
   if (!closing.test(original)) throw new Error('Missing body closing tag');
   const identity = 'window.MILE_NATIVE_BUILD='+JSON.stringify({commit,version,appleHealth})+';';
   await writeFile(path.join(dest,'mile-native-runtime.js'),identity+'\n'+runtime);
-  const stagingEntry=appleHealth?original.replace('<html','<html data-mile-staging="true"')
-    .replace('</head>',`<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: ${staging}; connect-src ${staging}; frame-src 'self'; base-uri 'none'; form-action 'self'"></head>`):original;
+  const stagingEntry=appleHealth?original.replace('<html','<html data-mile-staging="true"'):original;
   await writeFile(entry,stagingEntry.replace(closing,match=>'<script src="./mile-native-runtime.js"></script>'+
     (appleHealth?'<script type="module" src="./sync/apple-app.mjs"></script>':'')+match));
   for (const name of ['index.html','mile-native-runtime.js']) hashes[name]=createHash('sha256').update(await readFile(path.join(dest,name))).digest('hex');

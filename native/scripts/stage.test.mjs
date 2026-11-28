@@ -36,6 +36,12 @@ test('Apple-enabled staged app pins the backend and includes only its local brid
   const dest=await stage({stagingKey:'sb_publishable_synthetic_only'});
   const html=await readFile(path.join(dest,'index.html'),'utf8');
   assert.match(html,/data-mile-staging="true"/);
+  for(const asset of ['index.html','mile-run-tracker.html','mile-challenges.html']){
+   const contents=await readFile(path.join(dest,asset),'utf8');
+   assert.match(contents,/data-mile-native-session="true"/);
+   assert.match(contents,/<head><meta http-equiv="Content-Security-Policy"/i);
+   assert.doesNotMatch(contents,/https:\/\/app\.milefitness\.com\.au/);
+  }
   assert.match(html,/connect-src https:\/\/fnyfeelynaozxtftrrga\.supabase\.co/);
   assert.match(html,/src="\.\/sync\/apple-app\.mjs"/);
   assert.doesNotMatch(html,/mgixvokjlytjuypzcfzz/);

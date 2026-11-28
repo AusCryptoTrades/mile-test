@@ -12,7 +12,6 @@ public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "availability", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "requestReadAccess", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "readWorkouts", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "readWorkoutPage", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "checkpointGet", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "checkpointSet", returnType: CAPPluginReturnPromise),
@@ -23,12 +22,17 @@ public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "observeWorkouts", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "changeCounter", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "resumeReadAccess", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "scheduleRun", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "scheduleRun", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "readSession", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "writeSession", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "clearSession", returnType: CAPPluginReturnPromise)
     ]
     private let store = HKHealthStore()
     private var scheduleBusy = false
     private var requestedThisSession = false
     private var detailsThisSession = false
+    private var permissionGeneration = 0
+    private var observerGeneration = 0
     private var workoutObserver: HKObserverQuery?
     private let pendingKey = "mile.healthkit.workout-change"
     private let observerKey = "mile.healthkit.workout-observer"
@@ -58,18 +62,24 @@ public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func observeWorkouts(_ call: CAPPluginCall) {
         guard HKHealthStore.isHealthDataAvailable() else { call.reject("HealthKit unavailable"); return }
         let defaults = UserDefaults.standard
+        observerGeneration += 1
+        let generation = observerGeneration
         if call.getBool("enabled") == true {
             guard requestedThisSession else { call.reject("Request HealthKit access first"); return }
             installObserver()
             store.enableBackgroundDelivery(for: HKObjectType.workoutType(), frequency: .hourly) { success, _ in
-                defaults.set(success, forKey: self.observerKey)
-                call.resolve(["enabled": success])
+                DispatchQueue.main.async {
+                    guard generation == self.observerGeneration else { call.resolve(["enabled": false]); return }
+                    defaults.set(success, forKey: self.observerKey)
+                    call.resolve(["enabled": success])
+                }
             }
         } else {
             if let query = workoutObserver { store.stop(query) }
             workoutObserver = nil
             defaults.removeObject(forKey: observerKey)
             if call.getBool("resetPermission") == true {
+                permissionGeneration += 1
                 requestedThisSession = false
                 detailsThisSession = false
             }
@@ -80,12 +90,15 @@ public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func resumeReadAccess(_ call: CAPPluginCall) {
         let defaults = UserDefaults.standard
         guard HKHealthStore.isHealthDataAvailable(), defaults.bool(forKey: observerKey),
-              let account = call.getString("account"), account == defaults.string(forKey: "mile.healthkit.installation-owner") else {
+              let account = call.getString("account"), secureSessionOwner == account,
+              account == defaults.string(forKey: "mile.healthkit.installation-owner") else {
             call.resolve(["ready": false]); return
         }
+        let generation = permissionGeneration
         store.getRequestStatusForAuthorization(toShare: [], read: [HKObjectType.workoutType()]) { status, error in
             DispatchQueue.main.async {
-                guard error == nil, status == .unnecessary else { call.resolve(["ready": false]); return }
+                guard error == nil, status == .unnecessary, self.permissionGeneration == generation,
+                      self.secureSessionOwner == account else { call.resolve(["ready": false]); return }
                 // A prior request means querying is permitted to proceed. It does not disclose a read grant.
                 self.requestedThisSession = true
                 call.resolve(["ready": true])
@@ -98,7 +111,7 @@ public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func installation(_ call: CAPPluginCall) {
-        guard let account = call.getString("account"), UUID(uuidString: account) != nil,
+        guard let account = call.getString("account"), UUID(uuidString: account) != nil, secureSessionOwner == account,
               let epoch = call.getString("epoch"), UUID(uuidString: epoch) != nil,
               let from = call.getString("from"), from.count <= 32 else {
             call.reject("Invalid HealthKit installation scope"); return
@@ -120,6 +133,11 @@ public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
         call.resolve(["id": id, "from": defaults.string(forKey: startKey) ?? from])
     }
 
+    func ownsHealthInstallation(_ account: String?) -> Bool {
+        guard let account, secureSessionOwner == account else { return false }
+        return UserDefaults.standard.string(forKey: "mile.healthkit.installation-owner") == account
+    }
+
     private func quantityTypes() -> [HKQuantityType] {
         var identifiers: [HKQuantityTypeIdentifier] = [.heartRate, .restingHeartRate, .heartRateVariabilitySDNN, .vo2Max]
         if #available(iOS 16, *) {
@@ -136,7 +154,12 @@ public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
         guard HKHealthStore.isHealthDataAvailable() else {
             call.reject("HealthKit unavailable"); return
         }
+        let account = call.getString("account")
         let details = call.getBool("details") == true
+        guard account == nil && !details || account != nil && ownsHealthInstallation(account) else {
+            call.reject("HealthKit access is unavailable for this account"); return
+        }
+        let generation = permissionGeneration
         var read: Set<HKObjectType> = [HKObjectType.workoutType()]
         if details {
             read.formUnion(quantityTypes().map { $0 as HKObjectType })
@@ -145,11 +168,12 @@ public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
         }
         store.requestAuthorization(toShare: [], read: read) { [weak self] success, error in
             DispatchQueue.main.async {
-                guard error == nil, success else {
+                guard let self, error == nil, success, self.permissionGeneration == generation,
+                      account == nil || self.ownsHealthInstallation(account) else {
                     call.reject("HealthKit authorization request did not complete"); return
                 }
-                self?.requestedThisSession = true
-                self?.detailsThisSession = details
+                self.requestedThisSession = true
+                self.detailsThisSession = details
                 // Completion does not imply permission to read every requested type.
                 call.resolve(["requestCompleted": true])
             }
@@ -173,45 +197,10 @@ public class MILEHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
         return workout.totalDistance?.doubleValue(for: .meter())
     }
 
-    @objc func readWorkouts(_ call: CAPPluginCall) {
-        guard HKHealthStore.isHealthDataAvailable(), requestedThisSession else {
-            call.reject("Request HealthKit access first"); return
-        }
-        let days = call.getInt("days") ?? 7
-        guard (1...30).contains(days) else {
-            call.reject("Days must be between 1 and 30"); return
-        }
-        let end = Date()
-        let start = end.addingTimeInterval(-Double(days) * 86400)
-        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
-        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
-        let query = HKSampleQuery(sampleType: HKObjectType.workoutType(), predicate: predicate,
-                                  limit: 501, sortDescriptors: [sort]) { _, samples, error in
-            guard error == nil else { call.reject("HealthKit workout query failed"); return }
-            let workouts = (samples as? [HKWorkout]) ?? []
-            let formatter = ISO8601DateFormatter()
-            let records: [[String: Any]] = workouts.prefix(500).map { workout in
-                var row: [String: Any] = [
-                    "provider": "apple_health",
-                    "providerId": workout.uuid.uuidString,
-                    "activityType": Int(workout.workoutActivityType.rawValue),
-                    "startAt": formatter.string(from: workout.startDate),
-                    "endAt": formatter.string(from: workout.endDate),
-                    "durationSeconds": workout.duration
-                ]
-                if let distance = self.distanceMeters(of: workout) {
-                    row["distanceMeters"] = distance
-                }
-                return row
-            }
-            call.resolve(["workouts": records, "truncated": workouts.count > 500])
-        }
-        store.execute(query)
-    }
     // Bounded historical windows. An opaque HealthKit anchor is valid only for
     // the same device, workout type and exact date window.
     @objc func readWorkoutPage(_ call: CAPPluginCall) {
-        guard HKHealthStore.isHealthDataAvailable(), requestedThisSession else {
+        guard HKHealthStore.isHealthDataAvailable(), requestedThisSession, ownsHealthInstallation(call.getString("account")) else {
             call.reject("Request HealthKit access first"); return
         }
         let iso = ISO8601DateFormatter()
